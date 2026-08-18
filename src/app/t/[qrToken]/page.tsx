@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { findTable, removeInactiveStaffGuests } from "@/lib/guest";
 import { GuestApp } from "@/app/t/[qrToken]/guest-app";
+import { venueOpenState } from "@/lib/opening-hours";
 
 export default async function TablePage({
   params,
@@ -30,6 +31,7 @@ export default async function TablePage({
   });
 
   const session = await auth();
+  const openState = venueOpenState(table.venue.openingHours);
   const staffPreview = Boolean(session?.user?.id) && query.preview === "1";
   if (staffPreview) {
     await removeInactiveStaffGuests(table.id);
@@ -44,6 +46,7 @@ export default async function TablePage({
       venueCover={table.venue.coverUrl}
       tableNumber={table.number}
       staffPreview={staffPreview}
+      openState={{ isOpen: openState.isOpen, label: openState.label }}
       categories={categories.map((category) => ({
         id: category.id,
         name: category.name,
@@ -53,6 +56,7 @@ export default async function TablePage({
           description: item.description,
           price: Number(item.price),
           imageUrl: item.imageUrl,
+          soldOut: item.stockTracked && item.stockQuantity <= 0,
         })),
       }))}
     />

@@ -17,6 +17,7 @@ type MenuItem = {
   description: string | null;
   price: number;
   imageUrl: string | null;
+  soldOut: boolean;
 };
 
 type Category = {
@@ -181,6 +182,9 @@ function MenuDish({
           <p className="mt-1 text-sm text-[var(--muted)]">{item.description}</p>
         ) : null}
         <p className="mt-2 text-sm">{formatTRY(item.price)}</p>
+        {item.soldOut ? (
+          <p className="mt-1 text-xs font-semibold text-red-700">Tükendi</p>
+        ) : null}
       </div>
       {action}
     </Card>
@@ -195,6 +199,7 @@ export function GuestApp({
   venueCover,
   tableNumber,
   categories,
+  openState,
   staffPreview = false,
 }: {
   qrToken: string;
@@ -204,6 +209,7 @@ export function GuestApp({
   venueCover?: string | null;
   tableNumber: string;
   categories: Category[];
+  openState: { isOpen: boolean; label: string };
   staffPreview?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("menu");
@@ -214,6 +220,8 @@ export function GuestApp({
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [receiptEmail, setReceiptEmail] = useState("");
+  const [receiptBusy, setReceiptBusy] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [alertPopup, setAlertPopup] = useState<{
     title: string;
@@ -362,6 +370,24 @@ export function GuestApp({
       headers: guestHeaders(),
     });
     if (refreshed.ok) setCart(await refreshed.json());
+  }
+
+  async function emailReceipt() {
+    setReceiptBusy(true);
+    setMessage(null);
+    const response = await fetch("/api/guest/receipt", {
+      method: "POST",
+      credentials: "include",
+      headers: guestHeaders(true),
+      body: JSON.stringify({ email: receiptEmail }),
+    });
+    const data = await response.json().catch(() => ({}));
+    setReceiptBusy(false);
+    setMessage(
+      response.ok
+        ? "E-posta adresin kaydedildi. Hesap kapanınca dijital adisyon gönderilecek."
+        : data.error ?? "E-posta tercihi kaydedilemedi.",
+    );
   }
 
   async function refreshCart() {
@@ -711,6 +737,16 @@ export function GuestApp({
         </div>
       </header>
 
+      <p
+        className={`mx-4 mt-3 rounded-xl px-3 py-2 text-sm ${
+          openState.isOpen
+            ? "bg-emerald-50 text-emerald-800"
+            : "bg-red-50 text-red-800"
+        }`}
+      >
+        {openState.label}
+      </p>
+
       {message ? (
         <p className="px-4 pt-3 text-sm text-[var(--accent)]">{message}</p>
       ) : null}
@@ -729,10 +765,14 @@ export function GuestApp({
                     action={
                       <Button
                         size="sm"
-                        disabled={busy && addedId !== item.id}
+                        disabled={
+                          item.soldOut ||
+                          !openState.isOpen ||
+                          (busy && addedId !== item.id)
+                        }
                         onClick={() => void addToCart(item.id)}
                       >
-                        Ekle
+                        {item.soldOut ? "Tükendi" : "Ekle"}
                       </Button>
                     }
                   />
@@ -768,6 +808,11 @@ export function GuestApp({
                         <p className="text-sm text-[var(--muted)]">
                           {formatTRY(item.price)}
                         </p>
+                        {!item.available ? (
+                          <p className="mt-1 text-xs font-semibold text-red-700">
+                            Bu ürün artık mevcut değil
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -782,6 +827,7 @@ export function GuestApp({
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={!openState.isOpen || !item.available}
                         onClick={() => void updateQty(item.id, item.quantity + 1)}
                       >
                         +
@@ -804,7 +850,11 @@ export function GuestApp({
               <Button
                 className="w-full"
                 size="lg"
-                disabled={busy}
+                disabled={
+                  busy ||
+                  !openState.isOpen ||
+                  Boolean(cart?.items.some((item) => !item.available))
+                }
                 onClick={() => void submitOrder()}
               >
                 Sipariş ver
@@ -883,6 +933,29 @@ export function GuestApp({
             <p>Masa hesabı</p>
             <p className="text-xl font-medium">{formatTRY(bill?.total ?? 0)}</p>
           </div>
+          <Card className="space-y-3 p-4">
+            <div>
+              <p className="font-medium">Dijital adisyon</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Hesap kapandığında kesinleşen masa adisyonunu e-posta ile al.
+                Mali fiş veya fatura yerine geçmez.
+              </p>
+            </div>
+            <Input
+              type="email"
+              placeholder="E-posta adresin"
+              value={receiptEmail}
+              onChange={(event) => setReceiptEmail(event.target.value)}
+            />
+            <Button
+              className="w-full"
+              variant="outline"
+              disabled={receiptBusy || !receiptEmail}
+              onClick={() => void emailReceipt()}
+            >
+              {receiptBusy ? "Kaydediliyor…" : "Hesap kapanınca gönder"}
+            </Button>
+          </Card>
         </div>
       ) : null}
 

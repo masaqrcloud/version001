@@ -80,7 +80,9 @@ export async function GET() {
         price: Number(item.menuItem.price),
         quantity: item.quantity,
         note: item.note,
-        available: item.menuItem.available,
+        available:
+          item.menuItem.available &&
+          (!item.menuItem.stockTracked || item.menuItem.stockQuantity > 0),
         imageUrl: item.menuItem.imageUrl,
       })),
     },

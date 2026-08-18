@@ -5,6 +5,13 @@ import { getStaffUser } from "@/lib/tenant";
 import { slugify } from "@/lib/slug";
 import { isPublicImageUrl } from "@/lib/media";
 
+const dayHoursSchema = z.object({
+  day: z.number().int().min(0).max(6),
+  open: z.string().regex(/^\d{2}:\d{2}$/),
+  close: z.string().regex(/^\d{2}:\d{2}$/),
+  closed: z.boolean(),
+});
+
 function cleanImage(value: string | null | undefined) {
   if (value === undefined) return undefined;
   const trimmed = value?.trim() || null;
@@ -33,6 +40,7 @@ export async function PATCH(request: Request) {
       tagline: z.string().trim().max(120).nullable().optional(),
       logoUrl: z.string().nullable().optional(),
       coverUrl: z.string().nullable().optional(),
+      openingHours: z.array(dayHoursSchema).length(7).optional(),
     })
     .safeParse(await request.json());
 
@@ -49,6 +57,7 @@ export async function PATCH(request: Request) {
     tagline?: string | null;
     logoUrl?: string | null;
     coverUrl?: string | null;
+    openingHours?: string;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -73,6 +82,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Kapak adresi geçersiz" }, { status: 400 });
   }
   if (cover !== undefined) data.coverUrl = cover;
+  if (body.data.openingHours !== undefined) {
+    data.openingHours = JSON.stringify(body.data.openingHours);
+  }
 
   try {
     const venue = await prisma.venue.update({

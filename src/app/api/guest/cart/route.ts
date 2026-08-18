@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
+import { venueOpenState } from "@/lib/opening-hours";
 
 export async function GET() {
   const guest = await requireOpenGuest();
   if (!guest) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
   }
-
   const items = await prisma.cartItem.findMany({
     where: { guestId: guest.id },
     include: { menuItem: true },
@@ -23,7 +23,9 @@ export async function GET() {
       price: Number(item.menuItem.price),
       quantity: item.quantity,
       note: item.note,
-      available: item.menuItem.available,
+      available:
+        item.menuItem.available &&
+        (!item.menuItem.stockTracked || item.menuItem.stockQuantity > 0),
       imageUrl: item.menuItem.imageUrl,
     })),
   });
@@ -33,6 +35,12 @@ export async function POST(request: Request) {
   const guest = await requireOpenGuest();
   if (!guest) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
+  }
+  if (!venueOpenState(guest.tableSession.table.venue.openingHours).isOpen) {
+    return NextResponse.json(
+      { error: "Mekân şu anda kapalı; sepete ürün eklenemez." },
+      { status: 409 },
+    );
   }
 
   const body = z
@@ -60,6 +68,21 @@ export async function POST(request: Request) {
   }
 
   const quantity = body.data.quantity ?? 1;
+  const existingCartItem = await prisma.cartItem.findUnique({
+    where: {
+      guestId_menuItemId: {
+        guestId: guest.id,
+        menuItemId: menuItem.id,
+      },
+    },
+  });
+  const requestedQuantity = quantity + (existingCartItem?.quantity ?? 0);
+  if (menuItem.stockTracked && menuItem.stockQuantity < requestedQuantity) {
+    return NextResponse.json(
+      { error: `${menuItem.name} için yeterli stok yok` },
+      { status: 409 },
+    );
+  }
 
   const item = await prisma.cartItem.upsert({
     where: {

@@ -6,14 +6,19 @@ import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ password?: string }>;
+}) {
   const session = await auth();
+  const query = await searchParams;
 
   return (
     <AppShell
       nav={
-        <ButtonLink href="/register" variant="ghost" size="sm">
-          Mekânını aç
+        <ButtonLink href="/apply" variant="ghost" size="sm">
+          Başvuru yap
         </ButtonLink>
       }
     >
@@ -39,7 +44,7 @@ export default async function LoginPage() {
           <p className="page-kicker">MasaQR</p>
           <h2 className="mt-3 text-3xl">İçeri buyur</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Hesabınla mekânına gir. Yeni bir yer açacaksan kayıt olman yeterli.
+            Hesabınla mekânına gir. Yeni bir yer açacaksan başvurunu gönder.
           </p>
           {session?.user?.name ? (
             <p className="mt-4 rounded-xl bg-black/5 px-3 py-2 text-sm">
@@ -53,11 +58,16 @@ export default async function LoginPage() {
               </Link>
             </p>
           ) : null}
+          {query.password === "updated" ? (
+            <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              Şifren yenilendi. Yeni şifrenle giriş yapabilirsin.
+            </p>
+          ) : null}
           <LoginForm />
           <p className="mt-6 text-sm text-[var(--muted)]">
             İlk kez misin?{" "}
-            <Link href="/register" className="text-[var(--accent)]">
-              Mekânını oluştur
+            <Link href="/apply" className="text-[var(--accent)]">
+              Başvuru yap
             </Link>
           </p>
           </div>

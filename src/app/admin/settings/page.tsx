@@ -27,6 +27,7 @@ export default async function AdminSettingsPage() {
               tagline={venue.tagline}
               logoUrl={venue.logoUrl}
               coverUrl={venue.coverUrl}
+              openingHours={venue.openingHours}
             />
           </div>
         ) : null}
@@ -46,6 +47,7 @@ export default async function AdminSettingsPage() {
           tagline={venue.tagline}
           logoUrl={venue.logoUrl}
           coverUrl={venue.coverUrl}
+          openingHours={venue.openingHours}
         />
       ) : (
         <p className="mt-8 text-[var(--muted)]">Mekan bulunamadı.</p>

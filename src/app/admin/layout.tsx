@@ -10,6 +10,7 @@ const venueLinks = [
   { href: "/admin", label: "Özet", exact: true },
   { href: "/admin/menu", label: "Menü" },
   { href: "/admin/tables", label: "Masalar" },
+  { href: "/admin/reservations", label: "Rezervasyonlar" },
   { href: "/admin/staff", label: "Personel" },
   { href: "/admin/settings", label: "Ayarlar" },
 ];

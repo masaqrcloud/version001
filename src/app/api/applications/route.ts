@@ -6,7 +6,12 @@ import { sendApplicationMail } from "@/lib/application-mail";
 const applicationSchema = z.object({
   fullName: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(120),
+  phone: z.string().trim().min(7).max(24),
   venueName: z.string().trim().min(2).max(100),
+  city: z.string().trim().min(2).max(60),
+  venueType: z
+    .enum(["Kafe", "Restoran", "Bar", "Pastane", "Otel", "Diğer"]),
+  message: z.string().trim().max(600).optional(),
   website: z.string().max(0).optional(),
 });
 
@@ -42,7 +47,11 @@ export async function POST(request: Request) {
     data: {
       fullName: body.data.fullName,
       email,
+      phone: body.data.phone,
       venueName: body.data.venueName,
+      city: body.data.city,
+      venueType: body.data.venueType,
+      message: body.data.message || null,
     },
   });
 

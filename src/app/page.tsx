@@ -25,6 +25,9 @@ export default function HomePage() {
     <AppShell
       nav={
         <>
+          <ButtonLink href="/reservation" variant="ghost" size="sm">
+            Rezervasyon
+          </ButtonLink>
           <ButtonLink href="/apply" variant="ghost" size="sm">
             Başvuru yap
           </ButtonLink>
@@ -50,6 +53,9 @@ export default function HomePage() {
             </ButtonLink>
             <ButtonLink href="/apply" variant="outline" size="lg">
               Başvuru yap
+            </ButtonLink>
+            <ButtonLink href="/reservation" variant="ghost" size="lg">
+              Masa ayırt
             </ButtonLink>
           </div>
         </div>

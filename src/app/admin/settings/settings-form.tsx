@@ -7,6 +7,17 @@ import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
 import { slugify } from "@/lib/slug";
+import { parseOpeningHours } from "@/lib/opening-hours";
+
+const dayNames = [
+  "Pazar",
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+];
 
 export function SettingsForm({
   name,
@@ -14,12 +25,14 @@ export function SettingsForm({
   tagline,
   logoUrl,
   coverUrl,
+  openingHours,
 }: {
   name: string;
   slug: string;
   tagline: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
+  openingHours: string | null;
 }) {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -28,6 +41,7 @@ export function SettingsForm({
     tagline: tagline ?? "",
     logoUrl: logoUrl ?? "",
     coverUrl: coverUrl ?? "",
+    openingHours: parseOpeningHours(openingHours),
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +62,7 @@ export function SettingsForm({
         tagline: form.tagline.trim() || null,
         logoUrl: form.logoUrl.trim() || null,
         coverUrl: form.coverUrl.trim() || null,
+        openingHours: form.openingHours,
       }),
     });
 
@@ -139,6 +154,78 @@ export function SettingsForm({
         />
         <Button onClick={() => void save()} disabled={busy} variant="secondary">
           {busy ? "Kaydediliyor…" : "Görünümü kaydet"}
+        </Button>
+      </Card>
+
+      <Card className="space-y-5 p-5 lg:col-span-2">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
+            Çalışma saatleri
+          </p>
+          <h2 className="mt-1 font-serif text-2xl">Ne zaman açıksınız?</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Misafir açık/kapalı durumunu görür; kapalıyken sipariş veremez.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {form.openingHours.map((hours, index) => (
+            <div
+              key={hours.day}
+              className="grid items-center gap-3 border-t border-[var(--line)] pt-3 sm:grid-cols-[8rem_1fr_1fr_auto]"
+            >
+              <p className="font-medium">{dayNames[hours.day]}</p>
+              <Input
+                type="time"
+                value={hours.open}
+                disabled={hours.closed}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    openingHours: current.openingHours.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, open: event.target.value }
+                        : item,
+                    ),
+                  }))
+                }
+              />
+              <Input
+                type="time"
+                value={hours.close}
+                disabled={hours.closed}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    openingHours: current.openingHours.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, close: event.target.value }
+                        : item,
+                    ),
+                  }))
+                }
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={hours.closed}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      openingHours: current.openingHours.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, closed: event.target.checked }
+                          : item,
+                      ),
+                    }))
+                  }
+                />
+                Kapalı
+              </label>
+            </div>
+          ))}
+        </div>
+        <Button onClick={() => void save()} disabled={busy}>
+          {busy ? "Kaydediliyor…" : "Çalışma saatlerini kaydet"}
         </Button>
       </Card>
     </div>

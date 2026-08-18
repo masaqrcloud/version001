@@ -18,6 +18,9 @@ export async function PATCH(request: Request, context: Ctx) {
       price: z.number().positive().optional(),
       imageUrl: z.string().nullable().optional().or(z.literal("")),
       available: z.boolean().optional(),
+      stockTracked: z.boolean().optional(),
+      stockQuantity: z.number().int().min(0).max(100000).optional(),
+      lowStockThreshold: z.number().int().min(0).max(100000).optional(),
       categoryId: z.string().optional(),
     })
     .safeParse(await request.json());

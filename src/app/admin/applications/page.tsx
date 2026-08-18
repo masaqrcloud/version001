@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Card } from "@/components/ui/card";
 import { PageIntro } from "@/components/page-intro";
+import { ApplicationsManager } from "@/app/admin/applications/applications-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -22,40 +22,21 @@ export default async function ApplicationsPage() {
         Ana sayfadaki formdan gelen mekân başvuruları.
       </PageIntro>
 
-      <div className="mt-8 space-y-4">
-        {applications.length === 0 ? (
-          <Card className="p-6 text-sm text-[var(--muted)]">
-            Henüz başvuru yok.
-          </Card>
-        ) : (
-          applications.map((application) => (
-            <Card
-              key={application.id}
-              className="grid gap-4 p-5 sm:grid-cols-[1fr_auto] sm:items-center"
-            >
-              <div>
-                <p className="font-serif text-2xl">{application.venueName}</p>
-                <p className="mt-1 font-medium">{application.fullName}</p>
-                <a
-                  href={`mailto:${application.email}`}
-                  className="mt-1 inline-block text-sm text-[var(--accent)]"
-                >
-                  {application.email}
-                </a>
-              </div>
-              <div className="text-sm text-[var(--muted)] sm:text-right">
-                <p>{application.status === "NEW" ? "Yeni" : "İncelendi"}</p>
-                <time dateTime={application.createdAt.toISOString()}>
-                  {new Intl.DateTimeFormat("tr-TR", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                    timeZone: "Europe/Istanbul",
-                  }).format(application.createdAt)}
-                </time>
-              </div>
-            </Card>
-          ))
-        )}
+      <div className="mt-8">
+        <ApplicationsManager
+          applications={applications.map((application) => ({
+            id: application.id,
+            fullName: application.fullName,
+            email: application.email,
+            phone: application.phone,
+            venueName: application.venueName,
+            city: application.city,
+            venueType: application.venueType,
+            message: application.message,
+            status: application.status,
+            createdAt: application.createdAt.toISOString(),
+          }))}
+        />
       </div>
     </div>
   );

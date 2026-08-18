@@ -15,6 +15,9 @@ type Item = {
   price: number;
   imageUrl: string | null;
   available: boolean;
+  stockTracked: boolean;
+  stockQuantity: number;
+  lowStockThreshold: number;
 };
 
 type Category = {
@@ -32,6 +35,8 @@ export function MenuManager() {
     description: "",
     price: "",
     imageUrl: "",
+    stockTracked: false,
+    stockQuantity: "0",
   });
   const [popup, setPopup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +99,8 @@ export function MenuManager() {
         description: itemForm.description || undefined,
         price: Number(itemForm.price),
         imageUrl: itemForm.imageUrl || undefined,
+        stockTracked: itemForm.stockTracked,
+        stockQuantity: Number(itemForm.stockQuantity) || 0,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -101,7 +108,14 @@ export function MenuManager() {
       setError(data.error ?? "Ürün eklenemedi");
       return;
     }
-    setItemForm((f) => ({ ...f, name: "", description: "", price: "", imageUrl: "" }));
+    setItemForm((f) => ({
+      ...f,
+      name: "",
+      description: "",
+      price: "",
+      imageUrl: "",
+      stockQuantity: "0",
+    }));
     setError(null);
     await load();
     setPopup(`${data.name} menüye eklendi.`);
@@ -126,6 +140,18 @@ export function MenuManager() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageUrl }),
+    });
+    await load();
+  }
+
+  async function updateStock(
+    item: Item,
+    data: { stockTracked?: boolean; stockQuantity?: number },
+  ) {
+    await fetch(`/api/admin/items/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
     await load();
   }
@@ -170,6 +196,47 @@ export function MenuManager() {
                         {formatTRY(item.price)}
                         {item.description ? ` · ${item.description}` : ""}
                       </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <button
+                          type="button"
+                          className="font-medium text-[var(--accent)]"
+                          onClick={() =>
+                            void updateStock(item, {
+                              stockTracked: !item.stockTracked,
+                            })
+                          }
+                        >
+                          {item.stockTracked ? "Stok takibini kapat" : "Stok takibi aç"}
+                        </button>
+                        {item.stockTracked ? (
+                          <>
+                            <span
+                              className={
+                                item.stockQuantity <= item.lowStockThreshold
+                                  ? "font-semibold text-red-700"
+                                  : "text-[var(--muted)]"
+                              }
+                            >
+                              Stok: {item.stockQuantity}
+                            </span>
+                            <Input
+                              aria-label={`${item.name} stok adedi`}
+                              type="number"
+                              min="0"
+                              className="h-8 w-20"
+                              defaultValue={item.stockQuantity}
+                              onBlur={(event) =>
+                                void updateStock(item, {
+                                  stockQuantity: Math.max(
+                                    0,
+                                    Number(event.target.value) || 0,
+                                  ),
+                                })
+                              }
+                            />
+                          </>
+                        ) : null}
+                      </div>
                       <label className="mt-2 inline-flex cursor-pointer text-xs font-medium text-[var(--accent)]">
                         {item.imageUrl ? "Fotoğrafı değiştir" : "Fotoğraf yükle"}
                         <input
@@ -285,6 +352,35 @@ export function MenuManager() {
                 onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={itemForm.stockTracked}
+                onChange={(event) =>
+                  setItemForm((form) => ({
+                    ...form,
+                    stockTracked: event.target.checked,
+                  }))
+                }
+              />
+              Stok takibi kullan
+            </label>
+            {itemForm.stockTracked ? (
+              <div>
+                <Label>Başlangıç stok adedi</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={itemForm.stockQuantity}
+                  onChange={(event) =>
+                    setItemForm((form) => ({
+                      ...form,
+                      stockQuantity: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            ) : null}
             <ImageUpload
               label="Yemek fotoğrafı"
               kind="menu"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,15 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <Label htmlFor="password">Şifre</Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="password">Şifre</Label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-[var(--accent)]"
+          >
+            Şifremi unuttum
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"

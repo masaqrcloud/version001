@@ -2,13 +2,17 @@
 
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, Textarea } from "@/components/ui/input";
 
 export function ApplicationForm() {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
+    phone: "",
     venueName: "",
+    city: "",
+    venueType: "Kafe",
+    message: "",
     website: "",
   });
   const [busy, setBusy] = useState(false);
@@ -92,6 +96,68 @@ export function ApplicationForm() {
           value={form.venueName}
           onChange={(event) =>
             setForm((current) => ({ ...current, venueName: event.target.value }))
+          }
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="phone">Telefon</Label>
+          <Input
+            id="phone"
+            type="tel"
+            required
+            maxLength={24}
+            autoComplete="tel"
+            value={form.phone}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, phone: event.target.value }))
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="city">Şehir</Label>
+          <Input
+            id="city"
+            required
+            maxLength={60}
+            autoComplete="address-level1"
+            value={form.city}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, city: event.target.value }))
+            }
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="venueType">Mekân türü</Label>
+        <select
+          id="venueType"
+          className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none ring-[var(--accent)] focus:ring-2"
+          value={form.venueType}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              venueType: event.target.value,
+            }))
+          }
+        >
+          <option>Kafe</option>
+          <option>Restoran</option>
+          <option>Bar</option>
+          <option>Pastane</option>
+          <option>Otel</option>
+          <option>Diğer</option>
+        </select>
+      </div>
+      <div>
+        <Label htmlFor="message">Kısaca mekânından bahset</Label>
+        <Textarea
+          id="message"
+          maxLength={600}
+          placeholder="Masa sayısı, hizmet biçimi veya paylaşmak istediğin diğer bilgiler…"
+          value={form.message}
+          onChange={(event) =>
+            setForm((current) => ({ ...current, message: event.target.value }))
           }
         />
       </div>

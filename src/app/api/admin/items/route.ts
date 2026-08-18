@@ -16,6 +16,9 @@ export async function POST(request: Request) {
       price: z.number().positive(),
       imageUrl: z.string().optional().or(z.literal("")),
       available: z.boolean().optional(),
+      stockTracked: z.boolean().optional(),
+      stockQuantity: z.number().int().min(0).max(100000).optional(),
+      lowStockThreshold: z.number().int().min(0).max(100000).optional(),
     })
     .safeParse(await request.json());
 
@@ -46,6 +49,9 @@ export async function POST(request: Request) {
           ? body.data.imageUrl
           : null,
       available: body.data.available ?? true,
+      stockTracked: body.data.stockTracked ?? false,
+      stockQuantity: body.data.stockQuantity ?? 0,
+      lowStockThreshold: body.data.lowStockThreshold ?? 5,
       sortOrder: (last?.sortOrder ?? 0) + 1,
     },
   });
