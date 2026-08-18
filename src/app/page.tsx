@@ -26,7 +26,7 @@ export default function HomePage() {
       nav={
         <>
           <ButtonLink href="/register" variant="ghost" size="sm">
-            Mekânını aç
+            Yeni mekân oluştur
           </ButtonLink>
           <ButtonLink href="/login" variant="secondary" size="sm">
             Giriş yap
