@@ -9,6 +9,7 @@ echo "MasaQR güncelleniyor..."
 git fetch origin main
 git reset --hard origin/main
 
+rm -rf node_modules
 npm install
 npx prisma generate
 npx prisma migrate deploy
