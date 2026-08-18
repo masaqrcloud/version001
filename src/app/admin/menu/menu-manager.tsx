@@ -54,6 +54,8 @@ export function MenuManager() {
 
   useEffect(() => {
     void load();
+    const pollId = window.setInterval(() => void load(), 3000);
+    return () => window.clearInterval(pollId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

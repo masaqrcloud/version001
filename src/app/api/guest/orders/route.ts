@@ -9,13 +9,6 @@ export async function GET() {
   if (!guest) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
   }
-  if (!venueOpenState(guest.tableSession.table.venue.openingHours).isOpen) {
-    return NextResponse.json(
-      { error: "Mekân şu anda kapalı; sipariş gönderilemez." },
-      { status: 409 },
-    );
-  }
-
   const orders = await prisma.order.findMany({
     where: { guestId: guest.id },
     include: { items: true },
@@ -42,6 +35,12 @@ export async function POST() {
   const guest = await requireOpenGuest();
   if (!guest) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
+  }
+  if (!venueOpenState(guest.tableSession.table.venue.openingHours).isOpen) {
+    return NextResponse.json(
+      { error: "Mekân şu anda kapalı; sipariş gönderilemez." },
+      { status: 409 },
+    );
   }
 
   const cart = await prisma.cartItem.findMany({
