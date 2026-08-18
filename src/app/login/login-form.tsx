@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
 export function LoginForm() {
-  const [state, action, pending] = useActionState(loginAction, {});
+  const [state, action, pending] = useActionState(loginAction, {
+    error: undefined as string | undefined,
+  });
 
   return (
     <form action={action} className="mt-8 space-y-4">

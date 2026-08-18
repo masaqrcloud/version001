@@ -26,7 +26,8 @@ export function detectLanIps() {
   for (const [name, items] of Object.entries(nets)) {
     for (const item of items ?? []) {
       if (!item || item.internal) continue;
-      if (item.family !== "IPv4" && item.family !== 4) continue;
+      const family = String(item.family);
+      if (family !== "IPv4" && family !== "4") continue;
       if (item.address.startsWith("169.254.")) continue;
       if (!isPrivateIpv4(item.address)) continue;
       if (isVirtualIface(name)) {
