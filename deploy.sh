@@ -7,13 +7,19 @@ cd "$APP_DIR"
 echo "MasaQR güncelleniyor..."
 
 if ! swapon --show | grep -q .; then
-  echo "2G swap ekleniyor..."
-  sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
-  sudo chmod 600 /swapfile
-  sudo mkswap /swapfile
-  sudo swapon /swapfile
-  if ! grep -q '^/swapfile ' /etc/fstab; then
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+  avail_kb="$(df -Pk / | awk 'NR==2 { print $4 }')"
+  if [ "${avail_kb}" -gt 1600000 ]; then
+    echo "1G swap ekleniyor..."
+    sudo rm -f /swapfile
+    sudo fallocate -l 1G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    if ! grep -q '^/swapfile ' /etc/fstab; then
+      echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null
+    fi
+  else
+    echo "Swap atlandı, disk dar: ${avail_kb} KB boş"
   fi
 fi
 

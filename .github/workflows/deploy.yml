@@ -25,6 +25,12 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR="${HOME}/masaqr"
+            df -h
+            sudo swapoff /swapfile 2>/dev/null || true
+            sudo rm -f /swapfile
+            rm -rf "${HOME}/.npm/_cacache" "${APP_DIR}/node_modules" "${APP_DIR}/.next"
+            sudo journalctl --vacuum-size=20M >/dev/null 2>&1 || true
+            df -h
             if [ ! -d "${APP_DIR}/.git" ]; then
               git clone https://github.com/masaqrcloud/version001.git "${APP_DIR}"
             fi
