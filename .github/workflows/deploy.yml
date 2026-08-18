@@ -24,5 +24,12 @@ jobs:
           command_timeout: 20m
           script: |
             set -euo pipefail
-            cd "${HOME}/masaqr"
+            APP_DIR="${HOME}/masaqr"
+            if [ ! -d "${APP_DIR}/.git" ]; then
+              git clone https://github.com/masaqrcloud/version001.git "${APP_DIR}"
+            fi
+            if [ ! -f "${APP_DIR}/.env" ] && [ -f "${HOME}/.env" ]; then
+              cp "${HOME}/.env" "${APP_DIR}/.env"
+            fi
+            cd "${APP_DIR}"
             bash deploy.sh
