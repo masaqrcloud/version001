@@ -8,7 +8,14 @@ import { signIn } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ACTIVE_VENUE_COOKIE, homeForRole } from "@/lib/tenant";
 
-export async function loginAction(_prev: { error?: string }, formData: FormData) {
+export type LoginState = {
+  error?: string | null;
+};
+
+export async function loginAction(
+  _prev: LoginState,
+  formData: FormData
+): Promise<LoginState> {
   const email = String(formData.get("email") ?? "").toLowerCase().trim();
   const password = String(formData.get("password") ?? "");
 

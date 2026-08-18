@@ -10,7 +10,7 @@ export function guestCookieOptions() {
     sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
   };
 }
 

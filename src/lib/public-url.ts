@@ -26,7 +26,7 @@ export function detectLanIps() {
   for (const [name, items] of Object.entries(nets)) {
     for (const item of items ?? []) {
       if (!item || item.internal) continue;
-      if (item.family !== "IPv4" && item.family !== 4) continue;
+      if (item.family !== "IPv4") continue;
       if (item.address.startsWith("169.254.")) continue;
       if (!isPrivateIpv4(item.address)) continue;
       if (isVirtualIface(name)) {
@@ -45,6 +45,9 @@ export function detectLanIp() {
 }
 
 export function lanOrigin(port = process.env.PORT ?? "3000") {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
   const lan = detectLanIp();
   if (lan) {
     return `http://${lan}:${port}`;
@@ -54,6 +57,9 @@ export function lanOrigin(port = process.env.PORT ?? "3000") {
 }
 
 export function lanOrigins(port = process.env.PORT ?? "3000") {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return [process.env.NEXT_PUBLIC_APP_URL];
+  }
   const ips = detectLanIps();
   if (ips.length === 0) {
     return [`http://localhost:${port}`];
