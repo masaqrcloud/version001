@@ -15,11 +15,21 @@ npx prisma generate
 # 4. Next.js derlemesini yap
 npm run build
 
-# 5. PM2 ile uygulamayı kesintisiz yenile
-if pm2 list | grep -q "masaqr"; then
+# 5. Servisi yeniden başlat (Systemd veya PM2)
+if systemctl is-active --quiet masaqr.service 2>/dev/null; then
+    echo "🔄 systemd servisi (masaqr.service) yeniden başlatılıyor..."
+    sudo systemctl restart masaqr.service
+elif systemctl is-active --quiet masaqr 2>/dev/null; then
+    echo "🔄 systemd servisi (masaqr) yeniden başlatılıyor..."
+    sudo systemctl restart masaqr
+elif systemctl is-active --quiet nextjs 2>/dev/null; then
+    echo "🔄 systemd servisi (nextjs) yeniden başlatılıyor..."
+    sudo systemctl restart nextjs
+elif command -v pm2 &>/dev/null && pm2 list | grep -q "masaqr"; then
+    echo "🔄 PM2 süreci (masaqr) yeniden başlatılıyor..."
     pm2 reload masaqr
 else
-    pm2 start npm --name "masaqr" -- start
+    echo "🔄 Systemd servisini yeniden başlatmayı unutmayın: sudo systemctl restart <servis-adiniz>"
 fi
 
-echo "✅ MasaQR başarıyla güncellendi ve masaqr.net üzerinde yayında!"
+echo "✅ MasaQR başarıyla derlendi ve masaqr.net üzerinde yayında!"
