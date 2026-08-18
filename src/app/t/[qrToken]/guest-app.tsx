@@ -35,6 +35,7 @@ type CartResponse = {
     quantity: number;
     note: string | null;
     imageUrl: string | null;
+    available: boolean;
   }[];
 };
 
