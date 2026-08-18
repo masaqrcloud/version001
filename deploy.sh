@@ -6,9 +6,16 @@ cd "$APP_DIR"
 
 echo "MasaQR güncelleniyor..."
 
+git fetch origin main
+git reset --hard origin/main
+
+npm install
+npx prisma generate
+npx prisma migrate deploy
+
 if ! swapon --show | grep -q .; then
   avail_kb="$(df -Pk / | awk 'NR==2 { print $4 }')"
-  if [ "${avail_kb}" -gt 1200000 ]; then
+  if [ "${avail_kb}" -gt 900000 ]; then
     echo "512M swap ekleniyor..."
     sudo rm -f /swapfile
     sudo fallocate -l 512M /swapfile
@@ -22,29 +29,6 @@ if ! swapon --show | grep -q .; then
     echo "Swap atlandı, disk dar: ${avail_kb} KB boş"
   fi
 fi
-
-git fetch origin main
-git reset --hard origin/main
-
-for candidate in \
-  "$HOME/prisma/dev.db" \
-  "$HOME/dev.db" \
-  "$HOME/MasaQR/prisma/dev.db" \
-  "$HOME/MasaQR/dev.db"
-do
-  if [ -f "$candidate" ]; then
-    mkdir -p "$APP_DIR/prisma"
-    if [ ! -f "$APP_DIR/prisma/dev.db" ] || [ "$(stat -c%s "$candidate")" -gt "$(stat -c%s "$APP_DIR/prisma/dev.db")" ]; then
-      cp -a "$candidate" "$APP_DIR/prisma/dev.db"
-      echo "Mevcut veritabanı kopyalandı: $candidate"
-    fi
-    break
-  fi
-done
-
-npm install
-npx prisma generate
-npx prisma migrate deploy
 
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=768}"
 npm run build
