@@ -38,4 +38,6 @@ jobs:
               cp "${HOME}/.env" "${APP_DIR}/.env"
             fi
             cd "${APP_DIR}"
+            git fetch origin main
+            git reset --hard origin/main
             bash deploy.sh

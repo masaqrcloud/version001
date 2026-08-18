@@ -8,10 +8,10 @@ echo "MasaQR güncelleniyor..."
 
 if ! swapon --show | grep -q .; then
   avail_kb="$(df -Pk / | awk 'NR==2 { print $4 }')"
-  if [ "${avail_kb}" -gt 1600000 ]; then
-    echo "1G swap ekleniyor..."
+  if [ "${avail_kb}" -gt 1200000 ]; then
+    echo "512M swap ekleniyor..."
     sudo rm -f /swapfile
-    sudo fallocate -l 1G /swapfile
+    sudo fallocate -l 512M /swapfile
     sudo chmod 600 /swapfile
     sudo mkswap /swapfile
     sudo swapon /swapfile
