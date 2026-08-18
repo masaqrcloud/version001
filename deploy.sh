@@ -16,12 +16,21 @@ npm run build
 
 mkdir -p public/uploads/menu public/uploads/venues
 
-if pm2 describe masaqr >/dev/null 2>&1; then
-  pm2 reload ecosystem.config.cjs --update-env
+if [ -f "$APP_DIR/deploy/nextapp.service" ]; then
+  sudo cp "$APP_DIR/deploy/nextapp.service" /etc/systemd/system/nextapp.service
+  sudo systemctl daemon-reload
+  sudo systemctl enable nextapp
+  sudo systemctl restart nextapp
+  sudo systemctl is-active --quiet nextapp
 else
-  pm2 start ecosystem.config.cjs
+  if command -v pm2 >/dev/null 2>&1; then
+    if pm2 describe masaqr >/dev/null 2>&1; then
+      pm2 reload ecosystem.config.cjs --update-env
+    else
+      pm2 start ecosystem.config.cjs
+    fi
+    pm2 save
+  fi
 fi
-
-pm2 save
 
 echo "MasaQR yayında: https://masaqr.net"

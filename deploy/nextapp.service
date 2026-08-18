@@ -1,0 +1,18 @@
+[Unit]
+Description=MasaQR Next.js
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/masaqr
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=-/home/ubuntu/masaqr/.env
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
