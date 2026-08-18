@@ -25,8 +25,8 @@ export default function HomePage() {
     <AppShell
       nav={
         <>
-          <ButtonLink href="/register" variant="ghost" size="sm">
-            Mekânını aç
+          <ButtonLink href="/apply" variant="ghost" size="sm">
+            Başvuru yap
           </ButtonLink>
           <ButtonLink href="/login" variant="secondary" size="sm">
             Giriş yap
@@ -48,8 +48,8 @@ export default function HomePage() {
             <ButtonLink href="/login" size="lg">
               Mekânına gir
             </ButtonLink>
-            <ButtonLink href="/register" variant="outline" size="lg">
-              Yeni mekân oluştur
+            <ButtonLink href="/apply" variant="outline" size="lg">
+              Başvuru yap
             </ButtonLink>
           </div>
         </div>

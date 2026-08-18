@@ -66,6 +66,11 @@ export default async function AdminLayout({
               </NavLink>
             ))}
           </SideGroup>
+          {session.user.role === "PLATFORM" ? (
+            <SideGroup title="MasaQR">
+              <NavLink href="/admin/applications">Başvurular</NavLink>
+            </SideGroup>
+          ) : null}
           <SideGroup title="Salon">
             <NavLink href="/staff/waiter">Garson</NavLink>
             <NavLink href="/staff/kitchen">Mutfak</NavLink>

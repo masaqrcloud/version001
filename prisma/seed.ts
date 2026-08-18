@@ -30,7 +30,7 @@ async function main() {
     data: {
       email: "owner@masaqr.com",
       passwordHash,
-      name: "MasaQR Sahibi",
+      name: "MasaQR",
       role: "PLATFORM",
     },
   });
