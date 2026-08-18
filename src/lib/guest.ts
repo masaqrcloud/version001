@@ -5,12 +5,13 @@ import { prisma } from "@/lib/db";
 export const GUEST_COOKIE = "guest_session";
 
 export function guestCookieOptions() {
+  const authUrl = process.env.AUTH_URL ?? "";
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
-    secure: process.env.NODE_ENV === "production",
+    secure: authUrl.startsWith("https://"),
   };
 }
 

@@ -35,3 +35,16 @@ Postgres için `docker-compose.yml` hazır. Ayağa kaldırdıktan sonra `prisma/
 ```
 postgresql://orderqr:orderqr@localhost:5433/orderqr
 ```
+
+## Yayın (GitHub → EC2)
+
+`main` branch'ine push gelince GitHub Actions, EC2'ye SSH atıp `deploy.sh` çalıştırır.
+
+Sunucuda uygulama klasörü: `~/masaqr`
+
+Gerekli GitHub Secrets:
+
+- `EC2_HOST` — instance public IP veya `masaqr.net`
+- `EC2_USER` — genelde `ubuntu`
+- `EC2_SSH_KEY` — EC2'ye giriş için private key
+- `EC2_PORT` — opsiyonel, varsayılan `22`

@@ -1,14 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { loginAction, type LoginState } from "@/app/login/actions";
+import { loginAction } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 
-const initialState: LoginState = {};
-
 export function LoginForm() {
-  const [state, action, pending] = useActionState(loginAction, initialState);
+  const [state, action, pending] = useActionState(loginAction, {});
 
   return (
     <form action={action} className="mt-8 space-y-4">
@@ -33,7 +31,7 @@ export function LoginForm() {
           autoComplete="current-password"
         />
       </div>
-      {state?.error ? (
+      {state.error ? (
         <p className="text-sm text-red-700">{state.error}</p>
       ) : null}
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
