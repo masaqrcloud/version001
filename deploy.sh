@@ -3,8 +3,9 @@ set -e
 
 echo "🚀 MasaQR güncelleniyor..."
 
-# 1. En son kodları GitHub'dan çek
-git pull origin main
+# 1. Yerel çakışmaları temizle ve en son kodları GitHub'dan çek
+git fetch origin main
+git reset --hard origin/main
 
 # 2. Paketleri yükle
 npm install
@@ -40,4 +41,4 @@ else
     sudo systemctl restart nextapp || true
 fi
 
-echo "✅ MasaQR başarıyla derlendi ve masaqr.net üzerinde yayında!"
+echo "✅ MasaQR başarıyla güncellendi ve masaqr.net üzerinde yayında!"
