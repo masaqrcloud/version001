@@ -5,6 +5,7 @@ import { requireOpenGuest } from "@/lib/guest";
 import { notifyOrderStatus } from "@/lib/notify";
 import { restoreStockForOrder } from "@/lib/stock";
 import { pushToVenueRoles } from "@/lib/staff-push";
+import { tableLabel } from "@/lib/table-label";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -110,7 +111,7 @@ export async function PATCH(request: Request, context: Ctx) {
     ["PLATFORM", "OWNER", "ADMIN", "KITCHEN", "WAITER"],
     {
       title: "Sipariş iptal",
-      body: `Masa ${guest.tableSession.table.number} · misafir iptal etti`,
+      body: `${tableLabel(guest.tableSession.table.number)} · misafir iptal etti`,
       url: "/staff/kitchen",
       tag: `order-${order.id}`,
     },

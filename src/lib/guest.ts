@@ -234,3 +234,23 @@ export async function requireOpenGuest() {
   if (guest.tableSession.status === "OPEN") return guest;
   return null;
 }
+
+export async function getOrCreateStaffProxyGuest(
+  sessionId: string,
+  staffName?: string | null,
+) {
+  const nickname = staffName?.trim()
+    ? `Personel · ${staffName.trim()}`
+    : "Personel";
+  const existing = await prisma.guest.findFirst({
+    where: { tableSessionId: sessionId, nickname },
+  });
+  if (existing) return existing;
+  return prisma.guest.create({
+    data: {
+      tableSessionId: sessionId,
+      guestToken: randomBytes(16).toString("hex"),
+      nickname,
+    },
+  });
+}

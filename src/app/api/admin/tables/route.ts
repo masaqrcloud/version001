@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if (error) return error;
 
   const body = z
-    .object({ number: z.string().trim().min(1).max(20) })
+    .object({ number: z.string().trim().min(1).max(40) })
     .safeParse(await request.json());
 
   if (!body.success) {

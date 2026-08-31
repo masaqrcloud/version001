@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
+import { tableLabel } from "@/lib/table-label";
 
 type Summary = {
   day: string;
@@ -151,7 +152,7 @@ export function SummaryView() {
               data.openTables.map((table) => (
                 <Link key={table.id} href={`/staff/waiter/${table.id}`}>
                   <Card className="flex justify-between p-4">
-                    <p>Masa {table.tableNumber}</p>
+                    <p>{tableLabel(table.tableNumber)}</p>
                     <p className="text-sm text-[var(--muted)]">
                       {table.guests} kişi
                     </p>

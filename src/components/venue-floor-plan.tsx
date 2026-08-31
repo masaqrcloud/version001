@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePoll } from "@/lib/poll";
 import { autoFloorPosition, clusteredPosition } from "@/lib/table-groups";
 import { formatTRY } from "@/lib/utils";
+import { tableLabel } from "@/lib/table-label";
 
 type FloorTable = {
   id: string;
@@ -14,6 +16,7 @@ type FloorTable = {
   floorX: number | null;
   floorY: number | null;
   occupied: boolean;
+  reserved: boolean;
   sessionId: string | null;
   primaryTableId: string | null;
   mergedLabel: string | null;
@@ -23,6 +26,7 @@ type FloorTable = {
   orderCount: number;
   pendingCount: number;
   waiterCalledAt: string | null;
+  billRequestedAt: string | null;
   total: number;
 };
 
@@ -79,15 +83,20 @@ function TableShape({ occupied }: { occupied: boolean }) {
 type Position = { x: number; y: number };
 
 function FloorCard({ table }: { table: FloorTable }) {
+  const taken = table.occupied || table.reserved;
   return (
     <Card
       className={`relative overflow-hidden p-3 shadow-lg transition ${
-        table.occupied
+        taken
           ? "border-red-200 bg-red-50/95"
           : "border-emerald-200 bg-emerald-50/95"
       }`}
     >
-      {table.waiterCalledAt ? (
+      {table.billRequestedAt ? (
+        <span className="absolute right-2 top-2 z-10 animate-pulse rounded-full bg-[var(--accent)] px-2 py-1 text-[9px] font-semibold text-white">
+          Hesap
+        </span>
+      ) : table.waiterCalledAt ? (
         <span className="absolute right-2 top-2 z-10 animate-pulse rounded-full bg-[var(--accent)] px-2 py-1 text-[9px] font-semibold text-white">
           Garson çağrısı
         </span>
@@ -95,19 +104,23 @@ function FloorCard({ table }: { table: FloorTable }) {
         <span className="absolute right-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[9px] font-semibold text-white">
           Birleşik {table.mergedLabel}
         </span>
+      ) : table.reserved && !table.occupied ? (
+        <span className="absolute right-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[9px] font-semibold text-white">
+          Rezerve
+        </span>
       ) : null}
       <div className="scale-75">
-        <TableShape occupied={table.occupied} />
+        <TableShape occupied={taken} />
       </div>
       <div className="-mt-3 flex items-end justify-between gap-2">
         <div>
-          <p className="font-serif text-xl">Masa {table.number}</p>
+          <p className="font-serif text-xl">{tableLabel(table.number)}</p>
           <p
             className={`text-xs font-medium ${
-              table.occupied ? "text-red-700" : "text-emerald-700"
+              taken ? "text-red-700" : "text-emerald-700"
             }`}
           >
-            {table.occupied ? "Dolu" : "Boş"}
+            {table.occupied ? "Dolu" : table.reserved ? "Rezerve" : "Boş"}
             {table.isMerged && table.mergedLabel
               ? ` · ${table.mergedLabel}`
               : ""}
@@ -141,7 +154,9 @@ export function VenueFloorPlan({
   editable?: boolean;
 }) {
   const { data, error } = usePoll<FloorResponse>("/api/staff/floor", 3000);
+  const router = useRouter();
   const floorRef = useRef<HTMLDivElement>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, Position>>({});
@@ -192,6 +207,26 @@ export function VenueFloorPlan({
       setSaveError("Masa konumu kaydedilemedi. Tekrar sürükleyip deneyin.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function openEmptyTable(tableId: string) {
+    if (openingId) return;
+    setOpeningId(tableId);
+    try {
+      const response = await fetch("/api/staff/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableId }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        window.alert(json.error ?? "Masa açılamadı");
+        return;
+      }
+      router.push(`/staff/waiter/${json.id}/order`);
+    } finally {
+      setOpeningId(null);
     }
   }
 
@@ -249,8 +284,8 @@ export function VenueFloorPlan({
               <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800">
                 {data.summary.available} boş
               </span>
-              <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-800">
-                {data.summary.occupied} dolu
+          <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-800">
+                {data.summary.occupied} dolu / rezerve
               </span>
               <span className="rounded-full bg-black/5 px-3 py-1.5">
                 {data.summary.guests} misafir
@@ -315,9 +350,13 @@ export function VenueFloorPlan({
         ) : null}
 
         {data?.tables.length ? (
+          <div className="-mx-1 overflow-x-auto touch-pan-x">
+            <p className="mb-2 text-center text-[11px] text-[var(--muted)] sm:hidden">
+              Krokiyi yana kaydır · boş masaya basınca sipariş yazarsın
+            </p>
           <div
             ref={floorRef}
-            className="relative h-[680px] overflow-hidden rounded-[1.5rem] border border-dashed border-black/10 bg-white/20"
+            className="relative h-[480px] w-[720px] overflow-hidden rounded-[1.5rem] border border-dashed border-black/10 bg-white/20 sm:h-[680px] sm:w-full"
           >
             {data.tables.map((table, index) => {
               const position = tablePosition(
@@ -331,13 +370,20 @@ export function VenueFloorPlan({
               ) : emptyHref ? (
                 <Link href={emptyHref}>{content}</Link>
               ) : (
-                content
+                <button
+                  type="button"
+                  className="block w-full text-left"
+                  disabled={openingId === table.id}
+                  onClick={() => void openEmptyTable(table.id)}
+                >
+                  {content}
+                </button>
               );
 
               return (
                 <div
                   key={table.id}
-                  className={`absolute w-[165px] -translate-x-1/2 -translate-y-1/2 select-none sm:w-[190px] ${
+                  className={`absolute w-[120px] -translate-x-1/2 -translate-y-1/2 select-none sm:w-[190px] ${
                     editing
                       ? "cursor-grab touch-none active:cursor-grabbing"
                       : "transition-[left,top] duration-300"
@@ -379,6 +425,7 @@ export function VenueFloorPlan({
                 </div>
               );
             })}
+          </div>
           </div>
         ) : null}
       </div>

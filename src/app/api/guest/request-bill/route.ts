@@ -5,7 +5,7 @@ import { notifyGuest } from "@/lib/notify";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
 
-const WAITER_COOLDOWN_MS = 10 * 60 * 1000;
+const BILL_COOLDOWN_MS = 5 * 60 * 1000;
 
 export async function POST() {
   const guest = await requireOpenGuest();
@@ -15,13 +15,13 @@ export async function POST() {
 
   try {
     const now = new Date();
-    const cooldownUntil = guest.waiterCalledAt
-      ? new Date(guest.waiterCalledAt.getTime() + WAITER_COOLDOWN_MS)
+    const cooldownUntil = guest.billRequestedAt
+      ? new Date(guest.billRequestedAt.getTime() + BILL_COOLDOWN_MS)
       : null;
     if (cooldownUntil && cooldownUntil > now) {
       return NextResponse.json(
         {
-          error: "Garson zaten çağrıldı. Tekrar çağırmak için biraz bekle.",
+          error: "Hesap isteğin iletildi. Biraz sonra tekrar deneyebilirsin.",
           cooldownUntil: cooldownUntil.toISOString(),
         },
         { status: 429 },
@@ -33,75 +33,70 @@ export async function POST() {
         where: {
           id: guest.id,
           OR: [
-            { waiterCalledAt: null },
+            { billRequestedAt: null },
             {
-              waiterCalledAt: {
-                lte: new Date(now.getTime() - WAITER_COOLDOWN_MS),
+              billRequestedAt: {
+                lte: new Date(now.getTime() - BILL_COOLDOWN_MS),
               },
             },
           ],
         },
-        data: { waiterCalledAt: now },
+        data: { billRequestedAt: now },
       });
       if (updated.count !== 1) return false;
-
       await tx.tableSession.update({
         where: { id: guest.tableSessionId },
-        data: { waiterCalledAt: now },
+        data: { billRequestedAt: now },
       });
       return true;
     });
     if (!claimed) {
       const currentGuest = await prisma.guest.findUnique({
         where: { id: guest.id },
-        select: { waiterCalledAt: true },
+        select: { billRequestedAt: true },
       });
-      const currentCooldownUntil = currentGuest?.waiterCalledAt
-        ? new Date(
-            currentGuest.waiterCalledAt.getTime() + WAITER_COOLDOWN_MS,
-          ).toISOString()
-        : undefined;
       return NextResponse.json(
         {
-          error: "Garson zaten çağrıldı. Tekrar çağırmak için biraz bekle.",
-          cooldownUntil: currentCooldownUntil,
+          error: "Hesap isteğin iletildi. Biraz sonra tekrar deneyebilirsin.",
+          cooldownUntil: currentGuest?.billRequestedAt
+            ? new Date(
+                currentGuest.billRequestedAt.getTime() + BILL_COOLDOWN_MS,
+              ).toISOString()
+            : undefined,
         },
         { status: 429 },
       );
     }
 
-    const who = guest.nickname?.trim() || "Masa";
     try {
       await notifyGuest(
         guest.id,
-        "Garson çağrıldı",
-        `${who}, garson masaya geliyor.`,
+        "Hesap isteniyor",
+        "Garson hesabınla masaya gelecek.",
       );
     } catch {
-      // bildirim olmasa da çağrı gider
+      // bildirim olmasa da istek gider
     }
     void pushToVenueRoles(
       guest.tableSession.table.venueId,
       ["PLATFORM", "OWNER", "ADMIN", "WAITER"],
       {
-        title: "Garson çağrısı",
-        body: `${tableLabel(guest.tableSession.table.number)} garson çağırıyor`,
+        title: "Hesap isteniyor",
+        body: `${tableLabel(guest.tableSession.table.number)} hesabı istiyor`,
         url: `/staff/waiter/${guest.tableSessionId}`,
-        tag: `waiter-${guest.tableSessionId}`,
+        tag: `bill-${guest.tableSessionId}`,
       },
     );
 
     return NextResponse.json({
       ok: true,
-      message: "Garson çağrıldı.",
-      cooldownUntil: new Date(
-        now.getTime() + WAITER_COOLDOWN_MS,
-      ).toISOString(),
+      message: "Hesap isteğin garsona iletildi.",
+      cooldownUntil: new Date(now.getTime() + BILL_COOLDOWN_MS).toISOString(),
     });
   } catch (error) {
-    console.error("Garson çağrılamadı", error);
+    console.error("Hesap istenemedi", error);
     return NextResponse.json(
-      { error: "Garson çağrılamadı, sayfayı yenile" },
+      { error: "Hesap istenemedi, sayfayı yenile" },
       { status: 500 },
     );
   }

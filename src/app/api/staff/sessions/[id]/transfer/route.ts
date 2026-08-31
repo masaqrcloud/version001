@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { releaseMergedTables } from "@/lib/table-groups";
+import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -65,6 +66,6 @@ export async function POST(request: Request, context: Ctx) {
   return NextResponse.json({
     ok: true,
     sessionId: source.id,
-    message: `Masa ${source.table.number} hesabı Masa ${target.number} masasına aktarıldı.`,
+    message: `${tableLabel(source.table.number)} hesabı ${tableLabel(target.number)} masasına aktarıldı.`,
   });
 }

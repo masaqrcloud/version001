@@ -6,6 +6,7 @@ import { venueOpenState } from "@/lib/opening-hours";
 import { consumeStockForOrder, groupedTrackedStock } from "@/lib/stock";
 import { z } from "zod";
 import { pushToVenueRoles } from "@/lib/staff-push";
+import { tableLabel } from "@/lib/table-label";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
     ["PLATFORM", "OWNER", "ADMIN", "KITCHEN"],
     {
       title: "Yeni sipariş",
-      body: `Masa ${guest.tableSession.table.number} · ${guest.nickname?.trim() || "Misafir"}`,
+      body: `${tableLabel(guest.tableSession.table.number)} · ${guest.nickname?.trim() || "Misafir"}`,
       url: "/staff/kitchen",
       tag: `order-${order.id}`,
     },

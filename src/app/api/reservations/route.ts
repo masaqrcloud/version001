@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { parseOpeningHours } from "@/lib/opening-hours";
+import {
+  istanbulToday,
+  reservationTimesOverlap,
+} from "@/lib/reservation-occupancy";
 
 const schema = z.object({
   venueId: z.string().min(1),
@@ -15,6 +19,49 @@ const schema = z.object({
   note: z.string().trim().max(400).optional(),
   website: z.string().max(0).optional(),
 });
+
+async function busyTableIds(
+  venueId: string,
+  date?: string,
+  time?: string,
+) {
+  const reservedIds = new Set<string>();
+  const occupiedIds = new Set<string>();
+
+  if (date) {
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        venueId,
+        reservationDate: date,
+        tableId: { not: null },
+        status: { in: ["PENDING", "CONFIRMED"] },
+      },
+      select: { tableId: true, reservationTime: true },
+    });
+    for (const item of reservations) {
+      if (!item.tableId) continue;
+      if (!time || reservationTimesOverlap(item.reservationTime, time)) {
+        reservedIds.add(item.tableId);
+      }
+    }
+  }
+
+  if (date === istanbulToday()) {
+    const open = await prisma.tableSession.findMany({
+      where: { status: "OPEN", table: { venueId } },
+      select: {
+        tableId: true,
+        mergedTables: { select: { id: true } },
+      },
+    });
+    for (const session of open) {
+      occupiedIds.add(session.tableId);
+      for (const extra of session.mergedTables) occupiedIds.add(extra.id);
+    }
+  }
+
+  return { reservedIds, occupiedIds };
+}
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams;
@@ -33,31 +80,30 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Geçersiz mekân" }, { status: 400 });
   }
 
-  const [tables, reserved] = await Promise.all([
+  const [tables, busy] = await Promise.all([
     prisma.table.findMany({
       where: { venueId: parsed.data.venueId },
       select: { id: true, number: true, floorX: true, floorY: true },
       orderBy: { number: "asc" },
     }),
-    parsed.data.date && parsed.data.time
-      ? prisma.reservation.findMany({
-          where: {
-            venueId: parsed.data.venueId,
-            reservationDate: parsed.data.date,
-            reservationTime: parsed.data.time,
-            tableId: { not: null },
-            status: { in: ["PENDING", "CONFIRMED"] },
-          },
-          select: { tableId: true },
-        })
-      : Promise.resolve([]),
+    busyTableIds(
+      parsed.data.venueId,
+      parsed.data.date,
+      parsed.data.time,
+    ),
   ]);
-  const reservedIds = new Set(reserved.map((item) => item.tableId));
+
   return NextResponse.json({
-    tables: tables.map((table) => ({
-      ...table,
-      available: !reservedIds.has(table.id),
-    })),
+    tables: tables.map((table) => {
+      const occupied = busy.occupiedIds.has(table.id);
+      const reserved = busy.reservedIds.has(table.id);
+      return {
+        ...table,
+        available: !occupied && !reserved,
+        occupied,
+        reserved,
+      };
+    }),
   });
 }
 
@@ -138,16 +184,15 @@ export async function POST(request: Request) {
         where: { id: body.data.tableId, venueId: venue.id },
       });
       if (!table) throw new Error("TABLE_NOT_FOUND");
-      const occupied = await tx.reservation.findFirst({
-        where: {
-          venueId: venue.id,
-          tableId: table.id,
-          reservationDate: body.data.reservationDate,
-          reservationTime: body.data.reservationTime,
-          status: { in: ["PENDING", "CONFIRMED"] },
-        },
-      });
-      if (occupied) throw new Error("TABLE_RESERVED");
+
+      const busy = await busyTableIds(
+        venue.id,
+        body.data.reservationDate,
+        body.data.reservationTime,
+      );
+      if (busy.occupiedIds.has(table.id)) throw new Error("TABLE_OCCUPIED");
+      if (busy.reservedIds.has(table.id)) throw new Error("TABLE_RESERVED");
+
       await tx.reservation.create({
         data: {
           venueId: venue.id,
@@ -165,14 +210,18 @@ export async function POST(request: Request) {
   } catch (error) {
     if (
       error instanceof Error &&
-      ["TABLE_NOT_FOUND", "TABLE_RESERVED"].includes(error.message)
+      ["TABLE_NOT_FOUND", "TABLE_RESERVED", "TABLE_OCCUPIED"].includes(
+        error.message,
+      )
     ) {
       return NextResponse.json(
         {
           error:
-            error.message === "TABLE_RESERVED"
-              ? "Bu masa az önce seçildi. Lütfen başka bir masa seç."
-              : "Seçilen masa bulunamadı.",
+            error.message === "TABLE_OCCUPIED"
+              ? "Bu masa şu an dolu. Lütfen başka bir masa seç."
+              : error.message === "TABLE_RESERVED"
+                ? "Bu masa o saatte rezerve. Lütfen başka bir masa seç."
+                : "Seçilen masa bulunamadı.",
         },
         { status: 409 },
       );

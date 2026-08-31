@@ -3,11 +3,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
+import { tableLabel } from "@/lib/table-label";
 
 type TableOption = {
   id: string;
   number: string;
   available: boolean;
+  occupied?: boolean;
+  reserved?: boolean;
   floorX: number | null;
   floorY: number | null;
 };
@@ -166,6 +169,16 @@ export function ReservationForm({
         <p className="mt-3 text-sm text-[var(--muted)]">
           Mekân rezervasyonunu değerlendirdiğinde e-posta ile haber vereceğiz.
         </p>
+        <Button
+          className="mt-6"
+          variant="outline"
+          onClick={() => {
+            setSent(false);
+            setForm((current) => ({ ...current, tableId: "" }));
+          }}
+        >
+          Salona dön
+        </Button>
       </div>
     );
   }
@@ -302,7 +315,7 @@ export function ReservationForm({
             Yeşil: uygun
           </span>
           <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800">
-            Kırmızı: dolu
+            Kırmızı: dolu veya rezerve
           </span>
           <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[var(--accent)]">
             Turuncu: senin seçimin
@@ -313,14 +326,18 @@ export function ReservationForm({
             <span>Salon girişi</span>
             <span>
               {selectedTable
-                ? `Masa ${selectedTable.number} seçildi`
+                ? `${tableLabel(selectedTable.number)} seçildi`
                 : timeReady
                   ? "Bir masa seç"
                   : "Önce tarih ve saat"}
             </span>
           </div>
           {tables.length ? (
-            <div className="relative h-[min(62vw,420px)] min-h-[280px]">
+            <div className="-mx-1 overflow-x-auto pb-1 touch-pan-x">
+              <p className="mb-2 text-center text-[11px] text-[var(--muted)] sm:hidden">
+                Krokiyi yana kaydır
+              </p>
+              <div className="relative h-[340px] w-[640px] sm:h-[420px] sm:w-full">
               {tables.map((table, index) => {
                 const selected = form.tableId === table.id;
                 const selectable = timeReady && table.available;
@@ -340,12 +357,14 @@ export function ReservationForm({
                     key={table.id}
                     type="button"
                     disabled={!selectable}
-                    className={`absolute w-[92px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-1.5 text-center shadow-sm transition sm:w-[108px] ${
+                    className={`absolute w-[72px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-1 text-center shadow-sm transition sm:w-[108px] sm:p-1.5 ${
                       selected
                         ? "z-20 border-[var(--accent)] bg-[var(--accent-soft)]"
                         : selectable
                           ? "z-10 border-emerald-200 bg-white/90 hover:scale-105 hover:border-emerald-400"
-                          : "z-0 cursor-not-allowed border-black/10 bg-white/70 opacity-60"
+                          : timeReady
+                            ? "z-0 cursor-not-allowed border-red-200 bg-red-50/90"
+                            : "z-0 cursor-not-allowed border-black/10 bg-white/70 opacity-60"
                     }`}
                     style={{
                       left: `${position.x / 10}%`,
@@ -359,11 +378,11 @@ export function ReservationForm({
                     }
                   >
                     <TableGlyph state={state} />
-                    <p className="mt-0.5 font-serif text-sm leading-tight">
-                      Masa {table.number}
+                    <p className="mt-0.5 truncate font-serif text-[11px] leading-tight sm:text-sm">
+                      {tableLabel(table.number)}
                     </p>
                     <p
-                      className={`text-[10px] font-medium ${
+                      className={`text-[9px] font-medium sm:text-[10px] ${
                         selected
                           ? "text-[var(--accent)]"
                           : selectable
@@ -377,13 +396,18 @@ export function ReservationForm({
                         ? "Seçildi"
                         : !timeReady
                           ? "Beklemede"
-                          : table.available
-                            ? "Uygun"
-                            : "Dolu"}
+                          : table.occupied
+                            ? "Dolu"
+                            : table.reserved
+                              ? "Rezerve"
+                              : table.available
+                                ? "Uygun"
+                                : "Dolu"}
                     </p>
                   </button>
                 );
               })}
+              </div>
             </div>
           ) : (
             <p className="py-10 text-center text-sm text-amber-800">

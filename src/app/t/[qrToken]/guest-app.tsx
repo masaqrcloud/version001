@@ -9,6 +9,7 @@ import { Popup } from "@/components/ui/popup";
 import { askAlertPermission, pingPhone } from "@/lib/phone-alert";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
+import { tableLabel } from "@/lib/table-label";
 import type { OrderStatus } from "@prisma/client";
 import { SessionFeedbackForm } from "@/components/session-feedback-form";
 
@@ -187,7 +188,7 @@ function GuestBrand({
             {venueTagline ? (
               <p className="text-sm text-[var(--muted)]">{venueTagline}</p>
             ) : null}
-            <h1 className="text-3xl">Masa {tableNumber}</h1>
+            <h1 className="text-3xl">{tableLabel(tableNumber)}</h1>
           </div>
         </div>
         {children}
@@ -294,7 +295,9 @@ export function GuestApp({
   } | null>(null);
   const [calling, setCalling] = useState(false);
   const [waiterConfirmOpen, setWaiterConfirmOpen] = useState(false);
+  const [billConfirmOpen, setBillConfirmOpen] = useState(false);
   const [localWaiterCooldownUntil, setLocalWaiterCooldownUntil] = useState(0);
+  const [localBillCooldownUntil, setLocalBillCooldownUntil] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [cartPulse, setCartPulse] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
@@ -372,7 +375,10 @@ export function GuestApp({
   }, [qrToken, staffPreview]);
 
   type LiveResponse = {
-    guest?: { waiterCooldownUntil: string | null };
+    guest?: {
+      waiterCooldownUntil: string | null;
+      billCooldownUntil?: string | null;
+    };
     cart: CartResponse;
     orders: OrdersResponse;
     bill: BillResponse;
@@ -422,6 +428,17 @@ export function GuestApp({
   const waiterCooldownLabel = `${Math.floor(waiterCooldownSeconds / 60)}:${String(
     waiterCooldownSeconds % 60,
   ).padStart(2, "0")}`;
+  const serverBillCooldownUntil = live?.guest?.billCooldownUntil
+    ? new Date(live.guest.billCooldownUntil).getTime()
+    : 0;
+  const billCooldownUntil = Math.max(
+    localBillCooldownUntil,
+    serverBillCooldownUntil,
+  );
+  const billCooldownSeconds = Math.max(
+    0,
+    Math.ceil((billCooldownUntil - nowMs) / 1000),
+  );
 
   function setCart(next: CartResponse) {
     setLive((current) =>
@@ -592,6 +609,26 @@ export function GuestApp({
       return;
     }
     setMessage(data.message ?? "Garson çağrıldı.");
+  }
+
+  async function requestBill() {
+    setBillConfirmOpen(false);
+    setCalling(true);
+    const res = await fetch("/api/guest/request-bill", {
+      method: "POST",
+      credentials: "include",
+      headers: guestHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    setCalling(false);
+    if (data.cooldownUntil) {
+      setLocalBillCooldownUntil(new Date(data.cooldownUntil).getTime());
+    }
+    if (!res.ok) {
+      setMessage(data.error ?? "Hesap istenemedi");
+      return;
+    }
+    setMessage(data.message ?? "Hesap isteğin iletildi.");
   }
 
   async function submitOrder() {
@@ -809,7 +846,7 @@ export function GuestApp({
           <p className="page-kicker">{sessionStatus.venueName ?? venueName}</p>
           <h1 className="mt-2 font-serif text-4xl">Teşekkür ederiz</h1>
           <p className="mt-2 text-[var(--muted)]">
-            Masa {sessionStatus.tableNumber ?? tableNumber} hesabı kapatıldı.
+            {tableLabel(sessionStatus.tableNumber ?? tableNumber)} hesabı kapatıldı.
           </p>
         </div>
         <Card className="mt-6 p-5">
@@ -1326,6 +1363,18 @@ export function GuestApp({
             <p>Masa hesabı</p>
             <p className="text-xl font-medium">{formatTRY(bill?.total ?? 0)}</p>
           </div>
+          <Button
+            className="w-full"
+            size="lg"
+            disabled={calling || billCooldownSeconds > 0}
+            onClick={() => setBillConfirmOpen(true)}
+          >
+            {calling
+              ? "İletiliyor…"
+              : billCooldownSeconds > 0
+                ? "Hesap istendi"
+                : "Hesabı istiyorum"}
+          </Button>
           <Card className="space-y-3 p-4">
             <div>
               <p className="font-medium">Dijital adisyon</p>
@@ -1382,6 +1431,19 @@ export function GuestApp({
         busy={calling}
         onConfirm={() => void callWaiter()}
         onClose={() => setWaiterConfirmOpen(false)}
+      />
+      <Popup
+        title="Hesabı istiyor musun?"
+        message={
+          billConfirmOpen
+            ? "Garson hesabınla masaya gelir. Bu, garson çağırmaktan ayrı bir istektir."
+            : null
+        }
+        confirmLabel="Evet, hesabı istiyorum"
+        cancelLabel="Vazgeç"
+        busy={calling}
+        onConfirm={() => void requestBill()}
+        onClose={() => setBillConfirmOpen(false)}
       />
 
       {tab === "alerts" ? (

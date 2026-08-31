@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { tableLabel } from "@/lib/table-label";
 
 type Row = {
   id: string;
@@ -105,8 +106,12 @@ export function ReservationsManager({
           {reservation.tableId ? (
             <p className="mt-3 text-sm font-medium text-emerald-800">
               Misafirin seçtiği masa:{" "}
-              {tables.find((table) => table.id === reservation.tableId)
-                ?.number ?? "—"}
+              {(() => {
+                const chosen = tables.find(
+                  (table) => table.id === reservation.tableId,
+                )?.number;
+                return chosen ? tableLabel(chosen) : "—";
+              })()}
             </p>
           ) : null}
           {reservation.status === "PENDING" ? (
@@ -124,7 +129,7 @@ export function ReservationsManager({
                 <option value="">Masa sonra belirlenecek</option>
                 {tables.map((table) => (
                   <option key={table.id} value={table.id}>
-                    Masa {table.number}
+                    {tableLabel(table.number)}
                   </option>
                 ))}
               </select>

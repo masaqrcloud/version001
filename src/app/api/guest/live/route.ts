@@ -83,6 +83,9 @@ export async function GET() {
       waiterCooldownUntil: guest.waiterCalledAt
         ? new Date(guest.waiterCalledAt.getTime() + 10 * 60 * 1000)
         : null,
+      billCooldownUntil: guest.billRequestedAt
+        ? new Date(guest.billRequestedAt.getTime() + 5 * 60 * 1000)
+        : null,
     },
     cart: {
       items: cartItems.map((item) => ({

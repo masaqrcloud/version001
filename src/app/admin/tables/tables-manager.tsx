@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Popup } from "@/components/ui/popup";
 import { makeQr } from "@/lib/qr-with-logo";
+import { tableLabel } from "@/lib/table-label";
 
 type TableRow = {
   id: string;
@@ -226,7 +227,7 @@ export function TablesManager({
         [...current, card].sort((a, b) => a.number.localeCompare(b.number, "tr")),
       );
       setNumber("");
-      setPopup(`Masa ${data.number} eklendi.`);
+      setPopup(`${tableLabel(data.number)} eklendi.`);
     } catch {
       setError("Masa eklenemedi, tekrar dene");
     } finally {
@@ -290,7 +291,7 @@ export function TablesManager({
     const logoHtml = venueLogo
       ? `<span class="logo"><img src="${venueLogo}" alt="" /></span>`
       : "";
-    popupWindow.document.write(`<!doctype html><html><head><title>Masa ${table.number}</title>
+    popupWindow.document.write(`<!doctype html><html><head><title>${tableLabel(table.number)}</title>
       <style>
         body { font-family: Georgia, serif; text-align: center; padding: 32px; color: #1f1a14; }
         .qr { position: relative; width: 260px; height: 260px; margin: 0 auto; }
@@ -301,7 +302,7 @@ export function TablesManager({
         p { color: #7a7168; }
       </style></head><body>
       <p>MasaQR</p>
-      <h1>Masa ${table.number}</h1>
+      <h1>${tableLabel(table.number)}</h1>
       ${
         table.qrDataUrl
           ? `<div class="qr"><img src="${table.qrDataUrl}" alt="QR" />${logoHtml}</div>`
@@ -334,7 +335,8 @@ export function TablesManager({
               id="table-number"
               value={number}
               onChange={(e) => setNumber(e.target.value)}
-              placeholder="4"
+              placeholder="10 veya Bahçe 10"
+              maxLength={40}
             />
           </div>
           <Button type="submit" disabled={busy}>
@@ -356,9 +358,9 @@ export function TablesManager({
                     <div className="flex flex-wrap items-center gap-2">
                       <Input
                         aria-label="Masa adı"
-                        className="w-36"
+                        className="w-44"
                         value={editingNumber}
-                        maxLength={20}
+                        maxLength={40}
                         autoFocus
                         onChange={(event) =>
                           setEditingNumber(event.target.value)
@@ -394,7 +396,7 @@ export function TablesManager({
                       </Button>
                     </div>
                   ) : (
-                    <h2 className="text-2xl">Masa {table.number}</h2>
+                    <h2 className="text-2xl">{tableLabel(table.number)}</h2>
                   )}
                   <p className="text-sm text-[var(--muted)]">
                     {table.isOpen
@@ -428,7 +430,7 @@ export function TablesManager({
               {table.qrDataUrl ? (
                 <QrFace
                   src={table.qrDataUrl}
-                  alt={`Masa ${table.number} QR`}
+                  alt={`${tableLabel(table.number)} QR`}
                   logoUrl={venueLogo || undefined}
                 />
               ) : (

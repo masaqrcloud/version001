@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { pingPhone } from "@/lib/phone-alert";
 import { usePoll } from "@/lib/poll";
+import { tableLabel } from "@/lib/table-label";
 import { formatTRY } from "@/lib/utils";
 
 type SessionsResponse = {
@@ -13,6 +14,7 @@ type SessionsResponse = {
     tableNumber: string;
     openedAt: string;
     waiterCalledAt: string | null;
+    billRequestedAt: string | null;
     guestCount: number;
     orderCount: number;
     pendingCount: number;
@@ -27,11 +29,21 @@ export function WaiterBoard() {
   useEffect(() => {
     if (!data) return;
     for (const session of data.sessions) {
+      if (session.billRequestedAt) {
+        const key = `bill:${session.id}:${session.billRequestedAt}`;
+        if (!seenCalls.current.has(key)) {
+          seenCalls.current.add(key);
+          pingPhone(
+            "Hesap isteniyor",
+            `${tableLabel(session.tableNumber)} hesabı istiyor`,
+          );
+        }
+      }
       if (!session.waiterCalledAt) continue;
       const key = `${session.id}:${session.waiterCalledAt}`;
       if (seenCalls.current.has(key)) continue;
       seenCalls.current.add(key);
-      pingPhone("Garson çağrısı", `Masa ${session.tableNumber} çağırıyor`);
+      pingPhone("Garson çağrısı", `${tableLabel(session.tableNumber)} çağırıyor`);
     }
   }, [data]);
 
@@ -42,7 +54,7 @@ export function WaiterBoard() {
   if (data.sessions.length === 0) {
     return (
       <p className="mt-8 text-[var(--muted)]">
-        Açık masa yok. Müşteri QR okutunca burada görünür.
+        Açık masa yok. Krokide boş masaya basıp QR’siz sipariş yazabilirsin.
       </p>
     );
   }
@@ -53,12 +65,18 @@ export function WaiterBoard() {
         <Link key={session.id} href={`/staff/waiter/${session.id}`}>
           <Card
             className={`p-5 transition hover:-translate-y-0.5 ${
-              session.waiterCalledAt ? "border-[var(--accent)]" : ""
+              session.billRequestedAt || session.waiterCalledAt
+                ? "border-[var(--accent)]"
+                : ""
             }`}
           >
             <div className="flex items-start justify-between">
-              <h2 className="text-2xl">Masa {session.tableNumber}</h2>
-              {session.waiterCalledAt ? (
+              <h2 className="text-2xl">{tableLabel(session.tableNumber)}</h2>
+              {session.billRequestedAt ? (
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs text-white">
+                  Hesap
+                </span>
+              ) : session.waiterCalledAt ? (
                 <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs text-white">
                   Çağrı
                 </span>

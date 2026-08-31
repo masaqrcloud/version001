@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { absorbSession, formatTableGroup } from "@/lib/table-groups";
+import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -103,6 +104,6 @@ export async function POST(request: Request, context: Ctx) {
   return NextResponse.json({
     ok: true,
     sessionId: source.id,
-    message: `Masa ${formatTableGroup(source.table.number, extras.map((table) => table.number))} birleşti.`,
+    message: `${tableLabel(formatTableGroup(source.table.number, extras.map((table) => table.number)))} birleşti.`,
   });
 }

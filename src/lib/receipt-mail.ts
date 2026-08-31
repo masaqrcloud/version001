@@ -1,5 +1,6 @@
 import { brandedEmail, escapeHtml, sendTransactionalEmail } from "@/lib/mail";
 import { signedGuestCookie } from "@/lib/guest";
+import { tableLabel } from "@/lib/table-label";
 
 type ReceiptLine = {
   name: string;
@@ -45,10 +46,10 @@ export function sendDigitalReceiptMail({
   return sendTransactionalEmail({
     to: email,
     subject: `${venueName} dijital adisyonun`,
-    text: `${venueName}, Masa ${tableNumber}, toplam ${total.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}`,
+    text: `${venueName}, ${tableLabel(tableNumber)}, toplam ${total.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}`,
     html: brandedEmail(
       "Dijital adisyonun",
-      `<p><strong>${escapeHtml(venueName)}</strong> · Masa ${escapeHtml(tableNumber)}</p>
+      `<p><strong>${escapeHtml(venueName)}</strong> · ${escapeHtml(tableLabel(tableNumber))}</p>
        <table style="width:100%;border-collapse:collapse">${rows}</table>
        <p style="font-size:20px;text-align:right"><strong>Toplam: ${total.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</strong></p>
        <p style="text-align:center;margin:24px 0"><a href="${feedbackUrl}" style="display:inline-block;background:#e54b32;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:600">Deneyimini değerlendir</a></p>

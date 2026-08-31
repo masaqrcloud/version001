@@ -91,6 +91,7 @@ export async function GET(_request: Request, context: Ctx) {
     openedAt: session.openedAt,
     closedAt: session.closedAt,
     waiterCalledAt: session.waiterCalledAt,
+    billRequestedAt: session.billRequestedAt,
     mergedTables: session.mergedTables.map((table) => ({
       id: table.id,
       number: table.number,

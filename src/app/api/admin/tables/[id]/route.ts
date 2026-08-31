@@ -12,7 +12,7 @@ export async function PATCH(request: Request, context: Ctx) {
   const { id } = await context.params;
   const body = z
     .object({
-      number: z.string().trim().min(1).max(20).optional(),
+      number: z.string().trim().min(1).max(40).optional(),
       floorX: z.number().int().min(0).max(1000).optional(),
       floorY: z.number().int().min(0).max(1000).optional(),
     })

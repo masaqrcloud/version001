@@ -8,6 +8,7 @@ import { OrderBadge } from "@/components/ui/badge";
 import { usePoll } from "@/lib/poll";
 import type { OrderStatus } from "@prisma/client";
 import { pingPhone, playKitchenOrderSound, unlockAlertAudio } from "@/lib/phone-alert";
+import { tableLabel } from "@/lib/table-label";
 
 type OrdersResponse = {
   orders: {
@@ -59,7 +60,7 @@ export function KitchenBoard() {
       seenOrders.current.add(order.id);
       pingPhone(
         "Yeni sipariş",
-        `Masa ${order.tableNumber} · ${order.guestName}`,
+        `${tableLabel(order.tableNumber)} · ${order.guestName}`,
         "kitchen",
       );
     }
@@ -167,7 +168,7 @@ export function KitchenBoard() {
       {data.orders.map((order) => (
         <Card key={order.id} className="flex flex-col p-5">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-2xl">Masa {order.tableNumber}</h2>
+            <h2 className="text-2xl">{tableLabel(order.tableNumber)}</h2>
             <OrderBadge status={order.status} />
           </div>
           <p className="mt-1 text-sm text-[var(--muted)]">

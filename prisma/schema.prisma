@@ -149,6 +149,7 @@ model TableSession {
   openedAt       DateTime          @default(now())
   closedAt       DateTime?
   waiterCalledAt DateTime?
+  billRequestedAt DateTime?
   guests         Guest[]
   orders         Order[]
   bill           Bill?
@@ -165,6 +166,7 @@ model Guest {
   receiptEmail   String?
   receiptSentAt  DateTime?
   waiterCalledAt DateTime?
+  billRequestedAt DateTime?
   createdAt      DateTime            @default(now())
   cartItems      CartItem[]
   orders         Order[]

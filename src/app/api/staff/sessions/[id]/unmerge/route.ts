@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -47,6 +48,6 @@ export async function POST(request: Request, context: Ctx) {
 
   return NextResponse.json({
     ok: true,
-    message: `Masa ${table.number} gruptan ayrıldı.`,
+    message: `${tableLabel(table.number)} gruptan ayrıldı.`,
   });
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { getOrCreateOpenSession } from "@/lib/guest";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -84,6 +86,7 @@ export async function GET() {
           ),
           openedAt: session.openedAt,
           waiterCalledAt: session.waiterCalledAt,
+          billRequestedAt: session.billRequestedAt,
           guestCount: guests.length,
           orderCount: orders.length,
           pendingCount: pending,
@@ -91,4 +94,32 @@ export async function GET() {
         };
       }),
   });
+}
+
+export async function POST(request: Request) {
+  const { user, error } = await getStaffUser([
+    "PLATFORM",
+    "OWNER",
+    "ADMIN",
+    "WAITER",
+  ]);
+  if (error) return error;
+
+  const body = z
+    .object({ tableId: z.string().min(1) })
+    .safeParse(await request.json().catch(() => null));
+  if (!body.success) {
+    return NextResponse.json({ error: "Masa seç" }, { status: 400 });
+  }
+
+  const table = await prisma.table.findFirst({
+    where: { id: body.data.tableId, venueId: user.venueId },
+    select: { id: true },
+  });
+  if (!table) {
+    return NextResponse.json({ error: "Masa yok" }, { status: 404 });
+  }
+
+  const session = await getOrCreateOpenSession(table.id);
+  return NextResponse.json({ id: session.id, tableId: table.id });
 }

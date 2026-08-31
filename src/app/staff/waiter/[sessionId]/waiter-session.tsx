@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { OrderBadge } from "@/components/ui/badge";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
+import { tableLabel } from "@/lib/table-label";
 import type { OrderStatus } from "@prisma/client";
 
 type Detail = {
@@ -16,6 +17,7 @@ type Detail = {
   status: "OPEN" | "CLOSED";
   tableNumber: string;
   waiterCalledAt: string | null;
+  billRequestedAt: string | null;
   mergedTables: { id: string; number: string }[];
   otherTables: { id: string; tableNumber: string }[];
   mergeTargets: { id: string; number: string; occupied: boolean }[];
@@ -78,8 +80,16 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
     setCancelReason("");
   }
 
-  async function ackCall() {
-    await fetch(`/api/staff/sessions/${sessionId}/call`, { method: "POST" });
+  async function ackCall(kind: "waiter" | "bill") {
+    await fetch(`/api/staff/sessions/${sessionId}/call`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind }),
+    });
+    const refreshed = await fetch(`/api/staff/sessions/${sessionId}`, {
+      cache: "no-store",
+    });
+    if (refreshed.ok) setData(await refreshed.json());
   }
 
   async function mergeTable() {
@@ -193,7 +203,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
       </Link>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl">Masa {data.tableNumber}</h1>
+          <h1 className="text-4xl">{tableLabel(data.tableNumber)}</h1>
           <p className="mt-1 text-[var(--muted)]">
             {data.guests.map((g) => g.nickname).join(", ") || "Misafir yok"}
           </p>
@@ -201,6 +211,14 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
         <div className="text-right">
           <p className="text-sm text-[var(--muted)]">Toplam</p>
           <p className="font-serif text-3xl">{formatTRY(data.total)}</p>
+          {data.status === "OPEN" ? (
+            <Link
+              href={`/staff/waiter/${sessionId}/order`}
+              className="mt-3 inline-flex h-10 items-center rounded-xl bg-[var(--ink)] px-4 text-sm text-[var(--bg)]"
+            >
+              Sipariş yaz
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -255,10 +273,19 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
         )}
       </div>
 
+      {data.status === "OPEN" && data.billRequestedAt ? (
+        <Card className="mt-8 border-[var(--accent)] p-4">
+          <p className="font-medium">Masa hesabı istiyor</p>
+          <Button className="mt-3" onClick={() => void ackCall("bill")}>
+            Hesabı alıyorum
+          </Button>
+        </Card>
+      ) : null}
+
       {data.status === "OPEN" && data.waiterCalledAt ? (
         <Card className="mt-8 border-[var(--accent)] p-4">
           <p className="font-medium">Masa garson çağırdı</p>
-          <Button className="mt-3" onClick={() => void ackCall()}>
+          <Button className="mt-3" onClick={() => void ackCall("waiter")}>
             Gidiyorum
           </Button>
         </Card>
@@ -269,7 +296,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
           <Card className="space-y-3 p-4">
             <p className="font-medium">Masa birleştir</p>
             <p className="text-sm text-[var(--muted)]">
-              Masa {data.tableNumber} ile seçtiğin masa yan yana durur, ikisi
+              {tableLabel(data.tableNumber)} ile seçtiğin masa yan yana durur, ikisi
               de kırmızı kalır, aynı kişiler görünür.
             </p>
             {data.mergedTables?.length ? (
@@ -279,7 +306,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                     key={table.id}
                     className="flex items-center justify-between gap-2 rounded-xl bg-red-50 px-3 py-2 text-red-900"
                   >
-                    <span>Masa {table.number} birleşik</span>
+                    <span>{tableLabel(table.number)} birleşik</span>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -300,7 +327,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
               <option value="">Birleştirilecek masa</option>
               {data.mergeTargets?.map((table) => (
                 <option key={table.id} value={table.id}>
-                  Masa {table.number}
+                  {tableLabel(table.number)}
                   {table.occupied ? " · dolu" : " · boş"}
                 </option>
               ))}
@@ -327,7 +354,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
               <option value="">Boş masa seç</option>
               {data.transferTargets?.map((table) => (
                 <option key={table.id} value={table.id}>
-                  Masa {table.number}
+                  {tableLabel(table.number)}
                 </option>
               ))}
             </select>

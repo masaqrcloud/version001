@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
+import { tableLabel } from "@/lib/table-label";
 import { orderStatusLabel } from "@/lib/labels";
 import type { OrderStatus } from "@prisma/client";
 
@@ -66,6 +67,7 @@ export function HistoryList() {
     return list.filter((session) => {
       const hay = [
         `masa ${session.tableNumber}`,
+        tableLabel(session.tableNumber),
         ...session.guests,
         ...session.orders.flatMap((order) => [
           order.guestName,
@@ -110,7 +112,7 @@ export function HistoryList() {
               onClick={() => setOpenId(expanded ? null : session.id)}
             >
               <div>
-                <h2 className="text-2xl">Masa {session.tableNumber}</h2>
+                <h2 className="text-2xl">{tableLabel(session.tableNumber)}</h2>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   {session.guests.join(" · ") || "İsimsiz"}
                 </p>
