@@ -52,8 +52,16 @@ export async function POST(request: Request, context: Ctx) {
     },
   });
   const byId = new Map(menuItems.map((item) => [item.id, item]));
+  type MenuItemWithOptions = (typeof menuItems)[number];
+  type MenuOption = MenuItemWithOptions["optionGroups"][number]["options"][number];
 
-  const lines = [];
+  const lines: {
+    menuItem: MenuItemWithOptions;
+    quantity: number;
+    note: string | null;
+    options: MenuOption[];
+    price: number;
+  }[] = [];
   for (const entry of body.data.items) {
     const menuItem = byId.get(entry.menuItemId);
     if (!menuItem || !menuItem.available) {
