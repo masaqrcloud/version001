@@ -92,7 +92,7 @@ export default async function AdminHomePage() {
   }
 
   const venueId = staff.venueId;
-  const [venue, tableCount, itemCount, openSessions, staffCount] =
+  const [venue, tableCount, itemCount, openSessions, staffCount, trackedItems] =
     await Promise.all([
       prisma.venue.findUnique({ where: { id: venueId } }),
       prisma.table.count({ where: { venueId } }),
@@ -101,11 +101,20 @@ export default async function AdminHomePage() {
         where: { status: "OPEN", table: { venueId } },
       }),
       prisma.user.count({ where: { venueId } }),
+      prisma.menuItem.findMany({
+        where: { category: { venueId }, stockTracked: true },
+        select: { stockQuantity: true, lowStockThreshold: true },
+      }),
     ]);
+
+  const attentionStock = trackedItems.filter(
+    (item) => item.stockQuantity <= item.lowStockThreshold,
+  ).length;
 
   const cards = [
     { href: "/admin/tables", label: "Masa", value: tableCount },
     { href: "/admin/menu", label: "Ürün", value: itemCount },
+    { href: "/admin/stock", label: "Stok uyarısı", value: attentionStock },
     { href: "/staff/waiter", label: "Açık oturum", value: openSessions },
     { href: "/admin/staff", label: "Personel", value: staffCount },
   ];
@@ -115,7 +124,7 @@ export default async function AdminHomePage() {
       <PageIntro kicker="Mekân yönetimi" title={venue?.name ?? "Mekân"}>
         Masalar, menü ve ekip aynı evin içinde.
       </PageIntro>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((card) => (
           <Link key={card.href} href={card.href}>
             <Card className="p-5">

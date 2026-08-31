@@ -41,6 +41,8 @@ export async function PATCH(request: Request) {
       logoUrl: z.string().nullable().optional(),
       coverUrl: z.string().nullable().optional(),
       openingHours: z.array(dayHoursSchema).length(7).optional(),
+      wifiName: z.string().trim().max(80).nullable().optional(),
+      wifiPassword: z.string().max(120).nullable().optional(),
     })
     .safeParse(await request.json());
 
@@ -58,6 +60,8 @@ export async function PATCH(request: Request) {
     logoUrl?: string | null;
     coverUrl?: string | null;
     openingHours?: string;
+    wifiName?: string | null;
+    wifiPassword?: string | null;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -84,6 +88,12 @@ export async function PATCH(request: Request) {
   if (cover !== undefined) data.coverUrl = cover;
   if (body.data.openingHours !== undefined) {
     data.openingHours = JSON.stringify(body.data.openingHours);
+  }
+  if (body.data.wifiName !== undefined) {
+    data.wifiName = body.data.wifiName?.trim() || null;
+  }
+  if (body.data.wifiPassword !== undefined) {
+    data.wifiPassword = body.data.wifiPassword || null;
   }
 
   try {

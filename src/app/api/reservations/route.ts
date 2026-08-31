@@ -5,6 +5,7 @@ import { parseOpeningHours } from "@/lib/opening-hours";
 
 const schema = z.object({
   venueId: z.string().min(1),
+  tableId: z.string().min(1),
   fullName: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(120),
   phone: z.string().trim().min(7).max(24),
@@ -14,6 +15,51 @@ const schema = z.object({
   note: z.string().trim().max(400).optional(),
   website: z.string().max(0).optional(),
 });
+
+export async function GET(request: Request) {
+  const query = new URL(request.url).searchParams;
+  const parsed = z
+    .object({
+      venueId: z.string().min(1),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+    })
+    .safeParse({
+      venueId: query.get("venueId"),
+      date: query.get("date") || undefined,
+      time: query.get("time") || undefined,
+    });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Geçersiz mekân" }, { status: 400 });
+  }
+
+  const [tables, reserved] = await Promise.all([
+    prisma.table.findMany({
+      where: { venueId: parsed.data.venueId },
+      select: { id: true, number: true, floorX: true, floorY: true },
+      orderBy: { number: "asc" },
+    }),
+    parsed.data.date && parsed.data.time
+      ? prisma.reservation.findMany({
+          where: {
+            venueId: parsed.data.venueId,
+            reservationDate: parsed.data.date,
+            reservationTime: parsed.data.time,
+            tableId: { not: null },
+            status: { in: ["PENDING", "CONFIRMED"] },
+          },
+          select: { tableId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const reservedIds = new Set(reserved.map((item) => item.tableId));
+  return NextResponse.json({
+    tables: tables.map((table) => ({
+      ...table,
+      available: !reservedIds.has(table.id),
+    })),
+  });
+}
 
 export async function POST(request: Request) {
   const body = schema.safeParse(await request.json().catch(() => null));
@@ -86,18 +132,53 @@ export async function POST(request: Request) {
     );
   }
 
-  await prisma.reservation.create({
-    data: {
-      venueId: venue.id,
-      fullName: body.data.fullName,
-      email,
-      phone: body.data.phone,
-      guestCount: body.data.guestCount,
-      reservationDate: body.data.reservationDate,
-      reservationTime: body.data.reservationTime,
-      note: body.data.note || null,
-    },
-  });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const table = await tx.table.findFirst({
+        where: { id: body.data.tableId, venueId: venue.id },
+      });
+      if (!table) throw new Error("TABLE_NOT_FOUND");
+      const occupied = await tx.reservation.findFirst({
+        where: {
+          venueId: venue.id,
+          tableId: table.id,
+          reservationDate: body.data.reservationDate,
+          reservationTime: body.data.reservationTime,
+          status: { in: ["PENDING", "CONFIRMED"] },
+        },
+      });
+      if (occupied) throw new Error("TABLE_RESERVED");
+      await tx.reservation.create({
+        data: {
+          venueId: venue.id,
+          tableId: table.id,
+          fullName: body.data.fullName,
+          email,
+          phone: body.data.phone,
+          guestCount: body.data.guestCount,
+          reservationDate: body.data.reservationDate,
+          reservationTime: body.data.reservationTime,
+          note: body.data.note || null,
+        },
+      });
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      ["TABLE_NOT_FOUND", "TABLE_RESERVED"].includes(error.message)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            error.message === "TABLE_RESERVED"
+              ? "Bu masa az önce seçildi. Lütfen başka bir masa seç."
+              : "Seçilen masa bulunamadı.",
+        },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

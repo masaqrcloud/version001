@@ -55,6 +55,8 @@ export default async function TablePage({
       venueTagline={table.venue.tagline}
       venueLogo={table.venue.logoUrl}
       venueCover={table.venue.coverUrl}
+      wifiName={table.venue.wifiName}
+      wifiPassword={table.venue.wifiPassword}
       tableNumber={table.number}
       staffPreview={staffPreview}
       openState={{ isOpen: openState.isOpen, label: openState.label }}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getOrCreateOpenSession } from "@/lib/guest";
+import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -26,6 +27,7 @@ export async function GET(_request: Request, context: Ctx) {
     where: { id: sessionId, table: { venueId: user.venueId } },
     include: {
       table: true,
+      mergedTables: { orderBy: { number: "asc" } },
       guests: { orderBy: { createdAt: "asc" } },
       orders: {
         include: {
@@ -48,9 +50,28 @@ export async function GET(_request: Request, context: Ctx) {
       id: { not: session.id },
       table: { venueId: user.venueId },
     },
-    include: { table: true },
+    include: { table: true, mergedTables: true },
     orderBy: { openedAt: "asc" },
   });
+  const venueTables = await prisma.table.findMany({
+    where: { venueId: user.venueId },
+    include: {
+      sessions: { where: { status: "OPEN" }, take: 1 },
+      mergedSession: { select: { id: true, status: true } },
+    },
+    orderBy: { number: "asc" },
+  });
+  const busyTableIds = new Set<string>();
+  for (const item of venueTables) {
+    if (item.sessions[0]) busyTableIds.add(item.id);
+    if (item.mergedSessionId && item.mergedSession?.status === "OPEN") {
+      busyTableIds.add(item.id);
+    }
+  }
+  const groupedIds = new Set([
+    session.tableId,
+    ...session.mergedTables.map((table) => table.id),
+  ]);
 
   const active = session.orders.filter((o) => o.status !== "CANCELLED");
   const total = active.reduce(
@@ -63,14 +84,37 @@ export async function GET(_request: Request, context: Ctx) {
   return NextResponse.json({
     id: session.id,
     status: session.status,
-    tableNumber: session.table.number,
+    tableNumber: formatTableGroup(
+      session.table.number,
+      session.mergedTables.map((table) => table.number),
+    ),
     openedAt: session.openedAt,
     closedAt: session.closedAt,
     waiterCalledAt: session.waiterCalledAt,
+    mergedTables: session.mergedTables.map((table) => ({
+      id: table.id,
+      number: table.number,
+    })),
     otherTables: others.map((item) => ({
       id: item.id,
-      tableNumber: item.table.number,
+      tableNumber: formatTableGroup(
+        item.table.number,
+        item.mergedTables.map((table) => table.number),
+      ),
     })),
+    mergeTargets: venueTables
+      .filter((table) => !groupedIds.has(table.id))
+      .map((table) => ({
+        id: table.id,
+        number: table.number,
+        occupied: busyTableIds.has(table.id),
+      })),
+    transferTargets: venueTables
+      .filter((table) => !busyTableIds.has(table.id) && table.id !== session.tableId)
+      .map((table) => ({
+        id: table.id,
+        number: table.number,
+      })),
     total,
     bill: session.bill
       ? { status: session.bill.status, total: Number(session.bill.total) }

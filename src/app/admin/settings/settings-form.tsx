@@ -26,6 +26,8 @@ export function SettingsForm({
   logoUrl,
   coverUrl,
   openingHours,
+  wifiName,
+  wifiPassword,
 }: {
   name: string;
   slug: string;
@@ -33,6 +35,8 @@ export function SettingsForm({
   logoUrl: string | null;
   coverUrl: string | null;
   openingHours: string | null;
+  wifiName: string | null;
+  wifiPassword: string | null;
 }) {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -42,10 +46,13 @@ export function SettingsForm({
     logoUrl: logoUrl ?? "",
     coverUrl: coverUrl ?? "",
     openingHours: parseOpeningHours(openingHours),
+    wifiName: wifiName ?? "",
+    wifiPassword: wifiPassword ?? "",
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showWifiPassword, setShowWifiPassword] = useState(false);
 
   async function save() {
     setBusy(true);
@@ -63,6 +70,8 @@ export function SettingsForm({
         logoUrl: form.logoUrl.trim() || null,
         coverUrl: form.coverUrl.trim() || null,
         openingHours: form.openingHours,
+        wifiName: form.wifiName.trim() || null,
+        wifiPassword: form.wifiPassword || null,
       }),
     });
 
@@ -124,6 +133,62 @@ export function SettingsForm({
         {saved ? <p className="text-sm text-emerald-800">Kaydedildi.</p> : null}
         <Button onClick={() => void save()} disabled={busy}>
           {busy ? "Kaydediliyor…" : "Kaydet"}
+        </Button>
+      </Card>
+
+      <Card className="space-y-4 p-5">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
+            Misafir Wi‑Fi
+          </p>
+          <h2 className="mt-1 font-serif text-2xl">İnternet bilgileri</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Bu bilgiler yalnızca masadaki müşteri ekranında gösterilir.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="wifi-name">Wi‑Fi adı</Label>
+          <Input
+            id="wifi-name"
+            value={form.wifiName}
+            maxLength={80}
+            placeholder="Örn. Mekan Misafir"
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                wifiName: event.target.value,
+              }))
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="wifi-password">Wi‑Fi şifresi</Label>
+          <div className="flex gap-2">
+            <Input
+              id="wifi-password"
+              type={showWifiPassword ? "text" : "password"}
+              value={form.wifiPassword}
+              maxLength={120}
+              autoComplete="new-password"
+              placeholder="Misafir ağının şifresi"
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  wifiPassword: event.target.value,
+                }))
+              }
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowWifiPassword((current) => !current)}
+            >
+              {showWifiPassword ? "Gizle" : "Göster"}
+            </Button>
+          </div>
+        </div>
+        <Button onClick={() => void save()} disabled={busy}>
+          {busy ? "Kaydediliyor…" : "Wi‑Fi bilgisini kaydet"}
         </Button>
       </Card>
 

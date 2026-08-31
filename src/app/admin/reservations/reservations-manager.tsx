@@ -34,7 +34,15 @@ export function ReservationsManager({
 }) {
   const router = useRouter();
   const [selectedTables, setSelectedTables] = useState<Record<string, string>>(
-    {},
+    () =>
+      Object.fromEntries(
+        reservations
+          .filter((reservation) => reservation.tableId)
+          .map((reservation) => [
+            reservation.id,
+            reservation.tableId as string,
+          ]),
+      ),
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -92,6 +100,13 @@ export function ReservationsManager({
           {reservation.note ? (
             <p className="mt-3 rounded-xl bg-black/[0.03] p-3 text-sm">
               {reservation.note}
+            </p>
+          ) : null}
+          {reservation.tableId ? (
+            <p className="mt-3 text-sm font-medium text-emerald-800">
+              Misafirin seçtiği masa:{" "}
+              {tables.find((table) => table.id === reservation.tableId)
+                ?.number ?? "—"}
             </p>
           ) : null}
           {reservation.status === "PENDING" ? (

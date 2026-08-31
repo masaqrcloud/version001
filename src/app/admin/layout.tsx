@@ -9,6 +9,7 @@ import { SidebarShell } from "@/components/sidebar-shell";
 const venueLinks = [
   { href: "/admin", label: "Özet", exact: true },
   { href: "/admin/menu", label: "Menü" },
+  { href: "/admin/stock", label: "Stok" },
   { href: "/admin/tables", label: "Masalar" },
   { href: "/admin/reservations", label: "Rezervasyonlar" },
   { href: "/admin/staff", label: "Personel" },

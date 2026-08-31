@@ -34,9 +34,10 @@ export async function PATCH(request: Request, context: Context) {
   }
 
   let table: { id: string; number: string } | null = null;
-  if (body.data.action === "confirm" && body.data.tableId) {
+  const requestedTableId = body.data.tableId ?? reservation.tableId;
+  if (body.data.action === "confirm" && requestedTableId) {
     table = await prisma.table.findFirst({
-      where: { id: body.data.tableId, venueId: user.venueId },
+      where: { id: requestedTableId, venueId: user.venueId },
       select: { id: true, number: true },
     });
     if (!table) {

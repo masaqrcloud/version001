@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { notifyOrderStatus } from "@/lib/notify";
 import { venueOpenState } from "@/lib/opening-hours";
+import { consumeStockForOrder, groupedTrackedStock } from "@/lib/stock";
 import { z } from "zod";
 import { pushToVenueRoles } from "@/lib/staff-push";
 
@@ -87,16 +88,15 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const outOfStock = cart.find(
-    (item) =>
-      item.menuItem.stockTracked &&
-      item.menuItem.stockQuantity < item.quantity,
-  );
-  if (outOfStock) {
-    return NextResponse.json(
-      { error: `${outOfStock.menuItem.name} için yeterli stok yok` },
-      { status: 409 },
-    );
+  const needed = groupedTrackedStock(cart);
+  for (const [menuItemId, need] of needed) {
+    const item = cart.find((entry) => entry.menuItemId === menuItemId);
+    if (item && item.menuItem.stockQuantity < need.quantity) {
+      return NextResponse.json(
+        { error: `${need.name} için yeterli stok yok` },
+        { status: 409 },
+      );
+    }
   }
   for (const item of cart) {
     const selectedIds = item.options.map((selected) => selected.optionId);
@@ -125,21 +125,6 @@ export async function POST(request: Request) {
   let order;
   try {
     order = await prisma.$transaction(async (tx) => {
-      for (const item of cart) {
-        if (!item.menuItem.stockTracked) continue;
-        const updated = await tx.menuItem.updateMany({
-          where: {
-            id: item.menuItemId,
-            stockTracked: true,
-            stockQuantity: { gte: item.quantity },
-          },
-          data: { stockQuantity: { decrement: item.quantity } },
-        });
-        if (updated.count !== 1) {
-          throw new Error(`OUT_OF_STOCK:${item.menuItem.name}`);
-        }
-      }
-
       const created = await tx.order.create({
         data: {
           tableSessionId: guest.tableSessionId,
@@ -170,6 +155,12 @@ export async function POST(request: Request) {
           },
         },
         include: { items: { include: { options: true } } },
+      });
+
+      await consumeStockForOrder(tx, {
+        venueId: guest.tableSession.table.venueId,
+        orderId: created.id,
+        items: cart,
       });
 
       await tx.cartItem.deleteMany({ where: { guestId: guest.id } });

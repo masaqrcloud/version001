@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
 export async function GET() {
@@ -26,6 +27,21 @@ export async function GET() {
               items: { select: { price: true, quantity: true } },
             },
           },
+          mergedTables: { select: { id: true, number: true } },
+        },
+      },
+      mergedSession: {
+        include: {
+          table: { select: { id: true, number: true } },
+          guests: { select: { id: true } },
+          orders: {
+            where: { status: { not: "CANCELLED" } },
+            select: {
+              status: true,
+              items: { select: { price: true, quantity: true } },
+            },
+          },
+          mergedTables: { select: { id: true, number: true } },
         },
       },
     },
@@ -33,16 +49,22 @@ export async function GET() {
   });
 
   const floor = tables.map((table) => {
-    const guests = table.sessions.flatMap((session) => session.guests);
-    const orders = table.sessions.flatMap((session) => session.orders);
-    const waiterCalledAt = table.sessions.reduce<Date | null>(
-      (latest, session) =>
-        session.waiterCalledAt &&
-        (!latest || session.waiterCalledAt > latest)
-          ? session.waiterCalledAt
-          : latest,
-      null,
-    );
+    const home = table.sessions[0] ?? null;
+    const host =
+      !home && table.mergedSession?.status === "OPEN"
+        ? table.mergedSession
+        : null;
+    const session = home ?? host;
+    const extraNumbers = session
+      ? "mergedTables" in session
+        ? session.mergedTables.map((item) => item.number)
+        : []
+      : [];
+    const primaryNumber = home
+      ? table.number
+      : host?.table.number ?? table.number;
+    const guests = session?.guests ?? [];
+    const orders = session?.orders ?? [];
     const total = orders.reduce(
       (sum, order) =>
         sum +
@@ -59,17 +81,31 @@ export async function GET() {
       number: table.number,
       floorX: table.floorX,
       floorY: table.floorY,
-      occupied: table.sessions.length > 0,
-      sessionId: table.sessions[0]?.id ?? null,
+      occupied: Boolean(session),
+      sessionId: session?.id ?? null,
+      primaryTableId: home ? table.id : host?.table.id ?? null,
+      mergedLabel: session
+        ? formatTableGroup(primaryNumber, extraNumbers)
+        : null,
+      isMerged: extraNumbers.length > 0,
+      isPrimary: Boolean(home),
       guestCount: guests.length,
       orderCount: orders.length,
       pendingCount: orders.filter((order) =>
         ["PENDING", "PREPARING", "READY"].includes(order.status),
       ).length,
-      waiterCalledAt,
+      waiterCalledAt: session?.waiterCalledAt ?? null,
       total,
     };
   });
+
+  const counted = new Set<string>();
+  let uniqueGuests = 0;
+  for (const table of floor) {
+    if (!table.sessionId || counted.has(table.sessionId)) continue;
+    counted.add(table.sessionId);
+    uniqueGuests += table.guestCount;
+  }
 
   return NextResponse.json({
     tables: floor,
@@ -77,7 +113,7 @@ export async function GET() {
       total: floor.length,
       occupied: floor.filter((table) => table.occupied).length,
       available: floor.filter((table) => !table.occupied).length,
-      guests: floor.reduce((sum, table) => sum + table.guestCount, 0),
+      guests: uniqueGuests,
     },
   });
 }

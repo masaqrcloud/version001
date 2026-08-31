@@ -92,6 +92,55 @@ function guestStorageKey(qr: string) {
   return `masaqr.guest.${qr}`;
 }
 
+function GuestWifiCard({
+  wifiName,
+  wifiPassword,
+  className = "",
+}: {
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  className?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  if (!wifiName) return null;
+
+  return (
+    <Card
+      className={`flex items-center justify-between gap-3 border-sky-200 bg-sky-50/80 p-4 ${className}`}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
+          Misafir Wi‑Fi
+        </p>
+        <p className="mt-1 truncate font-medium">{wifiName}</p>
+        {wifiPassword ? (
+          <p className="mt-1 break-all text-sm text-[var(--muted)]">
+            Şifre:{" "}
+            <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-[var(--muted)]">Şifresiz ağ</p>
+        )}
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(wifiPassword || wifiName);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+          } catch {
+            setCopied(false);
+          }
+        }}
+      >
+        {copied ? "Kopyalandı" : "Kopyala"}
+      </Button>
+    </Card>
+  );
+}
+
 function GuestBrand({
   venueName,
   venueTagline,
@@ -209,6 +258,8 @@ export function GuestApp({
   venueTagline,
   venueLogo,
   venueCover,
+  wifiName,
+  wifiPassword,
   tableNumber,
   categories,
   openState,
@@ -219,6 +270,8 @@ export function GuestApp({
   venueTagline?: string | null;
   venueLogo?: string | null;
   venueCover?: string | null;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
   tableNumber: string;
   categories: Category[];
   openState: { isOpen: boolean; label: string };
@@ -250,6 +303,7 @@ export function GuestApp({
   const [configuringItem, setConfiguringItem] = useState<MenuItem | null>(null);
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [feedbackDone, setFeedbackDone] = useState(false);
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
   const pendingOrderKey = useRef<string | null>(null);
@@ -570,8 +624,8 @@ export function GuestApp({
       }
       pendingOrderKey.current = null;
       setCart({ items: [] });
-      setTab("bill");
-      setMessage("Siparişin mutfağa iletildi.");
+      setTab("cart");
+      setMessage("Siparişin mutfağa iletildi. Hazırlanmadan iptal edebilirsin.");
     } catch {
       setMessage(
         "Bağlantı kesildi. Tekrar deneyebilirsin; sipariş iki kez oluşmaz.",
@@ -579,6 +633,32 @@ export function GuestApp({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function cancelOwnOrder() {
+    if (!cancelOrderId) return;
+    setBusy(true);
+    setMessage(null);
+    const response = await fetch(`/api/guest/orders/${cancelOrderId}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: guestHeaders(true),
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    const json = await response.json().catch(() => ({}));
+    setCancelOrderId(null);
+    setBusy(false);
+    if (!response.ok) {
+      setMessage(json.error ?? "Sipariş iptal edilemedi.");
+      return;
+    }
+    setMessage("Siparişin iptal edildi. Stok geri alındı.");
+    const refreshed = await fetch("/api/guest/live", {
+      cache: "no-store",
+      credentials: "include",
+      headers: guestHeaders(),
+    });
+    if (refreshed.ok) setLive(await refreshed.json());
   }
 
   async function rejoin() {
@@ -691,6 +771,11 @@ export function GuestApp({
             Personel önizleme. Masada aktif görünmezsin, sipariş veremezsin.
           </p>
         </GuestBrand>
+        <GuestWifiCard
+          className="mx-4"
+          wifiName={wifiName}
+          wifiPassword={wifiPassword}
+        />
         <div className="space-y-8 px-4 py-6">
           {categories.map((category) => (
             <section key={category.id}>
@@ -773,6 +858,11 @@ export function GuestApp({
           venueLogo={venueLogo}
           venueCover={venueCover}
           tableNumber={tableNumber}
+        />
+        <GuestWifiCard
+          className="mx-4 mt-1"
+          wifiName={wifiName}
+          wifiPassword={wifiPassword}
         />
         <div className="flex flex-1 flex-col justify-center px-5">
           <h2 className="text-3xl">Masaya katıl</h2>
@@ -990,6 +1080,12 @@ export function GuestApp({
         {openState.label}
       </p>
 
+      <GuestWifiCard
+        className="mx-4 mt-3"
+        wifiName={wifiName}
+        wifiPassword={wifiPassword}
+      />
+
       {message ? (
         <p className="px-4 pt-3 text-sm text-[var(--accent)]">{message}</p>
       ) : null}
@@ -1120,6 +1216,9 @@ export function GuestApp({
           {orders?.orders.length ? (
             <div className="pt-4">
               <h2 className="text-xl">Gönderdiğin siparişler</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Mutfak henüz hazırlamaya başlamadıysa iptal edebilirsin.
+              </p>
               <div className="mt-3 space-y-3">
                 {orders.orders.map((order) => (
                   <Card key={order.id} className="p-4">
@@ -1143,6 +1242,23 @@ export function GuestApp({
                         </li>
                       ))}
                     </ul>
+                    {order.status === "PENDING" ? (
+                      <Button
+                        className="mt-3"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => setCancelOrderId(order.id)}
+                      >
+                        Siparişi iptal et
+                      </Button>
+                    ) : order.status === "CANCELLED" ? (
+                      <p className="mt-2 text-xs text-red-700">İptal edildi</p>
+                    ) : (
+                      <p className="mt-2 text-xs text-[var(--muted)]">
+                        Mutfak aldı. İptal için garsonu çağır.
+                      </p>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -1157,6 +1273,22 @@ export function GuestApp({
           <p className="text-sm text-[var(--muted)]">
             Masadaki herkesin gönderdiği siparişler. Sepette bekleyenler burada yok.
           </p>
+          {orders?.orders.some((order) => order.status === "PENDING") ? (
+            <Card className="border-amber-200 bg-amber-50/80 p-4">
+              <p className="text-sm font-medium">Bekleyen siparişin var.</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Mutfak başlamadıysa Sepet sekmesinden iptal edebilirsin.
+              </p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                onClick={() => setTab("cart")}
+              >
+                Siparişlerime git
+              </Button>
+            </Card>
+          ) : null}
           {bill?.guests.map((guest) => {
             const lines = groupedBill.get(guest.id) ?? [];
             const sub = lines.reduce((s, l) => s + l.price * l.quantity, 0);
@@ -1220,6 +1352,19 @@ export function GuestApp({
         </div>
       ) : null}
 
+      <Popup
+        title="Siparişi iptal etmek istiyor musun?"
+        message={
+          cancelOrderId
+            ? "Mutfak henüz başlamadıysa sipariş düşer ve stok geri gelir. Onaylarsan mutfak da haberdar olur."
+            : null
+        }
+        confirmLabel="Evet, iptal et"
+        cancelLabel="Vazgeç"
+        busy={busy}
+        onConfirm={() => void cancelOwnOrder()}
+        onClose={() => setCancelOrderId(null)}
+      />
       <Popup
         title={alertPopup?.title ?? "Bildirim"}
         message={alertPopup?.body ?? null}

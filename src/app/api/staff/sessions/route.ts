@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
 export async function GET() {
@@ -13,6 +14,7 @@ export async function GET() {
     },
     include: {
       table: true,
+      mergedTables: { select: { number: true } },
       guests: { select: { nickname: true } },
       orders: {
         where: { status: { not: "CANCELLED" } },
@@ -76,7 +78,10 @@ export async function GET() {
 
         return {
           id: session.id,
-          tableNumber: session.table.number,
+          tableNumber: formatTableGroup(
+            session.table.number,
+            session.mergedTables.map((table) => table.number),
+          ),
           openedAt: session.openedAt,
           waiterCalledAt: session.waiterCalledAt,
           guestCount: guests.length,

@@ -14,11 +14,12 @@ export default async function ReservationPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto w-full max-w-3xl py-8">
+      <div className="mx-auto w-full max-w-4xl py-8">
         <p className="page-kicker">Masa rezervasyonu</p>
         <h1 className="page-title">Masan hazır olsun.</h1>
         <p className="page-lead">
-          Mekânı, tarihi ve saati seç. Onay durumunu e-posta ile bildirelim.
+          Mekânı, tarihi, saati ve masanı seç. Onay durumunu e-posta ile
+          bildirelim.
         </p>
         <Card className="mt-8 p-6 sm:p-8">
           {venues.length ? (

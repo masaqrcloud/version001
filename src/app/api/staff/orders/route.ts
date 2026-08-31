@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
 export async function GET() {
@@ -14,7 +15,9 @@ export async function GET() {
     include: {
       items: { include: { options: true } },
       guest: true,
-      tableSession: { include: { table: true } },
+      tableSession: {
+        include: { table: true, mergedTables: { select: { number: true } } },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
@@ -24,7 +27,10 @@ export async function GET() {
       id: order.id,
       status: order.status,
       createdAt: order.createdAt,
-      tableNumber: order.tableSession.table.number,
+      tableNumber: formatTableGroup(
+        order.tableSession.table.number,
+        order.tableSession.mergedTables.map((table) => table.number),
+      ),
       guestName: order.guestName || order.guest.nickname || "Misafir",
       items: order.items.map((item) => ({
         id: item.id,

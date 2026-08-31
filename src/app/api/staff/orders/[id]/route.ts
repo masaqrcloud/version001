@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { notifyOrderStatus } from "@/lib/notify";
+import { restoreStockForOrder } from "@/lib/stock";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -94,13 +95,12 @@ export async function PATCH(request: Request, context: Ctx) {
     if (current.status !== order.status) throw new Error("ORDER_CHANGED");
 
     if (targetStatus === "CANCELLED" && !current.stockRestoredAt) {
-      for (const item of order.items) {
-        if (!item.menuItem.stockTracked) continue;
-        await tx.menuItem.update({
-          where: { id: item.menuItemId },
-          data: { stockQuantity: { increment: item.quantity } },
-        });
-      }
+      await restoreStockForOrder(tx, {
+        venueId: user.venueId,
+        orderId: id,
+        actorId: user.id,
+        items: order.items,
+      });
     }
 
     const changed = await tx.order.update({

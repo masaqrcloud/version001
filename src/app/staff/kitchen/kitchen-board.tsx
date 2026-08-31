@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { OrderBadge } from "@/components/ui/badge";
 import { usePoll } from "@/lib/poll";
 import type { OrderStatus } from "@prisma/client";
-import { pingPhone } from "@/lib/phone-alert";
+import { pingPhone, playKitchenOrderSound, unlockAlertAudio } from "@/lib/phone-alert";
 
 type OrdersResponse = {
   orders: {
@@ -27,10 +27,26 @@ const actionLabel: Partial<Record<OrderStatus, string>> = {
 };
 
 export function KitchenBoard() {
-  const { data, setData } = usePoll<OrdersResponse>("/api/staff/orders", 5000);
+  const { data, setData } = usePoll<OrdersResponse>("/api/staff/orders", 2000);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [soundOn, setSoundOn] = useState(false);
   const seenOrders = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    const unlock = () => {
+      void unlockAlertAudio().then((ok) => {
+        if (ok) setSoundOn(true);
+      });
+    };
+    unlock();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -44,9 +60,16 @@ export function KitchenBoard() {
       pingPhone(
         "Yeni sipariş",
         `Masa ${order.tableNumber} · ${order.guestName}`,
+        "kitchen",
       );
     }
   }, [data]);
+
+  async function enableSound() {
+    const ok = await unlockAlertAudio();
+    setSoundOn(ok);
+    if (ok) playKitchenOrderSound();
+  }
 
   async function advance(id: string) {
     const patched = await fetch(`/api/staff/orders/${id}`, {
@@ -83,18 +106,27 @@ export function KitchenBoard() {
     if (res.ok) setData(await res.json());
   }
 
-  if (!data) {
-    return <p className="mt-8 text-[var(--muted)]">Yükleniyor…</p>;
-  }
-
-  if (data.orders.length === 0) {
-    return (
-      <p className="mt-8 text-[var(--muted)]">Bekleyen sipariş yok.</p>
-    );
-  }
-
   return (
     <>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant={soundOn ? "secondary" : "outline"}
+          onClick={() => void enableSound()}
+        >
+          {soundOn ? "Ses açık · dene" : "Sipariş sesini aç"}
+        </Button>
+        <span className="text-xs text-[var(--muted)]">
+          {soundOn
+            ? "Yeni siparişte dıdıı-dırırıı çalar."
+            : "Tarayıcı sesi kilitleyebilir; bir kez basman yeterli."}
+        </span>
+      </div>
+      {!data ? (
+        <p className="mt-8 text-[var(--muted)]">Yükleniyor…</p>
+      ) : data.orders.length === 0 ? (
+        <p className="mt-8 text-[var(--muted)]">Bekleyen sipariş yok.</p>
+      ) : null}
       {cancelId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
           <Card className="w-full max-w-md p-5">
@@ -130,6 +162,7 @@ export function KitchenBoard() {
           </Card>
         </div>
       ) : null}
+      {data && data.orders.length > 0 ? (
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {data.orders.map((order) => (
         <Card key={order.id} className="flex flex-col p-5">
@@ -178,6 +211,7 @@ export function KitchenBoard() {
         </Card>
       ))}
       </div>
+      ) : null}
     </>
   );
 }

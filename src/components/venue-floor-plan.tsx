@@ -5,6 +5,7 @@ import { useRef, useState, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePoll } from "@/lib/poll";
+import { autoFloorPosition, clusteredPosition } from "@/lib/table-groups";
 import { formatTRY } from "@/lib/utils";
 
 type FloorTable = {
@@ -14,6 +15,10 @@ type FloorTable = {
   floorY: number | null;
   occupied: boolean;
   sessionId: string | null;
+  primaryTableId: string | null;
+  mergedLabel: string | null;
+  isMerged: boolean;
+  isPrimary: boolean;
   guestCount: number;
   orderCount: number;
   pendingCount: number;
@@ -73,17 +78,6 @@ function TableShape({ occupied }: { occupied: boolean }) {
 
 type Position = { x: number; y: number };
 
-function autoPosition(index: number, total: number): Position {
-  const columns = Math.max(1, Math.ceil(Math.sqrt(total)));
-  const rows = Math.max(1, Math.ceil(total / columns));
-  const column = index % columns;
-  const row = Math.floor(index / columns);
-  return {
-    x: Math.round(((column + 0.5) / columns) * 1000),
-    y: Math.round(((row + 0.5) / rows) * 1000),
-  };
-}
-
 function FloorCard({ table }: { table: FloorTable }) {
   return (
     <Card
@@ -96,6 +90,10 @@ function FloorCard({ table }: { table: FloorTable }) {
       {table.waiterCalledAt ? (
         <span className="absolute right-2 top-2 z-10 animate-pulse rounded-full bg-[var(--accent)] px-2 py-1 text-[9px] font-semibold text-white">
           Garson çağrısı
+        </span>
+      ) : table.isMerged ? (
+        <span className="absolute right-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[9px] font-semibold text-white">
+          Birleşik {table.mergedLabel}
         </span>
       ) : null}
       <div className="scale-75">
@@ -110,6 +108,9 @@ function FloorCard({ table }: { table: FloorTable }) {
             }`}
           >
             {table.occupied ? "Dolu" : "Boş"}
+            {table.isMerged && table.mergedLabel
+              ? ` · ${table.mergedLabel}`
+              : ""}
           </p>
         </div>
         {table.occupied ? (
@@ -152,12 +153,13 @@ export function VenueFloorPlan({
     index: number,
     total: number,
   ): Position {
-    return (
-      draft[table.id] ??
-      (table.floorX !== null && table.floorY !== null
+    if (draft[table.id]) return draft[table.id];
+    if (editing) {
+      return table.floorX !== null && table.floorY !== null
         ? { x: table.floorX, y: table.floorY }
-        : autoPosition(index, total))
-    );
+        : autoFloorPosition(index, total);
+    }
+    return clusteredPosition(table, data?.tables ?? [], index, total);
   }
 
   function pointerPosition(event: PointerEvent<HTMLDivElement>): Position | null {
@@ -198,7 +200,7 @@ export function VenueFloorPlan({
     const positions = Object.fromEntries(
       data.tables.map((table, index) => [
         table.id,
-        autoPosition(index, data.tables.length),
+        autoFloorPosition(index, data.tables.length),
       ]),
     );
     setDraft(positions);

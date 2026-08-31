@@ -47,6 +47,15 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum StockMovementReason {
+  ORDER
+  CANCEL
+  RECEIVE
+  WASTE
+  COUNT
+  ADJUST
+}
+
 model Application {
   id         String            @id @default(cuid())
   fullName   String
@@ -72,13 +81,16 @@ model Venue {
   logoUrl      String?
   coverUrl     String?
   openingHours String?
+  wifiName     String?
+  wifiPassword String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users        User[]
-  tables       Table[]
-  categories   MenuCategory[]
-  reservations Reservation[]
+  users           User[]
+  tables          Table[]
+  categories      MenuCategory[]
+  reservations    Reservation[]
+  stockMovements  StockMovement[]
 }
 
 model User {
@@ -93,6 +105,7 @@ model User {
   pushSubscriptions   PushSubscription[]
   orderStatusEvents   OrderStatusEvent[]
   cancelledOrders     Order[]              @relation("OrderCancelledBy")
+  stockMovements      StockMovement[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -110,25 +123,28 @@ model PasswordResetToken {
 }
 
 model Table {
-  id           String         @id @default(cuid())
-  number       String
-  qrToken      String         @unique @default(cuid())
-  floorX       Int?
-  floorY       Int?
-  venueId      String
-  venue        Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  sessions     TableSession[]
-  reservations Reservation[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  number          String
+  qrToken         String         @unique @default(cuid())
+  floorX          Int?
+  floorY          Int?
+  venueId         String
+  venue           Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  sessions        TableSession[] @relation("TableHomeSession")
+  mergedSessionId String?
+  mergedSession   TableSession?  @relation("SessionMergedTables", fields: [mergedSessionId], references: [id], onDelete: SetNull)
+  reservations    Reservation[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@unique([venueId, number])
+  @@index([mergedSessionId])
 }
 
 model TableSession {
   id             String            @id @default(cuid())
   tableId        String
-  table          Table             @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  table          Table             @relation("TableHomeSession", fields: [tableId], references: [id], onDelete: Cascade)
   status         SessionStatus     @default(OPEN)
   openedAt       DateTime          @default(now())
   closedAt       DateTime?
@@ -137,6 +153,7 @@ model TableSession {
   orders         Order[]
   bill           Bill?
   feedback       SessionFeedback[]
+  mergedTables   Table[]           @relation("SessionMergedTables")
 }
 
 model Guest {
@@ -190,6 +207,27 @@ model MenuItem {
   cartItems         CartItem[]
   orderItems        OrderItem[]
   optionGroups      MenuOptionGroup[]
+  stockMovements    StockMovement[]
+}
+
+model StockMovement {
+  id            String              @id @default(cuid())
+  venueId       String
+  venue         Venue               @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  menuItemId    String
+  menuItem      MenuItem            @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  delta         Int
+  quantityAfter Int
+  reason        StockMovementReason
+  note          String?
+  orderId       String?
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  actorId       String?
+  actor         User?               @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt     DateTime            @default(now())
+
+  @@index([venueId, createdAt])
+  @@index([menuItemId, createdAt])
 }
 
 model MenuOptionGroup {
@@ -285,6 +323,7 @@ model Order {
   updatedAt         DateTime           @updatedAt
   items             OrderItem[]
   statusEvents      OrderStatusEvent[]
+  stockMovements    StockMovement[]
 
   @@index([tableSessionId, status])
   @@index([guestId, createdAt])

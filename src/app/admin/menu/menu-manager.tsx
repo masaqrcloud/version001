@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
@@ -181,18 +182,6 @@ export function MenuManager() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ imageUrl }),
-    });
-    await load();
-  }
-
-  async function updateStock(
-    item: Item,
-    data: { stockTracked?: boolean; stockQuantity?: number },
-  ) {
-    await fetch(`/api/admin/items/${item.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
     });
     await load();
   }
@@ -709,47 +698,25 @@ export function MenuManager() {
                         {formatTRY(item.price)}
                         {item.description ? ` · ${item.description}` : ""}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                        <button
-                          type="button"
-                          className="font-medium text-[var(--accent)]"
-                          onClick={() =>
-                            void updateStock(item, {
-                              stockTracked: !item.stockTracked,
-                            })
-                          }
-                        >
-                          {item.stockTracked ? "Stok takibini kapat" : "Stok takibi aç"}
-                        </button>
-                        {item.stockTracked ? (
-                          <>
-                            <span
-                              className={
-                                item.stockQuantity <= item.lowStockThreshold
-                                  ? "font-semibold text-red-700"
-                                  : "text-[var(--muted)]"
-                              }
-                            >
-                              Stok: {item.stockQuantity}
-                            </span>
-                            <Input
-                              aria-label={`${item.name} stok adedi`}
-                              type="number"
-                              min="0"
-                              className="h-8 w-20"
-                              defaultValue={item.stockQuantity}
-                              onBlur={(event) =>
-                                void updateStock(item, {
-                                  stockQuantity: Math.max(
-                                    0,
-                                    Number(event.target.value) || 0,
-                                  ),
-                                })
-                              }
-                            />
-                          </>
-                        ) : null}
-                      </div>
+                      <Link
+                        href="/admin/stock"
+                        className={`mt-2 inline-block text-xs font-medium ${
+                          item.stockTracked &&
+                          item.stockQuantity <= item.lowStockThreshold
+                            ? "text-red-700"
+                            : "text-[var(--accent)]"
+                        }`}
+                      >
+                        {item.stockTracked
+                          ? `Stok: ${item.stockQuantity}${
+                              item.stockQuantity <= 0
+                                ? " · bitti"
+                                : item.stockQuantity <= item.lowStockThreshold
+                                  ? " · az kaldı"
+                                  : ""
+                            }`
+                          : "Stok takibi yok · yönet"}
+                      </Link>
                       <label className="mt-2 inline-flex cursor-pointer text-xs font-medium text-[var(--accent)]">
                         {item.imageUrl ? "Fotoğrafı değiştir" : "Fotoğraf yükle"}
                         <input
@@ -899,6 +866,9 @@ export function MenuManager() {
                     }))
                   }
                 />
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Sonraki teslimat, fire ve sayımlar Stok sayfasından işlenir.
+                </p>
               </div>
             ) : null}
             <ImageUpload

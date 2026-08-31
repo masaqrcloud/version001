@@ -16,7 +16,10 @@ type Detail = {
   status: "OPEN" | "CLOSED";
   tableNumber: string;
   waiterCalledAt: string | null;
+  mergedTables: { id: string; number: string }[];
   otherTables: { id: string; tableNumber: string }[];
+  mergeTargets: { id: string; number: string; occupied: boolean }[];
+  transferTargets: { id: string; number: string }[];
   total: number;
   guests: { id: string; nickname: string }[];
   orders: {
@@ -30,8 +33,9 @@ type Detail = {
 
 export function WaiterSession({ sessionId }: { sessionId: string }) {
   const router = useRouter();
-  const { data } = usePoll<Detail>(`/api/staff/sessions/${sessionId}`, 5000);
-  const [targetId, setTargetId] = useState("");
+  const { data, setData } = usePoll<Detail>(`/api/staff/sessions/${sessionId}`, 5000);
+  const [mergeId, setMergeId] = useState("");
+  const [transferId, setTransferId] = useState("");
   const [busy, setBusy] = useState(false);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -79,16 +83,16 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
   }
 
   async function mergeTable() {
-    if (!targetId) return;
+    if (!mergeId) return;
     const ok = window.confirm(
-      "Bu masanın misafirleri ve hesabı seçilen masaya geçer. Devam?",
+      "Seçilen masa bu hesapla birleşir. İki masa da dolu/kırmızı kalır, aynı misafirler görünür.",
     );
     if (!ok) return;
     setBusy(true);
     const res = await fetch(`/api/staff/sessions/${sessionId}/merge`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ targetSessionId: targetId }),
+      body: JSON.stringify({ targetTableId: mergeId }),
     });
     const json = await res.json().catch(() => ({}));
     setBusy(false);
@@ -96,7 +100,51 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
       window.alert(json.error ?? "Birleştirilemedi");
       return;
     }
-    router.push(`/staff/waiter/${json.targetSessionId}`);
+    setMergeId("");
+    const refreshed = await fetch(`/api/staff/sessions/${sessionId}`, {
+      cache: "no-store",
+    });
+    if (refreshed.ok) setData(await refreshed.json());
+  }
+
+  async function transferTable() {
+    if (!transferId) return;
+    const ok = window.confirm(
+      "Kişiler ve hesap boş masaya geçer. Bu masa boşalır.",
+    );
+    if (!ok) return;
+    setBusy(true);
+    const res = await fetch(`/api/staff/sessions/${sessionId}/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetTableId: transferId }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      window.alert(json.error ?? "Aktarılamadı");
+      return;
+    }
+    router.push(`/staff/waiter/${json.sessionId ?? sessionId}`);
+  }
+
+  async function unmergeTable(tableId: string) {
+    setBusy(true);
+    const res = await fetch(`/api/staff/sessions/${sessionId}/unmerge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tableId }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      window.alert(json.error ?? "Ayırılamadı");
+      return;
+    }
+    const refreshed = await fetch(`/api/staff/sessions/${sessionId}`, {
+      cache: "no-store",
+    });
+    if (refreshed.ok) setData(await refreshed.json());
   }
 
   if (!data) {
@@ -216,32 +264,86 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
         </Card>
       ) : null}
 
-      {data.status === "OPEN" && data.otherTables.length > 0 ? (
-        <Card className="mt-6 space-y-3 p-4">
-          <p className="font-medium">Masa birleştir</p>
-          <p className="text-sm text-[var(--muted)]">
-            Bu masanın kişileri ve siparişleri seçtiğin masaya geçer.
-          </p>
-          <select
-            className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
-            value={targetId}
-            onChange={(e) => setTargetId(e.target.value)}
-          >
-            <option value="">Hedef masa seç</option>
-            {data.otherTables.map((table) => (
-              <option key={table.id} value={table.id}>
-                Masa {table.tableNumber}
-              </option>
-            ))}
-          </select>
-          <Button
-            variant="outline"
-            disabled={!targetId || busy}
-            onClick={() => void mergeTable()}
-          >
-            {busy ? "Birleştiriliyor…" : "Birleştir"}
-          </Button>
-        </Card>
+      {data.status === "OPEN" ? (
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <Card className="space-y-3 p-4">
+            <p className="font-medium">Masa birleştir</p>
+            <p className="text-sm text-[var(--muted)]">
+              Masa {data.tableNumber} ile seçtiğin masa yan yana durur, ikisi
+              de kırmızı kalır, aynı kişiler görünür.
+            </p>
+            {data.mergedTables?.length ? (
+              <ul className="space-y-2 text-sm">
+                {data.mergedTables.map((table) => (
+                  <li
+                    key={table.id}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-red-50 px-3 py-2 text-red-900"
+                  >
+                    <span>Masa {table.number} birleşik</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() => void unmergeTable(table.id)}
+                    >
+                      Ayır
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <select
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+              value={mergeId}
+              onChange={(e) => setMergeId(e.target.value)}
+            >
+              <option value="">Birleştirilecek masa</option>
+              {data.mergeTargets?.map((table) => (
+                <option key={table.id} value={table.id}>
+                  Masa {table.number}
+                  {table.occupied ? " · dolu" : " · boş"}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              disabled={!mergeId || busy}
+              onClick={() => void mergeTable()}
+            >
+              {busy ? "Birleştiriliyor…" : "Birleştir"}
+            </Button>
+          </Card>
+
+          <Card className="space-y-3 p-4">
+            <p className="font-medium">Masa aktar</p>
+            <p className="text-sm text-[var(--muted)]">
+              Kişiler ve hesap boş masaya geçer. Bu masa yeşile döner.
+            </p>
+            <select
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+              value={transferId}
+              onChange={(e) => setTransferId(e.target.value)}
+            >
+              <option value="">Boş masa seç</option>
+              {data.transferTargets?.map((table) => (
+                <option key={table.id} value={table.id}>
+                  Masa {table.number}
+                </option>
+              ))}
+            </select>
+            <Button
+              disabled={!transferId || busy}
+              onClick={() => void transferTable()}
+            >
+              {busy ? "Aktarılıyor…" : "Aktar"}
+            </Button>
+            {!data.transferTargets?.length ? (
+              <p className="text-xs text-[var(--muted)]">
+                Aktarılacak boş masa yok.
+              </p>
+            ) : null}
+          </Card>
+        </div>
       ) : null}
 
       {data.status === "OPEN" ? (

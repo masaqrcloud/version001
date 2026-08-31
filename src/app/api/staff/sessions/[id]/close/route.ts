@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { sendDigitalReceiptMail } from "@/lib/receipt-mail";
+import { releaseMergedTables } from "@/lib/table-groups";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -39,6 +40,7 @@ export async function POST(_request: Request, context: Ctx) {
     );
 
   await prisma.$transaction(async (tx) => {
+    await releaseMergedTables(tx, id);
     await tx.tableSession.update({
       where: { id },
       data: { status: "CLOSED", closedAt: new Date() },

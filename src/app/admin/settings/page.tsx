@@ -28,6 +28,8 @@ export default async function AdminSettingsPage() {
               logoUrl={venue.logoUrl}
               coverUrl={venue.coverUrl}
               openingHours={venue.openingHours}
+              wifiName={venue.wifiName}
+              wifiPassword={venue.wifiPassword}
             />
           </div>
         ) : null}
@@ -38,7 +40,8 @@ export default async function AdminSettingsPage() {
   return (
     <div>
       <PageIntro kicker="Ayarlar" title="Mekân ayarları">
-        Adın, logon ve kapak fotoğrafın misafirin QR ekranında görünür.
+        Adın, logon, Wi‑Fi bilgilerin ve kapak fotoğrafın misafirin QR
+        ekranında görünür.
       </PageIntro>
       {venue ? (
         <SettingsForm
@@ -48,6 +51,8 @@ export default async function AdminSettingsPage() {
           logoUrl={venue.logoUrl}
           coverUrl={venue.coverUrl}
           openingHours={venue.openingHours}
+          wifiName={venue.wifiName}
+          wifiPassword={venue.wifiPassword}
         />
       ) : (
         <p className="mt-8 text-[var(--muted)]">Mekan bulunamadı.</p>

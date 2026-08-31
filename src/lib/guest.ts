@@ -103,6 +103,27 @@ export async function removeInactiveStaffGuests(tableId: string) {
 
 export async function getOrCreateOpenSession(tableId: string) {
   return prisma.$transaction(async (tx) => {
+    const table = await tx.table.findUnique({
+      where: { id: tableId },
+      select: { id: true, mergedSessionId: true },
+    });
+    if (!table) {
+      throw new Error("TABLE_NOT_FOUND");
+    }
+
+    if (table.mergedSessionId) {
+      const host = await tx.tableSession.findUnique({
+        where: { id: table.mergedSessionId },
+      });
+      if (host?.status === "OPEN") {
+        return host;
+      }
+      await tx.table.update({
+        where: { id: tableId },
+        data: { mergedSessionId: null },
+      });
+    }
+
     const open = await tx.tableSession.findMany({
       where: { tableId, status: "OPEN" },
       orderBy: { openedAt: "asc" },
@@ -158,10 +179,15 @@ export async function joinTable(qrToken: string, clientToken?: string | null) {
   if (guest && guest.tableSessionId !== session.id) {
     const current = await prisma.tableSession.findUnique({
       where: { id: guest.tableSessionId },
-      include: { table: true },
+      include: { table: true, mergedTables: { select: { id: true } } },
     });
-    const sameTable = current?.tableId === table.id;
-    if (sameTable) {
+    const sameGroup =
+      current?.status === "OPEN" &&
+      (current.id === session.id ||
+        current.tableId === table.id ||
+        current.mergedTables.some((item) => item.id === table.id) ||
+        table.mergedSessionId === current.id);
+    if (sameGroup) {
       guest = await prisma.guest.update({
         where: { id: guest.id },
         data: { tableSessionId: session.id },
