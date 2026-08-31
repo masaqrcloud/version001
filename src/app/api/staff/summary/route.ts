@@ -3,17 +3,21 @@ import { prisma } from "@/lib/db";
 import { istanbulDayBounds } from "@/lib/day";
 import { getStaffUser } from "@/lib/tenant";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
   if (error) return error;
   if (!user.venueId) {
     return NextResponse.json({ error: "Mekan yok" }, { status: 400 });
   }
 
-  const { start, end, day } = istanbulDayBounds();
+  const requestedDays = Number(new URL(request.url).searchParams.get("days"));
+  const days = [1, 7, 30].includes(requestedDays) ? requestedDays : 1;
+  const today = istanbulDayBounds();
+  const start = new Date(today.start.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+  const { end, day } = today;
   const venueFilter = { table: { venueId: user.venueId } };
 
-  const [closed, open, orders] = await Promise.all([
+  const [closed, open, orders, feedback] = await Promise.all([
     prisma.tableSession.findMany({
       where: {
         ...venueFilter,
@@ -39,11 +43,21 @@ export async function GET() {
       where: {
         tableSession: venueFilter,
         createdAt: { gte: start, lte: end },
-        status: { not: "CANCELLED" },
       },
-      include: { items: true },
+      include: {
+        items: true,
+        statusEvents: { orderBy: { createdAt: "asc" } },
+      },
+    }),
+    prisma.sessionFeedback.findMany({
+      where: {
+        tableSession: venueFilter,
+        createdAt: { gte: start, lte: end },
+      },
     }),
   ]);
+  const activeOrders = orders.filter((order) => order.status !== "CANCELLED");
+  const cancelledOrders = orders.filter((order) => order.status === "CANCELLED");
 
   const paidTotal = closed.reduce((sum, session) => {
     if (session.bill && session.bill.status === "PAID") {
@@ -77,7 +91,7 @@ export async function GET() {
   );
 
   const itemMap = new Map<string, { name: string; quantity: number; total: number }>();
-  for (const order of orders) {
+  for (const order of activeOrders) {
     for (const item of order.items) {
       const current = itemMap.get(item.name) ?? {
         name: item.name,
@@ -93,20 +107,63 @@ export async function GET() {
   const topItems = [...itemMap.values()]
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 8);
+  const preparationTimes = activeOrders
+    .map((order) => {
+      const ready = order.statusEvents.find((event) => event.toStatus === "READY");
+      return ready ? ready.createdAt.getTime() - order.createdAt.getTime() : null;
+    })
+    .filter((value): value is number => value !== null && value >= 0);
+  const tableDurations = closed
+    .filter((session) => session.closedAt)
+    .map(
+      (session) =>
+        session.closedAt!.getTime() - session.openedAt.getTime(),
+    )
+    .filter((value) => value >= 0);
+  const cancelReasonMap = new Map<string, number>();
+  for (const order of cancelledOrders) {
+    const reason = order.cancelReason?.trim() || "Neden belirtilmedi";
+    cancelReasonMap.set(reason, (cancelReasonMap.get(reason) ?? 0) + 1);
+  }
 
   return NextResponse.json({
     day,
+    days,
     paidTotal,
     openTotal,
     closedCount: closed.length,
     openCount: open.length,
-    orderCount: orders.length,
-    itemCount: orders.reduce(
+    orderCount: activeOrders.length,
+    itemCount: activeOrders.reduce(
       (sum, order) =>
         sum + order.items.reduce((s, item) => s + item.quantity, 0),
       0,
     ),
     topItems,
+    cancellationCount: cancelledOrders.length,
+    cancellationRate:
+      orders.length > 0 ? cancelledOrders.length / orders.length : 0,
+    cancellationReasons: [...cancelReasonMap.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count),
+    averagePreparationMinutes:
+      preparationTimes.length > 0
+        ? preparationTimes.reduce((sum, value) => sum + value, 0) /
+          preparationTimes.length /
+          60000
+        : null,
+    averageTableMinutes:
+      tableDurations.length > 0
+        ? tableDurations.reduce((sum, value) => sum + value, 0) /
+          tableDurations.length /
+          60000
+        : null,
+    averageRating:
+      feedback.length > 0
+        ? feedback.reduce((sum, item) => sum + item.rating, 0) /
+          feedback.length
+        : null,
+    feedbackCount: feedback.length,
     openTables: open.map((session) => ({
       id: session.id,
       tableNumber: session.table.number,

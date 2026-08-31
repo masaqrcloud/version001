@@ -22,12 +22,15 @@ export async function GET() {
     await Promise.all([
       prisma.cartItem.findMany({
         where: { guestId: guest.id },
-        include: { menuItem: true },
+        include: {
+          menuItem: true,
+          options: { include: { option: true } },
+        },
         orderBy: { createdAt: "asc" },
       }),
       prisma.order.findMany({
         where: { guestId: guest.id },
-        include: { items: true },
+        include: { items: { include: { options: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.order.findMany({
@@ -35,7 +38,10 @@ export async function GET() {
           tableSession: { tableId, status: "OPEN" },
           status: { not: "CANCELLED" },
         },
-        include: { items: true, guest: true },
+        include: {
+          items: { include: { options: true } },
+          guest: true,
+        },
         orderBy: { createdAt: "asc" },
       }),
       prisma.guest.findMany({
@@ -67,6 +73,7 @@ export async function GET() {
       price: Number(item.price),
       quantity: item.quantity,
       note: item.note,
+      options: item.options.map((option) => option.name),
       status: order.status,
     })),
   );
@@ -82,11 +89,22 @@ export async function GET() {
         id: item.id,
         menuItemId: item.menuItemId,
         name: item.menuItem.name,
-        price: Number(item.menuItem.price),
+        price:
+          Number(item.menuItem.price) +
+          item.options.reduce(
+            (sum, selected) => sum + Number(selected.option.priceDelta),
+            0,
+          ),
         quantity: item.quantity,
         note: item.note,
+        options: item.options.map((selected) => ({
+          id: selected.option.id,
+          name: selected.option.name,
+          priceDelta: Number(selected.option.priceDelta),
+        })),
         available:
           item.menuItem.available &&
+          item.options.every((selected) => selected.option.available) &&
           (!item.menuItem.stockTracked || item.menuItem.stockQuantity > 0),
         imageUrl: item.menuItem.imageUrl,
       })),
@@ -102,6 +120,7 @@ export async function GET() {
           price: Number(item.price),
           quantity: item.quantity,
           note: item.note,
+          options: item.options.map((option) => option.name),
         })),
       })),
     },

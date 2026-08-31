@@ -12,7 +12,7 @@ export async function GET() {
       status: { in: ["PENDING", "PREPARING", "READY"] },
     },
     include: {
-      items: true,
+      items: { include: { options: true } },
       guest: true,
       tableSession: { include: { table: true } },
     },
@@ -31,6 +31,7 @@ export async function GET() {
         name: item.name,
         quantity: item.quantity,
         note: item.note,
+        options: item.options.map((option) => option.name),
       })),
     })),
   });

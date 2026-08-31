@@ -32,6 +32,7 @@ export async function PATCH(request: Request, context: Ctx) {
         .enum(["PENDING", "PREPARING", "READY", "SERVED", "CANCELLED"])
         .optional(),
       advance: z.boolean().optional(),
+      reason: z.string().trim().min(3).max(200).optional(),
     })
     .safeParse(await request.json());
 
@@ -41,7 +42,7 @@ export async function PATCH(request: Request, context: Ctx) {
 
   const order = await prisma.order.findFirst({
     where: { id, tableSession: { table: { venueId: user.venueId } } },
-    include: { items: true },
+    include: { items: { include: { menuItem: true } } },
   });
   if (!order) {
     return NextResponse.json({ error: "Sipariş yok" }, { status: 404 });
@@ -59,11 +60,88 @@ export async function PATCH(request: Request, context: Ctx) {
   if (!status) {
     return NextResponse.json({ error: "Durum gerekli" }, { status: 400 });
   }
+  const targetStatus = status;
 
-  const updated = await prisma.order.update({
-    where: { id },
-    data: { status },
+  const manager = ["PLATFORM", "OWNER", "ADMIN"].includes(user.role);
+  const allowed =
+    targetStatus === "CANCELLED"
+      ? Boolean(body.data.reason) &&
+        (manager ||
+          (user.role === "KITCHEN" &&
+            ["PENDING", "PREPARING"].includes(order.status)) ||
+          (user.role === "WAITER" &&
+            ["PENDING", "READY"].includes(order.status)))
+      : targetStatus === nextStatus[order.status] &&
+        (manager ||
+          (user.role === "KITCHEN" &&
+            ["PENDING", "PREPARING"].includes(order.status)) ||
+          (user.role === "WAITER" && order.status === "READY"));
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error:
+          targetStatus === "CANCELLED" && !body.data.reason
+            ? "İptal nedeni gerekli"
+            : "Bu durum geçişine yetkiniz yok",
+      },
+      { status: 409 },
+    );
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const current = await tx.order.findUnique({ where: { id } });
+    if (!current) throw new Error("ORDER_NOT_FOUND");
+    if (current.status !== order.status) throw new Error("ORDER_CHANGED");
+
+    if (targetStatus === "CANCELLED" && !current.stockRestoredAt) {
+      for (const item of order.items) {
+        if (!item.menuItem.stockTracked) continue;
+        await tx.menuItem.update({
+          where: { id: item.menuItemId },
+          data: { stockQuantity: { increment: item.quantity } },
+        });
+      }
+    }
+
+    const changed = await tx.order.update({
+      where: { id },
+      data: {
+        status: targetStatus,
+        ...(targetStatus === "CANCELLED"
+          ? {
+              cancelledAt: new Date(),
+              cancelledByUserId: user.id,
+              cancelReason: body.data.reason,
+              stockRestoredAt: new Date(),
+            }
+          : {}),
+      },
+    });
+    await tx.orderStatusEvent.create({
+      data: {
+        orderId: id,
+        fromStatus: current.status,
+        toStatus: targetStatus,
+        actorId: user.id,
+        reason: targetStatus === "CANCELLED" ? body.data.reason : null,
+      },
+    });
+    return changed;
+  }).catch((transactionError) => {
+    if (
+      transactionError instanceof Error &&
+      transactionError.message === "ORDER_CHANGED"
+    ) {
+      return null;
+    }
+    throw transactionError;
   });
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Sipariş başka bir personel tarafından güncellendi" },
+      { status: 409 },
+    );
+  }
 
   if (updated.status !== order.status) {
     try {

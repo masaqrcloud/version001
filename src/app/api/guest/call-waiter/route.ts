@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { notifyGuest } from "@/lib/notify";
+import { pushToVenueRoles } from "@/lib/staff-push";
 
 const WAITER_COOLDOWN_MS = 10 * 60 * 1000;
 
@@ -78,6 +79,16 @@ export async function POST() {
     } catch {
       // bildirim olmasa da çağrı gider
     }
+    void pushToVenueRoles(
+      guest.tableSession.table.venueId,
+      ["PLATFORM", "OWNER", "ADMIN", "WAITER"],
+      {
+        title: "Garson çağrısı",
+        body: `Masa ${guest.tableSession.table.number} garson çağırıyor`,
+        url: `/staff/waiter/${guest.tableSessionId}`,
+        tag: `waiter-${guest.tableSessionId}`,
+      },
+    );
 
     return NextResponse.json({
       ok: true,

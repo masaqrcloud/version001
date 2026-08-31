@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { OrderBadge } from "@/components/ui/badge";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
@@ -23,7 +24,7 @@ type Detail = {
     status: OrderStatus;
     createdAt: string;
     guestName: string;
-    items: { id: string; name: string; price: number; quantity: number; note: string | null }[];
+    items: { id: string; name: string; price: number; quantity: number; note: string | null; options: string[] }[];
   }[];
 };
 
@@ -32,6 +33,8 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
   const { data } = usePoll<Detail>(`/api/staff/sessions/${sessionId}`, 5000);
   const [targetId, setTargetId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   async function closeTable() {
     const ok = window.confirm("Masa kapatılsın ve hesap ödendi işaretlensin mi?");
@@ -50,6 +53,25 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "SERVED" }),
     });
+  }
+
+  async function cancelOrder() {
+    if (!cancelId || cancelReason.trim().length < 3) return;
+    const response = await fetch(`/api/staff/orders/${cancelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "CANCELLED",
+        reason: cancelReason.trim(),
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      window.alert(result.error ?? "Sipariş iptal edilemedi");
+      return;
+    }
+    setCancelId(null);
+    setCancelReason("");
   }
 
   async function ackCall() {
@@ -83,6 +105,41 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
 
   return (
     <div>
+      {cancelId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <Card className="w-full max-w-md p-5">
+            <h2 className="font-serif text-2xl">Siparişi iptal et</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Nedeni işlem geçmişinde görünecek, stok otomatik iade edilecek.
+            </p>
+            <Input
+              className="mt-4"
+              autoFocus
+              maxLength={200}
+              value={cancelReason}
+              placeholder="İptal nedeni"
+              onChange={(event) => setCancelReason(event.target.value)}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setCancelId(null);
+                  setCancelReason("");
+                }}
+              >
+                Vazgeç
+              </Button>
+              <Button
+                disabled={cancelReason.trim().length < 3}
+                onClick={() => void cancelOrder()}
+              >
+                İptal et
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
       <Link href="/staff/waiter" className="text-sm text-[var(--accent)]">
         ← Masalar
       </Link>
@@ -111,8 +168,25 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                   <span className="text-sm">{order.guestName}</span>
                 </div>
                 {order.status === "READY" ? (
-                  <Button size="sm" onClick={() => void markServed(order.id)}>
-                    Servis edildi
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => void markServed(order.id)}>
+                      Servis edildi
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCancelId(order.id)}
+                    >
+                      İptal
+                    </Button>
+                  </div>
+                ) : order.status === "PENDING" ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setCancelId(order.id)}
+                  >
+                    İptal
                   </Button>
                 ) : null}
               </div>
@@ -121,6 +195,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                   <li key={item.id} className="flex justify-between gap-3">
                     <span>
                       {item.quantity}× {item.name}
+                      {item.options.length ? ` · ${item.options.join(", ")}` : ""}
                       {item.note ? ` (${item.note})` : ""}
                     </span>
                     <span>{formatTRY(item.price * item.quantity)}</span>

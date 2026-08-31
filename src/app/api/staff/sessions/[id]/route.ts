@@ -28,7 +28,10 @@ export async function GET(_request: Request, context: Ctx) {
       table: true,
       guests: { orderBy: { createdAt: "asc" } },
       orders: {
-        include: { items: true, guest: true },
+        include: {
+          items: { include: { options: true } },
+          guest: true,
+        },
         orderBy: { createdAt: "asc" },
       },
       bill: true,
@@ -87,6 +90,7 @@ export async function GET(_request: Request, context: Ctx) {
         price: Number(item.price),
         quantity: item.quantity,
         note: item.note,
+        options: item.options.map((option) => option.name),
       })),
     })),
   });

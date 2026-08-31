@@ -25,6 +25,17 @@ export default async function TablePage({
       items: {
         where: { available: true },
         orderBy: { sortOrder: "asc" },
+        include: {
+          optionGroups: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              options: {
+                where: { available: true },
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
       },
     },
     orderBy: { sortOrder: "asc" },
@@ -57,6 +68,18 @@ export default async function TablePage({
           price: Number(item.price),
           imageUrl: item.imageUrl,
           soldOut: item.stockTracked && item.stockQuantity <= 0,
+          optionGroups: item.optionGroups.map((group) => ({
+            id: group.id,
+            name: group.name,
+            required: group.required,
+            minSelections: group.minSelections,
+            maxSelections: group.maxSelections,
+            options: group.options.map((option) => ({
+              id: option.id,
+              name: option.name,
+              priceDelta: Number(option.priceDelta),
+            })),
+          })),
         })),
       }))}
     />

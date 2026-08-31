@@ -1,0 +1,11 @@
+[Unit]
+Description=MasaQR local SQLite and uploads backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/masaqr
+Environment=APP_DIR=/home/ubuntu/masaqr
+Environment=BACKUP_ROOT=/home/ubuntu/masaqr-backups
+ExecStart=/bin/bash /home/ubuntu/masaqr/scripts/backup-local.sh

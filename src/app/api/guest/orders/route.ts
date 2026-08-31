@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { notifyOrderStatus } from "@/lib/notify";
 import { venueOpenState } from "@/lib/opening-hours";
+import { z } from "zod";
+import { pushToVenueRoles } from "@/lib/staff-push";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -31,7 +33,7 @@ export async function GET() {
   });
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const guest = await requireOpenGuest();
   if (!guest) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
@@ -43,9 +45,35 @@ export async function POST() {
     );
   }
 
+  const body = z
+    .object({ idempotencyKey: z.string().uuid() })
+    .safeParse(await request.json().catch(() => null));
+  if (!body.success) {
+    return NextResponse.json(
+      { error: "Geçersiz sipariş anahtarı" },
+      { status: 400 },
+    );
+  }
+  const previous = await prisma.order.findUnique({
+    where: { idempotencyKey: body.data.idempotencyKey },
+  });
+  if (previous) {
+    if (previous.guestId !== guest.id) {
+      return NextResponse.json({ error: "Geçersiz sipariş" }, { status: 409 });
+    }
+    return NextResponse.json({ id: previous.id, status: previous.status });
+  }
+
   const cart = await prisma.cartItem.findMany({
     where: { guestId: guest.id },
-    include: { menuItem: true },
+    include: {
+      menuItem: {
+        include: {
+          optionGroups: { include: { options: true } },
+        },
+      },
+      options: { include: { option: true } },
+    },
   });
 
   if (cart.length === 0) {
@@ -69,6 +97,29 @@ export async function POST() {
       { error: `${outOfStock.menuItem.name} için yeterli stok yok` },
       { status: 409 },
     );
+  }
+  for (const item of cart) {
+    const selectedIds = item.options.map((selected) => selected.optionId);
+    if (item.options.some((selected) => !selected.option.available)) {
+      return NextResponse.json(
+        { error: `${item.menuItem.name} seçeneklerinden biri artık mevcut değil` },
+        { status: 409 },
+      );
+    }
+    for (const group of item.menuItem.optionGroups) {
+      const count = group.options.filter((option) =>
+        selectedIds.includes(option.id),
+      ).length;
+      const minimum = group.required
+        ? Math.max(1, group.minSelections)
+        : group.minSelections;
+      if (count < minimum || count > group.maxSelections) {
+        return NextResponse.json(
+          { error: `${item.menuItem.name} seçeneklerini yeniden seçin` },
+          { status: 409 },
+        );
+      }
+    }
   }
 
   let order;
@@ -94,17 +145,31 @@ export async function POST() {
           tableSessionId: guest.tableSessionId,
           guestId: guest.id,
           guestName: guest.nickname?.trim() || "Misafir",
+          idempotencyKey: body.data.idempotencyKey,
+          statusEvents: { create: { toStatus: "PENDING" } },
           items: {
             create: cart.map((item) => ({
               menuItemId: item.menuItemId,
               name: item.menuItem.name,
-              price: item.menuItem.price,
+              price:
+                Number(item.menuItem.price) +
+                item.options.reduce(
+                  (sum, selected) =>
+                    sum + Number(selected.option.priceDelta),
+                  0,
+                ),
               quantity: item.quantity,
               note: item.note?.trim() || null,
+              options: {
+                create: item.options.map((selected) => ({
+                  name: selected.option.name,
+                  priceDelta: selected.option.priceDelta,
+                })),
+              },
             })),
           },
         },
-        include: { items: true },
+        include: { items: { include: { options: true } } },
       });
 
       await tx.cartItem.deleteMany({ where: { guestId: guest.id } });
@@ -118,6 +183,22 @@ export async function POST() {
         },
         { status: 409 },
       );
+    }
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      const existing = await prisma.order.findUnique({
+        where: { idempotencyKey: body.data.idempotencyKey },
+      });
+      if (existing?.guestId === guest.id) {
+        return NextResponse.json({
+          id: existing.id,
+          status: existing.status,
+        });
+      }
     }
     console.error("Sipariş yazılamadı", error);
     return NextResponse.json(
@@ -136,6 +217,16 @@ export async function POST() {
   } catch (error) {
     console.error("Bildirim yazılamadı", error);
   }
+  void pushToVenueRoles(
+    guest.tableSession.table.venueId,
+    ["PLATFORM", "OWNER", "ADMIN", "KITCHEN"],
+    {
+      title: "Yeni sipariş",
+      body: `Masa ${guest.tableSession.table.number} · ${guest.nickname?.trim() || "Misafir"}`,
+      url: "/staff/kitchen",
+      tag: `order-${order.id}`,
+    },
+  );
 
   return NextResponse.json({
     id: order.id,

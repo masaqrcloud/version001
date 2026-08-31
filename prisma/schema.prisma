@@ -48,50 +48,53 @@ enum ReservationStatus {
 }
 
 model Application {
-  id        String            @id @default(cuid())
-  fullName  String
-  email     String
-  phone     String?
-  venueName String
-  city      String?
-  venueType String?
-  message   String?
-  status    ApplicationStatus @default(NEW)
+  id         String            @id @default(cuid())
+  fullName   String
+  email      String
+  phone      String?
+  venueName  String
+  city       String?
+  venueType  String?
+  message    String?
+  status     ApplicationStatus @default(NEW)
   reviewedAt DateTime?
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@index([status, createdAt])
 }
 
 model Venue {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  tagline   String?
-  logoUrl   String?
-  coverUrl  String?
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  tagline      String?
+  logoUrl      String?
+  coverUrl     String?
   openingHours String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  users      User[]
-  tables     Table[]
-  categories MenuCategory[]
+  users        User[]
+  tables       Table[]
+  categories   MenuCategory[]
   reservations Reservation[]
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         Role
-  venueId      String?
-  venue        Venue?   @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  name                String
+  role                Role
+  venueId             String?
+  venue               Venue?               @relation(fields: [venueId], references: [id], onDelete: Cascade)
   passwordResetTokens PasswordResetToken[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  pushSubscriptions   PushSubscription[]
+  orderStatusEvents   OrderStatusEvent[]
+  cancelledOrders     Order[]              @relation("OrderCancelledBy")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model PasswordResetToken {
@@ -107,47 +110,49 @@ model PasswordResetToken {
 }
 
 model Table {
-  id        String   @id @default(cuid())
-  number    String
-  qrToken   String   @unique @default(cuid())
-  floorX    Int?
-  floorY    Int?
-  venueId   String
-  venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  sessions  TableSession[]
+  id           String         @id @default(cuid())
+  number       String
+  qrToken      String         @unique @default(cuid())
+  floorX       Int?
+  floorY       Int?
+  venueId      String
+  venue        Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  sessions     TableSession[]
   reservations Reservation[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@unique([venueId, number])
 }
 
 model TableSession {
-  id        String        @id @default(cuid())
-  tableId   String
-  table     Table         @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  status    SessionStatus @default(OPEN)
-  openedAt       DateTime      @default(now())
+  id             String            @id @default(cuid())
+  tableId        String
+  table          Table             @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  status         SessionStatus     @default(OPEN)
+  openedAt       DateTime          @default(now())
   closedAt       DateTime?
   waiterCalledAt DateTime?
   guests         Guest[]
-  orders    Order[]
-  bill      Bill?
+  orders         Order[]
+  bill           Bill?
+  feedback       SessionFeedback[]
 }
 
 model Guest {
-  id             String       @id @default(cuid())
+  id             String              @id @default(cuid())
   tableSessionId String
-  tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
-  guestToken     String       @unique
+  tableSession   TableSession        @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  guestToken     String              @unique
   nickname       String?
   receiptEmail   String?
   receiptSentAt  DateTime?
   waiterCalledAt DateTime?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime            @default(now())
   cartItems      CartItem[]
   orders         Order[]
   notifications  GuestNotification[]
+  feedback       SessionFeedback[]
 }
 
 model GuestNotification {
@@ -170,20 +175,48 @@ model MenuCategory {
 }
 
 model MenuItem {
-  id          String       @id @default(cuid())
-  categoryId  String
-  category    MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  price       Decimal
-  imageUrl    String?
-  available   Boolean      @default(true)
-  stockTracked Boolean     @default(false)
-  stockQuantity Int        @default(0)
-  lowStockThreshold Int     @default(5)
-  sortOrder   Int          @default(0)
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
+  id                String            @id @default(cuid())
+  categoryId        String
+  category          MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  price             Decimal
+  imageUrl          String?
+  available         Boolean           @default(true)
+  stockTracked      Boolean           @default(false)
+  stockQuantity     Int               @default(0)
+  lowStockThreshold Int               @default(5)
+  sortOrder         Int               @default(0)
+  cartItems         CartItem[]
+  orderItems        OrderItem[]
+  optionGroups      MenuOptionGroup[]
+}
+
+model MenuOptionGroup {
+  id            String       @id @default(cuid())
+  menuItemId    String
+  menuItem      MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  name          String
+  required      Boolean      @default(false)
+  minSelections Int          @default(0)
+  maxSelections Int          @default(1)
+  sortOrder     Int          @default(0)
+  options       MenuOption[]
+
+  @@index([menuItemId, sortOrder])
+}
+
+model MenuOption {
+  id              String           @id @default(cuid())
+  groupId         String
+  group           MenuOptionGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name            String
+  priceDelta      Decimal          @default(0)
+  available       Boolean          @default(true)
+  sortOrder       Int              @default(0)
+  cartItemOptions CartItemOption[]
+
+  @@index([groupId, sortOrder])
 }
 
 model Reservation {
@@ -209,42 +242,114 @@ model Reservation {
 }
 
 model CartItem {
-  id         String   @id @default(cuid())
-  guestId    String
-  guest      Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
-  quantity   Int
-  note       String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String           @id @default(cuid())
+  guestId      String
+  guest        Guest            @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  menuItemId   String
+  menuItem     MenuItem         @relation(fields: [menuItemId], references: [id])
+  quantity     Int
+  note         String?
+  selectionKey String           @default("")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  options      CartItemOption[]
 
-  @@unique([guestId, menuItemId])
+  @@unique([guestId, menuItemId, selectionKey])
+}
+
+model CartItemOption {
+  id         String     @id @default(cuid())
+  cartItemId String
+  cartItem   CartItem   @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  optionId   String
+  option     MenuOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([cartItemId, optionId])
 }
 
 model Order {
+  id                String             @id @default(cuid())
+  tableSessionId    String
+  tableSession      TableSession       @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  guestId           String
+  guest             Guest              @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  guestName         String?
+  status            OrderStatus        @default(PENDING)
+  idempotencyKey    String?            @unique
+  cancelledAt       DateTime?
+  cancelledByUserId String?
+  cancelledBy       User?              @relation("OrderCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  cancelReason      String?
+  stockRestoredAt   DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  items             OrderItem[]
+  statusEvents      OrderStatusEvent[]
+
+  @@index([tableSessionId, status])
+  @@index([guestId, createdAt])
+}
+
+model OrderItem {
+  id         String            @id @default(cuid())
+  orderId    String
+  order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem          @relation(fields: [menuItemId], references: [id])
+  name       String
+  price      Decimal
+  quantity   Int
+  note       String?
+  options    OrderItemOption[]
+}
+
+model OrderItemOption {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  name        String
+  priceDelta  Decimal   @default(0)
+}
+
+model OrderStatusEvent {
+  id         String       @id @default(cuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  actorId    String?
+  actor      User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model SessionFeedback {
   id             String       @id @default(cuid())
   tableSessionId String
   tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
   guestId        String
   guest          Guest        @relation(fields: [guestId], references: [id], onDelete: Cascade)
-  guestName      String?
-  status         OrderStatus  @default(PENDING)
+  rating         Int
+  comment        String?
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  items          OrderItem[]
-}
 
-model OrderItem {
-  id         String   @id @default(cuid())
-  orderId    String
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
-  name       String
-  price      Decimal
-  quantity   Int
-  note       String?
+  @@unique([tableSessionId, guestId])
+  @@index([tableSessionId, createdAt])
 }
 
 model Bill {

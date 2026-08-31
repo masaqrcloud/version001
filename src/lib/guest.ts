@@ -28,7 +28,7 @@ function sign(token: string) {
   return `${token}.${sig}`;
 }
 
-function verify(value: string | undefined) {
+export function verifySignedGuestToken(value: string | undefined) {
   if (!value) return null;
   const [token, sig] = value.split(".");
   if (!token || !sig) return null;
@@ -56,7 +56,7 @@ export async function tryReuseGuest(qrToken: string) {
   if (!session) return null;
 
   const store = await cookies();
-  const existingToken = verify(store.get(GUEST_COOKIE)?.value);
+  const existingToken = verifySignedGuestToken(store.get(GUEST_COOKIE)?.value);
   if (!existingToken) return null;
 
   const guest = await prisma.guest.findUnique({
@@ -72,7 +72,7 @@ async function readIncomingToken(clientToken?: string | null) {
     return clientToken;
   }
   const store = await cookies();
-  const fromCookie = verify(store.get(GUEST_COOKIE)?.value);
+  const fromCookie = verifySignedGuestToken(store.get(GUEST_COOKIE)?.value);
   if (fromCookie) return fromCookie;
   const headerStore = await headers();
   return headerStore.get("x-guest-token");
@@ -206,16 +206,5 @@ export async function requireOpenGuest() {
   const guest = await getGuestFromCookie();
   if (!guest) return null;
   if (guest.tableSession.status === "OPEN") return guest;
-
-  const open = await prisma.tableSession.findFirst({
-    where: { tableId: guest.tableSession.tableId, status: "OPEN" },
-    orderBy: { openedAt: "asc" },
-  });
-  if (!open) return null;
-
-  return prisma.guest.update({
-    where: { id: guest.id },
-    data: { tableSessionId: open.id },
-    include: guestWithTable,
-  });
+  return null;
 }

@@ -15,12 +15,20 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "MasaQR",
   description: "Kafe ve restoranlar için QR masa siparişi",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/masaqr-icon.svg", apple: "/masaqr-icon.svg" },
+  appleWebApp: {
+    capable: true,
+    title: "MasaQR",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover" as const,
+  themeColor: "#e54b32",
 };
 
 export default function RootLayout({

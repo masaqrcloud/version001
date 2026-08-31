@@ -1,0 +1,11 @@
+[Unit]
+Description=Run MasaQR local backup every day
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=masaqr-backup.service
+
+[Install]
+WantedBy=timers.target

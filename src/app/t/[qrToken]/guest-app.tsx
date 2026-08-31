@@ -10,6 +10,7 @@ import { askAlertPermission, pingPhone } from "@/lib/phone-alert";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
 import type { OrderStatus } from "@prisma/client";
+import { SessionFeedbackForm } from "@/components/session-feedback-form";
 
 type MenuItem = {
   id: string;
@@ -18,6 +19,14 @@ type MenuItem = {
   price: number;
   imageUrl: string | null;
   soldOut: boolean;
+  optionGroups: {
+    id: string;
+    name: string;
+    required: boolean;
+    minSelections: number;
+    maxSelections: number;
+    options: { id: string; name: string; priceDelta: number }[];
+  }[];
 };
 
 type Category = {
@@ -36,6 +45,7 @@ type CartResponse = {
     note: string | null;
     imageUrl: string | null;
     available: boolean;
+    options: { id: string; name: string; priceDelta: number }[];
   }[];
 };
 
@@ -44,7 +54,7 @@ type OrdersResponse = {
     id: string;
     status: OrderStatus;
     createdAt: string;
-    items: { id: string; name: string; price: number; quantity: number; note: string | null }[];
+    items: { id: string; name: string; price: number; quantity: number; note: string | null; options?: string[] }[];
   }[];
 };
 
@@ -60,6 +70,7 @@ type BillResponse = {
     quantity: number;
     note: string | null;
     status: OrderStatus;
+    options?: string[];
   }[];
   total: number;
 };
@@ -236,8 +247,12 @@ export function GuestApp({
   const [addedId, setAddedId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [configuringItem, setConfiguringItem] = useState<MenuItem | null>(null);
+  const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
+  const [feedbackDone, setFeedbackDone] = useState(false);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
+  const pendingOrderKey = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -315,6 +330,26 @@ export function GuestApp({
     5000,
     guestToken,
   );
+  type SessionStatusResponse = {
+    closed: boolean;
+    venueName?: string;
+    tableNumber?: string;
+    receiptSent?: boolean;
+    feedbackSubmitted?: boolean;
+    lines?: {
+      id: string;
+      name: string;
+      quantity: number;
+      price: number;
+      options: string[];
+    }[];
+    total?: number;
+  };
+  const { data: sessionStatus } = usePoll<SessionStatusResponse>(
+    ready && guestToken ? "/api/guest/session-status" : null,
+    5000,
+    guestToken,
+  );
   const cart = live?.cart ?? null;
   const orders = live?.orders;
   const bill = live?.bill;
@@ -367,7 +402,7 @@ export function GuestApp({
     };
   }
 
-  async function addToCart(menuItemId: string) {
+  async function addToCart(menuItemId: string, optionIds: string[] = []) {
     setFlash(false);
     window.requestAnimationFrame(() => setFlash(true));
     setAddedId(menuItemId);
@@ -381,7 +416,7 @@ export function GuestApp({
       method: "POST",
       headers: guestHeaders(true),
       credentials: "include",
-      body: JSON.stringify({ menuItemId, quantity: 1 }),
+      body: JSON.stringify({ menuItemId, quantity: 1, optionIds }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -394,6 +429,38 @@ export function GuestApp({
       headers: guestHeaders(),
     });
     if (refreshed.ok) setCart(await refreshed.json());
+  }
+
+  function toggleOption(
+    group: MenuItem["optionGroups"][number],
+    optionId: string,
+  ) {
+    setSelectedOptionIds((current) => {
+      if (current.includes(optionId)) {
+        return current.filter((id) => id !== optionId);
+      }
+      if (group.maxSelections === 1) {
+        const groupIds = new Set(group.options.map((option) => option.id));
+        return [...current.filter((id) => !groupIds.has(id)), optionId];
+      }
+      const selectedInGroup = group.options.filter((option) =>
+        current.includes(option.id),
+      ).length;
+      if (selectedInGroup >= group.maxSelections) return current;
+      return [...current, optionId];
+    });
+  }
+
+  function configurationValid(item: MenuItem) {
+    return item.optionGroups.every((group) => {
+      const count = group.options.filter((option) =>
+        selectedOptionIds.includes(option.id),
+      ).length;
+      const minimum = group.required
+        ? Math.max(1, group.minSelections)
+        : group.minSelections;
+      return count >= minimum && count <= group.maxSelections;
+    });
   }
 
   async function emailReceipt() {
@@ -486,20 +553,32 @@ export function GuestApp({
         }),
       ),
     );
-    const res = await fetch("/api/guest/orders", {
-      method: "POST",
-      credentials: "include",
-      headers: guestHeaders(),
-    });
-    setBusy(false);
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setMessage(json.error ?? "Sipariş gönderilemedi");
-      return;
+    const idempotencyKey = pendingOrderKey.current ?? crypto.randomUUID();
+    pendingOrderKey.current = idempotencyKey;
+    try {
+      const res = await fetch("/api/guest/orders", {
+        method: "POST",
+        credentials: "include",
+        headers: guestHeaders(true),
+        body: JSON.stringify({ idempotencyKey }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        pendingOrderKey.current = null;
+        setMessage(json.error ?? "Sipariş gönderilemedi");
+        return;
+      }
+      pendingOrderKey.current = null;
+      setCart({ items: [] });
+      setTab("bill");
+      setMessage("Siparişin mutfağa iletildi.");
+    } catch {
+      setMessage(
+        "Bağlantı kesildi. Tekrar deneyebilirsin; sipariş iki kez oluşmaz.",
+      );
+    } finally {
+      setBusy(false);
     }
-    setCart({ items: [] });
-    setTab("bill");
-    setMessage("Siparişin mutfağa iletildi.");
   }
 
   async function rejoin() {
@@ -638,6 +717,53 @@ export function GuestApp({
     );
   }
 
+  if (sessionStatus?.closed) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col px-4 py-8">
+        <div className="text-center">
+          <p className="page-kicker">{sessionStatus.venueName ?? venueName}</p>
+          <h1 className="mt-2 font-serif text-4xl">Teşekkür ederiz</h1>
+          <p className="mt-2 text-[var(--muted)]">
+            Masa {sessionStatus.tableNumber ?? tableNumber} hesabı kapatıldı.
+          </p>
+        </div>
+        <Card className="mt-6 p-5">
+          <h2 className="font-serif text-2xl">Adisyon özeti</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {(sessionStatus.lines ?? []).map((line) => (
+              <li key={line.id} className="flex justify-between gap-3">
+                <span>
+                  {line.quantity}× {line.name}
+                  {line.options.length ? ` · ${line.options.join(", ")}` : ""}
+                </span>
+                <span>{formatTRY(line.price * line.quantity)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 border-t border-[var(--line)] pt-3 text-right font-medium">
+            Toplam: {formatTRY(sessionStatus.total ?? 0)}
+          </p>
+          {sessionStatus.receiptSent ? (
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Dijital adisyon e-posta adresine gönderildi.
+            </p>
+          ) : null}
+        </Card>
+        {!sessionStatus.feedbackSubmitted && !feedbackDone ? (
+          <Card className="mt-4 p-5">
+            <SessionFeedbackForm
+              onSubmitted={() => setFeedbackDone(true)}
+            />
+          </Card>
+        ) : (
+          <p className="mt-4 text-center text-sm text-[var(--muted)]">
+            Değerlendirmen için teşekkürler.
+          </p>
+        )}
+      </div>
+    );
+  }
+
   if (!named) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
@@ -688,6 +814,91 @@ export function GuestApp({
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+      {configuringItem ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 sm:items-center">
+          <Card className="max-h-[85dvh] w-full max-w-lg overflow-y-auto p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="page-kicker">Ürünü hazırla</p>
+                <h2 className="font-serif text-2xl">{configuringItem.name}</h2>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfiguringItem(null)}
+              >
+                Kapat
+              </Button>
+            </div>
+            <div className="mt-5 space-y-5">
+              {configuringItem.optionGroups.map((group) => {
+                const minimum = group.required
+                  ? Math.max(1, group.minSelections)
+                  : group.minSelections;
+                return (
+                  <fieldset key={group.id}>
+                    <legend className="font-medium">
+                      {group.name}
+                      <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                        {minimum > 0 ? "Zorunlu" : "İsteğe bağlı"} · en fazla{" "}
+                        {group.maxSelections}
+                      </span>
+                    </legend>
+                    <div className="mt-2 space-y-2">
+                      {group.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--line)] px-3 py-2"
+                        >
+                          <span className="flex items-center gap-2">
+                            <input
+                              type={
+                                group.maxSelections === 1
+                                  ? "radio"
+                                  : "checkbox"
+                              }
+                              name={`option-${group.id}`}
+                              checked={selectedOptionIds.includes(option.id)}
+                              onChange={() => toggleOption(group, option.id)}
+                            />
+                            {option.name}
+                          </span>
+                          {option.priceDelta > 0 ? (
+                            <span className="text-sm text-[var(--muted)]">
+                              +{formatTRY(option.priceDelta)}
+                            </span>
+                          ) : null}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                );
+              })}
+            </div>
+            <Button
+              className="mt-6 w-full"
+              size="lg"
+              disabled={busy || !configurationValid(configuringItem)}
+              onClick={async () => {
+                const item = configuringItem;
+                setConfiguringItem(null);
+                await addToCart(item.id, selectedOptionIds);
+              }}
+            >
+              Sepete ekle ·{" "}
+              {formatTRY(
+                configuringItem.price +
+                  configuringItem.optionGroups
+                    .flatMap((group) => group.options)
+                    .filter((option) =>
+                      selectedOptionIds.includes(option.id),
+                    )
+                    .reduce((sum, option) => sum + option.priceDelta, 0),
+              )}
+            </Button>
+          </Card>
+        </div>
+      ) : null}
       {flash ? <div className="add-flash" /> : null}
       <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md">
         <GuestBrand
@@ -802,7 +1013,14 @@ export function GuestApp({
                           !openState.isOpen ||
                           (busy && addedId !== item.id)
                         }
-                        onClick={() => void addToCart(item.id)}
+                        onClick={() => {
+                          if (item.optionGroups.length) {
+                            setSelectedOptionIds([]);
+                            setConfiguringItem(item);
+                          } else {
+                            void addToCart(item.id);
+                          }
+                        }}
                       >
                         {item.soldOut ? "Tükendi" : "Ekle"}
                       </Button>
@@ -840,6 +1058,11 @@ export function GuestApp({
                         <p className="text-sm text-[var(--muted)]">
                           {formatTRY(item.price)}
                         </p>
+                        {item.options.length ? (
+                          <p className="mt-1 text-xs text-[var(--muted)]">
+                            {item.options.map((option) => option.name).join(" · ")}
+                          </p>
+                        ) : null}
                         {!item.available ? (
                           <p className="mt-1 text-xs font-semibold text-red-700">
                             Bu ürün artık mevcut değil
@@ -913,6 +1136,9 @@ export function GuestApp({
                       {order.items.map((item) => (
                         <li key={item.id}>
                           {item.quantity}× {item.name}
+                          {item.options?.length
+                            ? ` · ${item.options.join(", ")}`
+                            : ""}
                           {item.note ? ` — ${item.note}` : ""}
                         </li>
                       ))}
@@ -951,6 +1177,9 @@ export function GuestApp({
                       <li key={line.id} className="flex justify-between gap-2">
                         <span>
                           {line.quantity}× {line.name}
+                          {line.options?.length
+                            ? ` · ${line.options.join(", ")}`
+                            : ""}
                           {line.note ? ` — ${line.note}` : ""}
                         </span>
                         <span>{formatTRY(line.price * line.quantity)}</span>

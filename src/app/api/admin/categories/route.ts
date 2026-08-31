@@ -9,7 +9,17 @@ export async function GET() {
 
   const categories = await prisma.menuCategory.findMany({
     where: { venueId: user.venueId },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      items: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          optionGroups: {
+            orderBy: { sortOrder: "asc" },
+            include: { options: { orderBy: { sortOrder: "asc" } } },
+          },
+        },
+      },
+    },
     orderBy: { sortOrder: "asc" },
   });
 
@@ -19,6 +29,13 @@ export async function GET() {
       items: category.items.map((item) => ({
         ...item,
         price: Number(item.price),
+        optionGroups: item.optionGroups.map((group) => ({
+          ...group,
+          options: group.options.map((option) => ({
+            ...option,
+            priceDelta: Number(option.priceDelta),
+          })),
+        })),
       })),
     })),
   });

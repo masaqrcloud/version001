@@ -14,7 +14,7 @@ export async function GET() {
       status: { not: "CANCELLED" },
     },
     include: {
-      items: true,
+      items: { include: { options: true } },
       guest: true,
     },
     orderBy: { createdAt: "asc" },
@@ -37,6 +37,7 @@ export async function GET() {
       price: Number(item.price),
       quantity: item.quantity,
       note: item.note,
+      options: item.options.map((option) => option.name),
       status: order.status,
     })),
   );

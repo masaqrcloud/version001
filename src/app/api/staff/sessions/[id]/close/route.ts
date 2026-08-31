@@ -13,7 +13,9 @@ export async function POST(_request: Request, context: Ctx) {
   const session = await prisma.tableSession.findFirst({
     where: { id, table: { venueId: user.venueId } },
     include: {
-      orders: { include: { items: true } },
+      orders: {
+        include: { items: { include: { options: true } } },
+      },
       bill: true,
       guests: true,
       table: { include: { venue: true } },
@@ -77,7 +79,11 @@ export async function POST(_request: Request, context: Ctx) {
     .filter((order) => order.status !== "CANCELLED")
     .flatMap((order) =>
       order.items.map((item) => ({
-        name: item.name,
+        name:
+          item.name +
+          (item.options.length
+            ? ` · ${item.options.map((option) => option.name).join(", ")}`
+            : ""),
         quantity: item.quantity,
         price: Number(item.price),
       })),
@@ -93,6 +99,7 @@ export async function POST(_request: Request, context: Ctx) {
           venueName: session.table.venue.name,
           tableNumber: session.table.number,
           lines,
+          guestToken: guest.guestToken,
         });
         if (sent) {
           await prisma.guest.update({
