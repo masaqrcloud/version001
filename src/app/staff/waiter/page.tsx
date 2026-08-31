@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { canAccessWaiter, homeForRole } from "@/lib/tenant";
 import { WaiterBoard } from "@/app/staff/waiter/waiter-board";
 import { PageIntro } from "@/components/page-intro";
+import { VenueFloorPlan } from "@/components/venue-floor-plan";
 
 export default async function WaiterPage() {
   const session = await auth();
@@ -16,6 +17,7 @@ export default async function WaiterPage() {
       <PageIntro kicker="Salon" title="Açık masalar">
         Yeni siparişler ve garson çağrıları burada durur.
       </PageIntro>
+      <VenueFloorPlan />
       <WaiterBoard />
     </div>
   );

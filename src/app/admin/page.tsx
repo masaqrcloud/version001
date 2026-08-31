@@ -4,6 +4,7 @@ import { getStaffUser } from "@/lib/tenant";
 import { Card } from "@/components/ui/card";
 import { PageIntro } from "@/components/page-intro";
 import { VenueSwitchButton } from "@/app/admin/venue-switch-button";
+import { VenueFloorPlan } from "@/components/venue-floor-plan";
 
 export default async function AdminHomePage() {
   const { user } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -124,6 +125,7 @@ export default async function AdminHomePage() {
           </Link>
         ))}
       </div>
+      <VenueFloorPlan emptyHref="/admin/tables" />
     </div>
   );
 }
