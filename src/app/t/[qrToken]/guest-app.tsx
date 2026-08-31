@@ -229,12 +229,20 @@ export function GuestApp({
     body: string;
   } | null>(null);
   const [calling, setCalling] = useState(false);
+  const [waiterConfirmOpen, setWaiterConfirmOpen] = useState(false);
+  const [localWaiterCooldownUntil, setLocalWaiterCooldownUntil] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [cartPulse, setCartPulse] = useState(false);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (staffPreview) {
@@ -295,6 +303,7 @@ export function GuestApp({
   }, [qrToken, staffPreview]);
 
   type LiveResponse = {
+    guest?: { waiterCooldownUntil: string | null };
     cart: CartResponse;
     orders: OrdersResponse;
     bill: BillResponse;
@@ -310,6 +319,20 @@ export function GuestApp({
   const orders = live?.orders;
   const bill = live?.bill;
   const notes = live?.notes;
+  const serverWaiterCooldownUntil = live?.guest?.waiterCooldownUntil
+    ? new Date(live.guest.waiterCooldownUntil).getTime()
+    : 0;
+  const waiterCooldownUntil = Math.max(
+    localWaiterCooldownUntil,
+    serverWaiterCooldownUntil,
+  );
+  const waiterCooldownSeconds = Math.max(
+    0,
+    Math.ceil((waiterCooldownUntil - nowMs) / 1000),
+  );
+  const waiterCooldownLabel = `${Math.floor(waiterCooldownSeconds / 60)}:${String(
+    waiterCooldownSeconds % 60,
+  ).padStart(2, "0")}`;
 
   function setCart(next: CartResponse) {
     setLive((current) =>
@@ -431,6 +454,7 @@ export function GuestApp({
   }
 
   async function callWaiter() {
+    setWaiterConfirmOpen(false);
     setCalling(true);
     const res = await fetch("/api/guest/call-waiter", {
       method: "POST",
@@ -439,6 +463,9 @@ export function GuestApp({
     });
     const data = await res.json().catch(() => ({}));
     setCalling(false);
+    if (data.cooldownUntil) {
+      setLocalWaiterCooldownUntil(new Date(data.cooldownUntil).getTime());
+    }
     if (!res.ok) {
       setMessage(data.error ?? "Garson çağrılamadı");
       return;
@@ -681,10 +708,14 @@ export function GuestApp({
             <Button
               size="sm"
               variant="outline"
-              disabled={calling}
-              onClick={() => void callWaiter()}
+              disabled={calling || waiterCooldownSeconds > 0}
+              onClick={() => setWaiterConfirmOpen(true)}
             >
-              {calling ? "Çağrılıyor…" : "Garson çağır"}
+              {calling
+                ? "Çağrılıyor…"
+                : waiterCooldownSeconds > 0
+                  ? `Tekrar çağır ${waiterCooldownLabel}`
+                  : "Garson çağır"}
             </Button>
           </div>
           {!name.trim() ? (
@@ -964,6 +995,19 @@ export function GuestApp({
         title={alertPopup?.title ?? "Bildirim"}
         message={alertPopup?.body ?? null}
         onClose={() => setAlertPopup(null)}
+      />
+      <Popup
+        title="Garson çağırılsın mı?"
+        message={
+          waiterConfirmOpen
+            ? "Çağrıyı onayladıktan sonra 10 dakika boyunca yeniden garson çağıramazsın."
+            : null
+        }
+        confirmLabel="Evet, çağır"
+        cancelLabel="Vazgeç"
+        busy={calling}
+        onConfirm={() => void callWaiter()}
+        onClose={() => setWaiterConfirmOpen(false)}
       />
 
       {tab === "alerts" ? (

@@ -141,6 +141,7 @@ model Guest {
   nickname       String?
   receiptEmail   String?
   receiptSentAt  DateTime?
+  waiterCalledAt DateTime?
   createdAt      DateTime     @default(now())
   cartItems      CartItem[]
   orders         Order[]

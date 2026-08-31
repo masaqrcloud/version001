@@ -46,6 +46,7 @@ yarn-error.log*
 
 # local toolchain
 /.tools
+/AI_HANDOFF_LOCAL.md
 
 # vercel
 .vercel

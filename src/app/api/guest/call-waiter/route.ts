@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { notifyGuest } from "@/lib/notify";
 
+const WAITER_COOLDOWN_MS = 10 * 60 * 1000;
+
 export async function POST() {
   const guest = await requireOpenGuest();
   if (!guest) {
@@ -10,19 +12,61 @@ export async function POST() {
   }
 
   try {
-    const calledAt = guest.tableSession.waiterCalledAt;
-    if (calledAt && Date.now() - calledAt.getTime() < 90_000) {
-      return NextResponse.json({
-        ok: true,
-        already: true,
-        message: "Garson zaten çağrıldı, biraz bekle.",
-      });
+    const now = new Date();
+    const cooldownUntil = guest.waiterCalledAt
+      ? new Date(guest.waiterCalledAt.getTime() + WAITER_COOLDOWN_MS)
+      : null;
+    if (cooldownUntil && cooldownUntil > now) {
+      return NextResponse.json(
+        {
+          error: "Garson zaten çağrıldı. Tekrar çağırmak için biraz bekle.",
+          cooldownUntil: cooldownUntil.toISOString(),
+        },
+        { status: 429 },
+      );
     }
 
-    await prisma.tableSession.update({
-      where: { id: guest.tableSessionId },
-      data: { waiterCalledAt: new Date() },
+    const claimed = await prisma.$transaction(async (tx) => {
+      const updated = await tx.guest.updateMany({
+        where: {
+          id: guest.id,
+          OR: [
+            { waiterCalledAt: null },
+            {
+              waiterCalledAt: {
+                lte: new Date(now.getTime() - WAITER_COOLDOWN_MS),
+              },
+            },
+          ],
+        },
+        data: { waiterCalledAt: now },
+      });
+      if (updated.count !== 1) return false;
+
+      await tx.tableSession.update({
+        where: { id: guest.tableSessionId },
+        data: { waiterCalledAt: now },
+      });
+      return true;
     });
+    if (!claimed) {
+      const currentGuest = await prisma.guest.findUnique({
+        where: { id: guest.id },
+        select: { waiterCalledAt: true },
+      });
+      const currentCooldownUntil = currentGuest?.waiterCalledAt
+        ? new Date(
+            currentGuest.waiterCalledAt.getTime() + WAITER_COOLDOWN_MS,
+          ).toISOString()
+        : undefined;
+      return NextResponse.json(
+        {
+          error: "Garson zaten çağrıldı. Tekrar çağırmak için biraz bekle.",
+          cooldownUntil: currentCooldownUntil,
+        },
+        { status: 429 },
+      );
+    }
 
     const who = guest.nickname?.trim() || "Masa";
     try {
@@ -37,8 +81,10 @@ export async function POST() {
 
     return NextResponse.json({
       ok: true,
-      already: false,
       message: "Garson çağrıldı.",
+      cooldownUntil: new Date(
+        now.getTime() + WAITER_COOLDOWN_MS,
+      ).toISOString(),
     });
   } catch (error) {
     console.error("Garson çağrılamadı", error);

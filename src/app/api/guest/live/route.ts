@@ -72,6 +72,11 @@ export async function GET() {
   );
 
   return NextResponse.json({
+    guest: {
+      waiterCooldownUntil: guest.waiterCalledAt
+        ? new Date(guest.waiterCalledAt.getTime() + 10 * 60 * 1000)
+        : null,
+    },
     cart: {
       items: cartItems.map((item) => ({
         id: item.id,
