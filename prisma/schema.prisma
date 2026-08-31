@@ -110,6 +110,8 @@ model Table {
   id        String   @id @default(cuid())
   number    String
   qrToken   String   @unique @default(cuid())
+  floorX    Int?
+  floorY    Int?
   venueId   String
   venue     Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
   sessions  TableSession[]

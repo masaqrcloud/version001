@@ -57,6 +57,8 @@ export async function GET() {
     return {
       id: table.id,
       number: table.number,
+      floorX: table.floorX,
+      floorY: table.floorY,
       occupied: table.sessions.length > 0,
       sessionId: table.sessions[0]?.id ?? null,
       guestCount: guests.length,

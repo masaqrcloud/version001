@@ -11,7 +11,17 @@ export async function PATCH(request: Request, context: Ctx) {
 
   const { id } = await context.params;
   const body = z
-    .object({ number: z.string().trim().min(1).max(20) })
+    .object({
+      number: z.string().trim().min(1).max(20).optional(),
+      floorX: z.number().int().min(0).max(1000).optional(),
+      floorY: z.number().int().min(0).max(1000).optional(),
+    })
+    .refine(
+      (value) =>
+        value.number !== undefined ||
+        (value.floorX !== undefined && value.floorY !== undefined),
+      { message: "Güncellenecek masa bilgisi gerekli" },
+    )
     .safeParse(await request.json());
 
   if (!body.success) {
@@ -28,12 +38,24 @@ export async function PATCH(request: Request, context: Ctx) {
   try {
     const table = await prisma.table.update({
       where: { id },
-      data: { number: body.data.number },
+      data: {
+        ...(body.data.number !== undefined
+          ? { number: body.data.number }
+          : {}),
+        ...(body.data.floorX !== undefined && body.data.floorY !== undefined
+          ? { floorX: body.data.floorX, floorY: body.data.floorY }
+          : {}),
+      },
     });
     return NextResponse.json(table);
   } catch {
     return NextResponse.json(
-      { error: "Bu masa numarası zaten var" },
+      {
+        error:
+          body.data.number !== undefined
+            ? "Bu masa numarası zaten var"
+            : "Masa konumu kaydedilemedi",
+      },
       { status: 409 },
     );
   }

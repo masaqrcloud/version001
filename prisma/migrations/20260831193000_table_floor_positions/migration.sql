@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Table" ADD COLUMN "floorX" INTEGER;
+ALTER TABLE "Table" ADD COLUMN "floorY" INTEGER;

@@ -125,7 +125,7 @@ export default async function AdminHomePage() {
           </Link>
         ))}
       </div>
-      <VenueFloorPlan emptyHref="/admin/tables" />
+      <VenueFloorPlan editable emptyHref="/admin/tables" />
     </div>
   );
 }
