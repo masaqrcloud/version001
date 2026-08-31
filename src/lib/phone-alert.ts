@@ -15,7 +15,7 @@ export function pingPhone(title: string, body: string) {
     // iOS titreşimi desteklemez.
   }
 
-  playBeep();
+  playChime();
 
   if (typeof window !== "undefined" && "Notification" in window) {
     if (Notification.permission === "granted") {
@@ -34,7 +34,7 @@ export function pingPhone(title: string, body: string) {
   }, 4000);
 }
 
-function playBeep() {
+function playChime() {
   const AudioCtx =
     window.AudioContext ||
     (window as unknown as { webkitAudioContext?: typeof AudioContext })
@@ -43,16 +43,32 @@ function playBeep() {
 
   try {
     const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.value = 0.08;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.22);
-    osc.onended = () => void ctx.close();
+    void ctx.resume();
+    const master = ctx.createGain();
+    const notes = [523.25, 659.25, 783.99];
+    const startAt = ctx.currentTime + 0.02;
+
+    master.gain.setValueAtTime(0.7, startAt);
+    master.connect(ctx.destination);
+
+    notes.forEach((frequency, index) => {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const noteStart = startAt + index * 0.13;
+
+      oscillator.type = index === notes.length - 1 ? "sine" : "triangle";
+      oscillator.frequency.setValueAtTime(frequency, noteStart);
+      gain.gain.setValueAtTime(0.0001, noteStart);
+      gain.gain.exponentialRampToValueAtTime(0.055, noteStart + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.38);
+
+      oscillator.connect(gain);
+      gain.connect(master);
+      oscillator.start(noteStart);
+      oscillator.stop(noteStart + 0.4);
+    });
+
+    window.setTimeout(() => void ctx.close(), 900);
   } catch {
     // sessiz kalabilir
   }

@@ -997,13 +997,13 @@ export function GuestApp({
         onClose={() => setAlertPopup(null)}
       />
       <Popup
-        title="Garson çağırılsın mı?"
+        title="Garsonu çağırmak istiyor musun?"
         message={
           waiterConfirmOpen
-            ? "Çağrıyı onayladıktan sonra 10 dakika boyunca yeniden garson çağıramazsın."
+            ? "Bu çağrı doğrudan garson ekibine iletilecek. Yanlışlıkla bastıysan Vazgeç'i seçebilirsin. Onaylarsan 10 dakika boyunca tekrar çağrı gönderemezsin."
             : null
         }
-        confirmLabel="Evet, çağır"
+        confirmLabel="Evet, garsonu çağır"
         cancelLabel="Vazgeç"
         busy={calling}
         onConfirm={() => void callWaiter()}
