@@ -108,6 +108,8 @@ export function TablesManager({
   const [tables, setTables] = useState<TableCard[]>(() =>
     initialTables.map((table) => toCard(table, phoneOrigin)),
   );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingNumber, setEditingNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [popup, setPopup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +247,43 @@ export function TablesManager({
     setPopup("Masa silindi.");
   }
 
+  async function renameTable(id: string) {
+    const value = editingNumber.trim();
+    if (!value) {
+      setError("Masa adı boş bırakılamaz");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/tables/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ number: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Masa adı değiştirilemedi");
+        return;
+      }
+      setTables((current) =>
+        current
+          .map((table) =>
+            table.id === id ? { ...table, number: data.number } : table,
+          )
+          .sort((a, b) => a.number.localeCompare(b.number, "tr")),
+      );
+      setEditingId(null);
+      setEditingNumber("");
+      setPopup(`Masa adı “${data.number}” olarak değiştirildi.`);
+    } catch {
+      setError("Masa adı değiştirilemedi, tekrar dene");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function printQr(table: TableCard) {
     const popupWindow = window.open("", "_blank", "width=420,height=560");
     if (!popupWindow) return;
@@ -313,20 +352,78 @@ export function TablesManager({
             <Card key={table.id} className="p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-2xl">Masa {table.number}</h2>
+                  {editingId === table.id ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        aria-label="Masa adı"
+                        className="w-36"
+                        value={editingNumber}
+                        maxLength={20}
+                        autoFocus
+                        onChange={(event) =>
+                          setEditingNumber(event.target.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void renameTable(table.id);
+                          }
+                          if (event.key === "Escape") {
+                            setEditingId(null);
+                            setEditingNumber("");
+                          }
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => void renameTable(table.id)}
+                      >
+                        Kaydet
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditingNumber("");
+                        }}
+                      >
+                        Vazgeç
+                      </Button>
+                    </div>
+                  ) : (
+                    <h2 className="text-2xl">Masa {table.number}</h2>
+                  )}
                   <p className="text-sm text-[var(--muted)]">
                     {table.isOpen
                       ? `Açık · ${table.openGuests} misafir`
                       : "Boş"}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => void removeTable(table.id)}
-                >
-                  Sil
-                </Button>
+                {editingId !== table.id ? (
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingId(table.id);
+                        setEditingNumber(table.number);
+                        setError(null);
+                      }}
+                    >
+                      Adını değiştir
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => void removeTable(table.id)}
+                    >
+                      Sil
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               {table.qrDataUrl ? (
                 <QrFace
