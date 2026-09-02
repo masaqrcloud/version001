@@ -247,13 +247,21 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                     </Button>
                   </div>
                 ) : order.status === "PENDING" ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setCancelId(order.id)}
-                  >
-                    İptal
-                  </Button>
+                  <div className="flex gap-2">
+                    <Link
+                      href={`/staff/waiter/${sessionId}/order?orderId=${order.id}`}
+                      className="inline-flex h-10 items-center rounded-xl border border-[var(--line)] px-3 text-sm"
+                    >
+                      Düzenle
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCancelId(order.id)}
+                    >
+                      İptal
+                    </Button>
+                  </div>
                 ) : null}
               </div>
               <ul className="mt-3 text-sm">

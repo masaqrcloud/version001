@@ -15,11 +15,21 @@ type OrdersResponse = {
     id: string;
     status: OrderStatus;
     createdAt: string;
+    updatedAt: string;
     tableNumber: string;
     guestName: string;
     items: { id: string; name: string; quantity: number; note: string | null; options: string[] }[];
   }[];
 };
+
+function ticketKey(order: OrdersResponse["orders"][number]) {
+  return order.items
+    .map(
+      (item) =>
+        `${item.quantity}×${item.name}:${item.note ?? ""}:${item.options.join(",")}`,
+    )
+    .join("|");
+}
 
 const actionLabel: Partial<Record<OrderStatus, string>> = {
   PENDING: "Hazırlamaya başla",
@@ -32,7 +42,7 @@ export function KitchenBoard() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [soundOn, setSoundOn] = useState(false);
-  const seenOrders = useRef<Set<string> | null>(null);
+  const seenOrders = useRef<Map<string, string> | null>(null);
 
   useEffect(() => {
     const unlock = () => {
@@ -52,17 +62,30 @@ export function KitchenBoard() {
   useEffect(() => {
     if (!data) return;
     if (!seenOrders.current) {
-      seenOrders.current = new Set(data.orders.map((order) => order.id));
+      seenOrders.current = new Map(
+        data.orders.map((order) => [order.id, ticketKey(order)]),
+      );
       return;
     }
     for (const order of data.orders) {
-      if (seenOrders.current.has(order.id)) continue;
-      seenOrders.current.add(order.id);
-      pingPhone(
-        "Yeni sipariş",
-        `${tableLabel(order.tableNumber)} · ${order.guestName}`,
-        "kitchen",
-      );
+      const previous = seenOrders.current.get(order.id);
+      const next = ticketKey(order);
+      seenOrders.current.set(order.id, next);
+      if (!previous) {
+        pingPhone(
+          "Yeni sipariş",
+          `${tableLabel(order.tableNumber)} · ${order.guestName}`,
+          "kitchen",
+        );
+        continue;
+      }
+      if (previous !== next) {
+        pingPhone(
+          "Sipariş güncellendi",
+          `${tableLabel(order.tableNumber)} · ${order.guestName}`,
+          "kitchen",
+        );
+      }
     }
   }, [data]);
 

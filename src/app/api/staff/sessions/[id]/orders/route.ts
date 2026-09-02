@@ -3,19 +3,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getOrCreateStaffProxyGuest } from "@/lib/guest";
-import { consumeStockForOrder, groupedTrackedStock } from "@/lib/stock";
+import { consumeStockForOrder } from "@/lib/stock";
+import { resolveStaffOrderLines, staffOrderItemSchema } from "@/lib/staff-order-lines";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
-
-const itemSchema = z.object({
-  menuItemId: z.string().min(1),
-  quantity: z.number().int().min(1).max(30),
-  note: z.string().trim().max(200).optional(),
-  optionIds: z.array(z.string()).max(20).optional(),
-});
 
 export async function POST(request: Request, context: Ctx) {
   const { user, error } = await getStaffUser([
@@ -28,7 +22,7 @@ export async function POST(request: Request, context: Ctx) {
 
   const { id } = await context.params;
   const body = z
-    .object({ items: z.array(itemSchema).min(1).max(40) })
+    .object({ items: z.array(staffOrderItemSchema).min(1).max(40) })
     .safeParse(await request.json().catch(() => null));
   if (!body.success) {
     return NextResponse.json({ error: "Sipariş kalemi seç" }, { status: 400 });
@@ -42,86 +36,11 @@ export async function POST(request: Request, context: Ctx) {
     return NextResponse.json({ error: "Açık masa yok" }, { status: 404 });
   }
 
-  const menuItems = await prisma.menuItem.findMany({
-    where: {
-      id: { in: body.data.items.map((item) => item.menuItemId) },
-      category: { venueId: user.venueId },
-    },
-    include: {
-      optionGroups: { include: { options: true } },
-    },
-  });
-  const byId = new Map(menuItems.map((item) => [item.id, item]));
-  type MenuItemWithOptions = (typeof menuItems)[number];
-  type MenuOption = MenuItemWithOptions["optionGroups"][number]["options"][number];
-
-  const lines: {
-    menuItem: MenuItemWithOptions;
-    quantity: number;
-    note: string | null;
-    options: MenuOption[];
-    price: number;
-  }[] = [];
-  for (const entry of body.data.items) {
-    const menuItem = byId.get(entry.menuItemId);
-    if (!menuItem || !menuItem.available) {
-      return NextResponse.json(
-        { error: "Bir ürün artık mevcut değil" },
-        { status: 409 },
-      );
-    }
-    const optionIds = entry.optionIds ?? [];
-    const selected = menuItem.optionGroups
-      .flatMap((group) => group.options)
-      .filter((option) => optionIds.includes(option.id));
-    if (selected.some((option) => !option.available)) {
-      return NextResponse.json(
-        { error: `${menuItem.name} seçeneklerinden biri yok` },
-        { status: 409 },
-      );
-    }
-    for (const group of menuItem.optionGroups) {
-      const count = group.options.filter((option) =>
-        optionIds.includes(option.id),
-      ).length;
-      const minimum = group.required
-        ? Math.max(1, group.minSelections)
-        : group.minSelections;
-      if (count < minimum || count > group.maxSelections) {
-        return NextResponse.json(
-          { error: `${menuItem.name} seçeneklerini kontrol et` },
-          { status: 409 },
-        );
-      }
-    }
-    lines.push({
-      menuItem,
-      quantity: entry.quantity,
-      note: entry.note?.trim() || null,
-      options: selected,
-      price:
-        Number(menuItem.price) +
-        selected.reduce((sum, option) => sum + Number(option.priceDelta), 0),
-    });
+  const resolved = await resolveStaffOrderLines(user.venueId, body.data.items);
+  if ("error" in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: 409 });
   }
-
-  const stockLines = lines.map((line) => ({
-    menuItemId: line.menuItem.id,
-    quantity: line.quantity,
-    menuItem: {
-      name: line.menuItem.name,
-      stockTracked: line.menuItem.stockTracked,
-    },
-  }));
-  for (const [menuItemId, need] of groupedTrackedStock(stockLines)) {
-    const item = byId.get(menuItemId);
-    if (item && item.stockQuantity < need.quantity) {
-      return NextResponse.json(
-        { error: `${need.name} için yeterli stok yok` },
-        { status: 409 },
-      );
-    }
-  }
+  const { lines, stockLines } = resolved;
 
   const guest = await getOrCreateStaffProxyGuest(session.id, user.name);
   let order;

@@ -44,8 +44,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
   }
 
+  if (joined.closed) {
+    const payload = {
+      closed: true as const,
+      tableNumber: joined.table.number,
+      venueName: joined.venue.name,
+      guestId: joined.guest?.id ?? null,
+      guestToken: joined.guest?.guestToken ?? null,
+      nickname: joined.guest?.nickname ?? null,
+    };
+    if (!joined.guest) {
+      return NextResponse.json(payload);
+    }
+    return applyGuestCookie(NextResponse.json(payload), joined.guest.guestToken);
+  }
+
   return applyGuestCookie(
     NextResponse.json({
+      closed: false as const,
       guestId: joined.guest.id,
       guestToken: joined.guest.guestToken,
       nickname: joined.guest.nickname,
@@ -67,8 +83,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return applyGuestCookie(
-    NextResponse.redirect(new URL(`/t/${qr}`, request.url)),
-    joined.guest.guestToken,
-  );
+  const redirect = NextResponse.redirect(new URL(`/t/${qr}`, request.url));
+  if (!joined.guest) {
+    return redirect;
+  }
+
+  return applyGuestCookie(redirect, joined.guest.guestToken);
 }

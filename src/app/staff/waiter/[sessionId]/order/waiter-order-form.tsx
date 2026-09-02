@@ -40,13 +40,48 @@ export function WaiterOrderForm({
   sessionId,
   tableNumber,
   categories,
+  editOrder,
 }: {
   sessionId: string;
   tableNumber: string;
   categories: { id: string; name: string; items: MenuItem[] }[];
+  editOrder?: {
+    id: string;
+    items: {
+      menuItemId: string;
+      name: string;
+      price: number;
+      quantity: number;
+      note: string | null;
+      optionIds: string[];
+      optionNames: string[];
+    }[];
+  };
 }) {
   const router = useRouter();
-  const [cart, setCart] = useState<CartLine[]>([]);
+  const [cart, setCart] = useState<CartLine[]>(() => {
+    const lines: CartLine[] = [];
+    for (const item of editOrder?.items ?? []) {
+      const key = `${item.menuItemId}:${item.optionIds.slice().sort().join(",")}`;
+      const existing = lines.find((line) => line.key === key);
+      if (existing) {
+        existing.quantity += item.quantity;
+        if (item.note && !existing.note) existing.note = item.note;
+        continue;
+      }
+      lines.push({
+        key,
+        menuItemId: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        note: item.note ?? "",
+        optionIds: item.optionIds,
+        optionNames: item.optionNames,
+      });
+    }
+    return lines;
+  });
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,22 +153,28 @@ export function WaiterOrderForm({
     if (!cart.length) return;
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/staff/sessions/${sessionId}/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: cart.map((line) => ({
-          menuItemId: line.menuItemId,
-          quantity: line.quantity,
-          note: [note.trim(), line.note.trim()].filter(Boolean).join(" · ") || undefined,
-          optionIds: line.optionIds,
-        })),
-      }),
-    });
+    const payload = {
+      items: cart.map((line) => ({
+        menuItemId: line.menuItemId,
+        quantity: line.quantity,
+        note: [note.trim(), line.note.trim()].filter(Boolean).join(" · ") || undefined,
+        optionIds: line.optionIds,
+      })),
+    };
+    const response = await fetch(
+      editOrder
+        ? `/api/staff/orders/${editOrder.id}`
+        : `/api/staff/sessions/${sessionId}/orders`,
+      {
+        method: editOrder ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
     const json = await response.json().catch(() => ({}));
     setBusy(false);
     if (!response.ok) {
-      setError(json.error ?? "Sipariş gönderilemedi");
+      setError(json.error ?? (editOrder ? "Sipariş güncellenemedi" : "Sipariş gönderilemedi"));
       return;
     }
     router.push(`/staff/waiter/${sessionId}`);
@@ -144,10 +185,83 @@ export function WaiterOrderForm({
       <Link href={`/staff/waiter/${sessionId}`} className="text-sm text-[var(--accent)]">
         ← {tableLabel(tableNumber)}
       </Link>
-      <h1 className="mt-3 font-serif text-3xl">Sipariş yaz</h1>
+      <h1 className="mt-3 font-serif text-3xl">
+        {editOrder ? "Siparişi düzenle" : "Sipariş yaz"}
+      </h1>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        QR yok. Personel olarak {tableLabel(tableNumber)} hesabına düşer.
+        {editOrder
+          ? "Bekleyen bilet değişir, mutfak güncel hali görür."
+          : `QR yok. Personel olarak ${tableLabel(tableNumber)} hesabına düşer.`}
       </p>
+
+      {cart.length ? (
+        <Card className="mt-6 space-y-3 p-4">
+          <p className="font-medium">{editOrder ? "Bu bilet" : "Sepet"}</p>
+          {cart.map((line) => (
+            <div key={line.key} className="flex items-start justify-between gap-3 text-sm">
+              <div>
+                <p>
+                  {line.quantity}× {line.name}
+                </p>
+                {line.optionNames.length ? (
+                  <p className="text-xs text-[var(--muted)]">
+                    {line.optionNames.join(" · ")}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <span>{formatTRY(line.price * line.quantity)}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setCart((current) =>
+                      current.flatMap((entry) => {
+                        if (entry.key !== line.key) return [entry];
+                        if (entry.quantity <= 1) return [];
+                        return [{ ...entry, quantity: entry.quantity - 1 }];
+                      }),
+                    )
+                  }
+                >
+                  −
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setCart((current) =>
+                      current.map((entry) =>
+                        entry.key === line.key
+                          ? { ...entry, quantity: Math.min(30, entry.quantity + 1) }
+                          : entry,
+                      ),
+                    )
+                  }
+                >
+                  +
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setCart((current) =>
+                      current.filter((entry) => entry.key !== line.key),
+                    )
+                  }
+                >
+                  Sil
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Input
+            placeholder="Not (az şeker, soğansız…)"
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </Card>
+      ) : null}
 
       <div className="mt-6 space-y-6">
         {visible.map((category) => (
@@ -252,50 +366,15 @@ export function WaiterOrderForm({
               <p className="font-serif text-2xl">{formatTRY(total)}</p>
             </div>
             <Button disabled={busy} onClick={() => void submit()}>
-              {busy ? "Gönderiliyor…" : "Mutfağa gönder"}
+              {busy
+                ? "Kaydediliyor…"
+                : editOrder
+                  ? "Mutfağa güncelle"
+                  : "Mutfağa gönder"}
             </Button>
           </div>
           {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
         </div>
-      ) : null}
-
-      {cart.length ? (
-        <Card className="mt-8 space-y-3 p-4">
-          <p className="font-medium">Sepet</p>
-          {cart.map((line) => (
-            <div key={line.key} className="flex items-start justify-between gap-3 text-sm">
-              <div>
-                <p>
-                  {line.quantity}× {line.name}
-                </p>
-                {line.optionNames.length ? (
-                  <p className="text-xs text-[var(--muted)]">
-                    {line.optionNames.join(" · ")}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{formatTRY(line.price * line.quantity)}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    setCart((current) =>
-                      current.filter((entry) => entry.key !== line.key),
-                    )
-                  }
-                >
-                  Sil
-                </Button>
-              </div>
-            </div>
-          ))}
-          <Input
-            placeholder="Not (az şeker, soğansız…)"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-          />
-        </Card>
       ) : null}
     </div>
   );

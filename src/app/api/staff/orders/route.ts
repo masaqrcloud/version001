@@ -27,6 +27,7 @@ export async function GET() {
       id: order.id,
       status: order.status,
       createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
       tableNumber: formatTableGroup(
         order.tableSession.table.number,
         order.tableSession.mergedTables.map((table) => table.number),

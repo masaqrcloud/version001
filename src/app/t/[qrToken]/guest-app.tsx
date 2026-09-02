@@ -306,6 +306,7 @@ export function GuestApp({
   const [configuringItem, setConfiguringItem] = useState<MenuItem | null>(null);
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [feedbackDone, setFeedbackDone] = useState(false);
+  const [joinClosed, setJoinClosed] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
@@ -353,6 +354,19 @@ export function GuestApp({
           setNameError(data.error ?? "Masaya bağlanılamadı");
           return;
         }
+        if (data.closed) {
+          if (data.guestToken) {
+            setGuestId(data.guestId ?? "");
+            setGuestToken(data.guestToken);
+            window.localStorage.setItem(
+              guestStorageKey(qrToken),
+              data.guestToken,
+            );
+          }
+          setJoinClosed(true);
+          setReady(true);
+          return;
+        }
         setGuestId(data.guestId);
         setGuestToken(data.guestToken);
         window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
@@ -386,7 +400,7 @@ export function GuestApp({
   };
 
   const { data: live, setData: setLive } = usePoll<LiveResponse>(
-    ready && guestToken ? "/api/guest/live" : null,
+    ready && guestToken && !joinClosed ? "/api/guest/live" : null,
     5000,
     guestToken,
   );
@@ -714,7 +728,9 @@ export function GuestApp({
       body: JSON.stringify({ qr: qrToken, guestToken: saved }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.staffPreview || !data.guestToken) return null;
+    if (!res.ok || data.staffPreview || data.closed || !data.guestToken) {
+      return null;
+    }
     setGuestId(data.guestId);
     setGuestToken(data.guestToken);
     window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
@@ -744,7 +760,12 @@ export function GuestApp({
       let res = await send(guestToken);
       if (res.status === 401) {
         const token = await rejoin();
-        if (token) res = await send(token);
+        if (!token) {
+          setJoinClosed(true);
+          setNameError("Hesap kapatıldı. Evden tekrar sipariş verilemez.");
+          return;
+        }
+        res = await send(token);
       }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -839,20 +860,22 @@ export function GuestApp({
     );
   }
 
-  if (sessionStatus?.closed) {
+  if (joinClosed || sessionStatus?.closed) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col px-4 py-8">
         <div className="text-center">
-          <p className="page-kicker">{sessionStatus.venueName ?? venueName}</p>
+          <p className="page-kicker">{sessionStatus?.venueName ?? venueName}</p>
           <h1 className="mt-2 font-serif text-4xl">Teşekkür ederiz</h1>
           <p className="mt-2 text-[var(--muted)]">
-            {tableLabel(sessionStatus.tableNumber ?? tableNumber)} hesabı kapatıldı.
+            {tableLabel(sessionStatus?.tableNumber ?? tableNumber)} hesabı
+            kapatıldı. Evden yenilesen de masaya tekrar girilmez.
           </p>
         </div>
+        {(sessionStatus?.lines?.length ?? 0) > 0 ? (
         <Card className="mt-6 p-5">
           <h2 className="font-serif text-2xl">Adisyon özeti</h2>
           <ul className="mt-3 space-y-2 text-sm">
-            {(sessionStatus.lines ?? []).map((line) => (
+            {(sessionStatus?.lines ?? []).map((line) => (
               <li key={line.id} className="flex justify-between gap-3">
                 <span>
                   {line.quantity}× {line.name}
@@ -863,25 +886,26 @@ export function GuestApp({
             ))}
           </ul>
           <p className="mt-4 border-t border-[var(--line)] pt-3 text-right font-medium">
-            Toplam: {formatTRY(sessionStatus.total ?? 0)}
+            Toplam: {formatTRY(sessionStatus?.total ?? 0)}
           </p>
-          {sessionStatus.receiptSent ? (
+          {sessionStatus?.receiptSent ? (
             <p className="mt-2 text-xs text-[var(--muted)]">
               Dijital adisyon e-posta adresine gönderildi.
             </p>
           ) : null}
         </Card>
-        {!sessionStatus.feedbackSubmitted && !feedbackDone ? (
+        ) : null}
+        {guestToken && !sessionStatus?.feedbackSubmitted && !feedbackDone ? (
           <Card className="mt-4 p-5">
             <SessionFeedbackForm
               onSubmitted={() => setFeedbackDone(true)}
             />
           </Card>
-        ) : (
+        ) : guestToken ? (
           <p className="mt-4 text-center text-sm text-[var(--muted)]">
             Değerlendirmen için teşekkürler.
           </p>
-        )}
+        ) : null}
       </div>
     );
   }

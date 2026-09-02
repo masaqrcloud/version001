@@ -101,7 +101,7 @@ export async function removeInactiveStaffGuests(tableId: string) {
   }
 }
 
-export async function getOrCreateOpenSession(tableId: string) {
+async function resolveOpenSession(tableId: string, createIfMissing: boolean) {
   return prisma.$transaction(async (tx) => {
     const table = await tx.table.findUnique({
       where: { id: tableId },
@@ -130,6 +130,7 @@ export async function getOrCreateOpenSession(tableId: string) {
     });
 
     if (open.length === 0) {
+      if (!createIfMissing) return null;
       return tx.tableSession.create({ data: { tableId } });
     }
 
@@ -159,6 +160,18 @@ export async function getOrCreateOpenSession(tableId: string) {
   });
 }
 
+export async function getOpenSession(tableId: string) {
+  return resolveOpenSession(tableId, false);
+}
+
+export async function getOrCreateOpenSession(tableId: string) {
+  const session = await resolveOpenSession(tableId, true);
+  if (!session) {
+    throw new Error("TABLE_NOT_FOUND");
+  }
+  return session;
+}
+
 export async function joinTable(qrToken: string, clientToken?: string | null) {
   const table = await prisma.table.findUnique({
     where: { qrToken },
@@ -169,16 +182,50 @@ export async function joinTable(qrToken: string, clientToken?: string | null) {
     return null;
   }
 
-  const session = await getOrCreateOpenSession(table.id);
   const existingToken = await readIncomingToken(clientToken);
-
   let guest = existingToken
-    ? await prisma.guest.findUnique({ where: { guestToken: existingToken } })
+    ? await prisma.guest.findUnique({
+        where: { guestToken: existingToken },
+        include: {
+          tableSession: {
+            include: { mergedTables: { select: { id: true } } },
+          },
+        },
+      })
     : null;
 
-  if (guest && guest.tableSessionId !== session.id) {
+  const spentOnThisTable =
+    Boolean(existingToken) &&
+    (!guest ||
+      (guest.tableSession.status === "CLOSED" &&
+        (guest.tableSession.tableId === table.id ||
+          guest.tableSession.mergedTables.some((item) => item.id === table.id))));
+
+  if (spentOnThisTable) {
+    const open = await getOpenSession(table.id);
+    if (!open) {
+      return {
+        table,
+        venue: table.venue,
+        session: guest?.tableSession ?? null,
+        guest: guest ?? null,
+        closed: true as const,
+      };
+    }
+    guest = null;
+  }
+
+  const session = await getOrCreateOpenSession(table.id);
+  const currentGuest = guest
+    ? { id: guest.id, tableSessionId: guest.tableSessionId }
+    : null;
+  let attached = currentGuest
+    ? await prisma.guest.findUnique({ where: { id: currentGuest.id } })
+    : null;
+
+  if (attached && attached.tableSessionId !== session.id) {
     const current = await prisma.tableSession.findUnique({
-      where: { id: guest.tableSessionId },
+      where: { id: attached.tableSessionId },
       include: { table: true, mergedTables: { select: { id: true } } },
     });
     const sameGroup =
@@ -188,26 +235,31 @@ export async function joinTable(qrToken: string, clientToken?: string | null) {
         current.mergedTables.some((item) => item.id === table.id) ||
         table.mergedSessionId === current.id);
     if (sameGroup) {
-      guest = await prisma.guest.update({
-        where: { id: guest.id },
+      attached = await prisma.guest.update({
+        where: { id: attached.id },
         data: { tableSessionId: session.id },
       });
     } else {
-      guest = null;
+      attached = null;
     }
   }
 
-  if (!guest) {
-    const guestToken = randomBytes(24).toString("hex");
-    guest = await prisma.guest.create({
+  if (!attached) {
+    attached = await prisma.guest.create({
       data: {
         tableSessionId: session.id,
-        guestToken,
+        guestToken: randomBytes(24).toString("hex"),
       },
     });
   }
 
-  return { table, venue: table.venue, session, guest };
+  return {
+    table,
+    venue: table.venue,
+    session,
+    guest: attached,
+    closed: false as const,
+  };
 }
 
 const guestWithTable = {
