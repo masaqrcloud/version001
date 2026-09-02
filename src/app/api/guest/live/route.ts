@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getOrCreateOpenSession, requireOpenGuest } from "@/lib/guest";
+import { requireOpenGuest } from "@/lib/guest";
 import { displayGuestName } from "@/lib/media";
 
 export async function GET() {
@@ -9,14 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
   }
 
-  const tableId = guest.tableSession.tableId;
-  const session = await getOrCreateOpenSession(tableId);
-  if (guest.tableSessionId !== session.id) {
-    await prisma.guest.update({
-      where: { id: guest.id },
-      data: { tableSessionId: session.id },
-    });
-  }
+  const sessionId = guest.tableSessionId;
 
   const [cartItems, myOrders, tableOrders, tableGuests, notifications] =
     await Promise.all([
@@ -35,7 +28,7 @@ export async function GET() {
       }),
       prisma.order.findMany({
         where: {
-          tableSession: { tableId, status: "OPEN" },
+          tableSessionId: sessionId,
           status: { not: "CANCELLED" },
         },
         include: {
@@ -45,7 +38,7 @@ export async function GET() {
         orderBy: { createdAt: "asc" },
       }),
       prisma.guest.findMany({
-        where: { tableSession: { tableId, status: "OPEN" } },
+        where: { tableSessionId: sessionId },
         orderBy: { createdAt: "asc" },
       }),
       prisma.guestNotification.findMany({

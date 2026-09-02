@@ -1,12 +1,8 @@
-import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { placeStaffOrder } from "@/lib/staff-place-order";
+import { staffOrderItemSchema } from "@/lib/staff-order-lines";
 import { prisma } from "@/lib/db";
-import { getOrCreateStaffProxyGuest } from "@/lib/guest";
-import { consumeStockForOrder } from "@/lib/stock";
-import { resolveStaffOrderLines, staffOrderItemSchema } from "@/lib/staff-order-lines";
-import { pushToVenueRoles } from "@/lib/staff-push";
-import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -39,77 +35,20 @@ export async function POST(request: Request, context: Ctx) {
     return NextResponse.json({ error: "Açık masa yok" }, { status: 404 });
   }
 
-  const resolved = await resolveStaffOrderLines(user.venueId, body.data.items);
-  if ("error" in resolved) {
-    return NextResponse.json({ error: resolved.error }, { status: 409 });
-  }
-  const { lines, stockLines } = resolved;
-
-  const guest = await getOrCreateStaffProxyGuest(
-    session.id,
-    body.data.guestName,
-  );
-  let order;
-  try {
-    order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          tableSessionId: session.id,
-          guestId: guest.id,
-          guestName: guest.nickname,
-          idempotencyKey: randomUUID(),
-          statusEvents: { create: { toStatus: "PENDING" } },
-          items: {
-            create: lines.map((line) => ({
-              menuItemId: line.menuItem.id,
-              name: line.menuItem.name,
-              price: line.price,
-              quantity: line.quantity,
-              note: line.note,
-              options: {
-                create: line.options.map((option) => ({
-                  name: option.name,
-                  priceDelta: option.priceDelta,
-                })),
-              },
-            })),
-          },
-        },
-        include: { items: true },
-      });
-      await consumeStockForOrder(tx, {
-        venueId: session.table.venueId,
-        orderId: created.id,
-        items: stockLines,
-      });
-      return created;
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("OUT_OF_STOCK:")) {
-      return NextResponse.json(
-        {
-          error: `${error.message.slice("OUT_OF_STOCK:".length)} için yeterli stok yok`,
-        },
-        { status: 409 },
-      );
-    }
-    console.error("Personel siparişi yazılamadı", error);
-    return NextResponse.json(
-      { error: "Sipariş gönderilemedi" },
-      { status: 500 },
-    );
+  const placed = await placeStaffOrder({
+    venueId: user.venueId,
+    sessionId: session.id,
+    tableNumber: session.table.number,
+    items: body.data.items,
+    guestName: body.data.guestName,
+  });
+  if (!placed.ok) {
+    return NextResponse.json({ error: placed.error }, { status: placed.status });
   }
 
-  void pushToVenueRoles(
-    session.table.venueId,
-    ["PLATFORM", "OWNER", "ADMIN", "KITCHEN"],
-    {
-      title: "Yeni sipariş",
-      body: `${tableLabel(session.table.number)} · ${guest.nickname}`,
-      url: "/staff/kitchen",
-      tag: `order-${order.id}`,
-    },
-  );
-
-  return NextResponse.json({ id: order.id, status: order.status });
+  return NextResponse.json({
+    id: placed.orderId,
+    sessionId: session.id,
+    status: placed.status,
+  });
 }

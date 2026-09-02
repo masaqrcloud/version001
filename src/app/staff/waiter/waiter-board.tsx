@@ -54,7 +54,7 @@ export function WaiterBoard() {
   if (data.sessions.length === 0) {
     return (
       <p className="mt-8 text-[var(--muted)]">
-        Açık masa yok. Krokide boş masaya basıp QR’siz sipariş yazabilirsin.
+        Açık masa yok. Krokide boş masaya basıp sipariş yazabilirsin; mutfağa gitmeden masa açılmaz.
       </p>
     );
   }

@@ -15,3 +15,13 @@ export function isStaffProxyNickname(nickname?: string | null) {
     name.startsWith("Personel ·")
   );
 }
+
+export function sittingIsOccupied(
+  guests: { nickname?: string | null }[],
+  orderCount: number,
+) {
+  return (
+    orderCount > 0 ||
+    guests.some((guest) => !isStaffProxyNickname(guest.nickname))
+  );
+}

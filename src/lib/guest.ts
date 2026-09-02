@@ -173,10 +173,25 @@ export async function getOrCreateOpenSession(tableId: string) {
   return session;
 }
 
+function guestIsOnTable(
+  table: { id: string; mergedSessionId: string | null },
+  session: {
+    id: string;
+    tableId: string;
+    mergedTables: { id: string }[];
+  },
+) {
+  return (
+    session.tableId === table.id ||
+    session.id === table.mergedSessionId ||
+    session.mergedTables.some((item) => item.id === table.id)
+  );
+}
+
 export async function joinTable(
   qrToken: string,
   clientToken?: string | null,
-  options?: { startNew?: boolean },
+  options?: { startNew?: boolean; sit?: boolean; nickname?: string | null },
 ) {
   const table = await prisma.table.findUnique({
     where: { qrToken },
@@ -187,6 +202,8 @@ export async function joinTable(
     return null;
   }
 
+  const nickname = options?.nickname?.trim() || null;
+
   if (options?.startNew) {
     const open = await getOpenSession(table.id);
     if (!open) {
@@ -196,6 +213,7 @@ export async function joinTable(
         session: null,
         guest: null,
         closed: true as const,
+        idle: false as const,
         canStartNew: false as const,
       };
     }
@@ -203,6 +221,7 @@ export async function joinTable(
       data: {
         tableSessionId: open.id,
         guestToken: randomBytes(24).toString("hex"),
+        nickname,
       },
     });
     return {
@@ -211,11 +230,12 @@ export async function joinTable(
       session: open,
       guest: attached,
       closed: false as const,
+      idle: false as const,
     };
   }
 
   const existingToken = await readIncomingToken(clientToken);
-  let guest = existingToken
+  const guest = existingToken
     ? await prisma.guest.findUnique({
         where: { guestToken: existingToken },
         include: {
@@ -229,8 +249,7 @@ export async function joinTable(
   const spentOnThisTable =
     guest &&
     guest.tableSession.status === "CLOSED" &&
-    (guest.tableSession.tableId === table.id ||
-      guest.tableSession.mergedTables.some((item) => item.id === table.id));
+    guestIsOnTable(table, guest.tableSession);
 
   if (spentOnThisTable && guest) {
     const open = await getOpenSession(table.id);
@@ -240,37 +259,49 @@ export async function joinTable(
       session: guest.tableSession,
       guest,
       closed: true as const,
+      idle: false as const,
       canStartNew: Boolean(open),
     };
   }
 
+  if (!options?.sit) {
+    if (
+      guest &&
+      guest.tableSession.status === "OPEN" &&
+      guestIsOnTable(table, guest.tableSession)
+    ) {
+      return {
+        table,
+        venue: table.venue,
+        session: guest.tableSession,
+        guest,
+        closed: false as const,
+        idle: false as const,
+      };
+    }
+    return {
+      table,
+      venue: table.venue,
+      session: null,
+      guest: null,
+      closed: false as const,
+      idle: true as const,
+    };
+  }
+
   const session = await getOrCreateOpenSession(table.id);
-  const currentGuest = guest
-    ? { id: guest.id, tableSessionId: guest.tableSessionId }
-    : null;
-  let attached = currentGuest
-    ? await prisma.guest.findUnique({ where: { id: currentGuest.id } })
-    : null;
+  let attached =
+    guest &&
+    guest.tableSession.status === "OPEN" &&
+    guestIsOnTable(table, guest.tableSession)
+      ? await prisma.guest.findUnique({ where: { id: guest.id } })
+      : null;
 
   if (attached && attached.tableSessionId !== session.id) {
-    const current = await prisma.tableSession.findUnique({
-      where: { id: attached.tableSessionId },
-      include: { table: true, mergedTables: { select: { id: true } } },
+    attached = await prisma.guest.update({
+      where: { id: attached.id },
+      data: { tableSessionId: session.id },
     });
-    const sameGroup =
-      current?.status === "OPEN" &&
-      (current.id === session.id ||
-        current.tableId === table.id ||
-        current.mergedTables.some((item) => item.id === table.id) ||
-        table.mergedSessionId === current.id);
-    if (sameGroup) {
-      attached = await prisma.guest.update({
-        where: { id: attached.id },
-        data: { tableSessionId: session.id },
-      });
-    } else {
-      attached = null;
-    }
   }
 
   if (!attached) {
@@ -278,7 +309,13 @@ export async function joinTable(
       data: {
         tableSessionId: session.id,
         guestToken: randomBytes(24).toString("hex"),
+        nickname,
       },
+    });
+  } else if (nickname && attached.nickname !== nickname) {
+    attached = await prisma.guest.update({
+      where: { id: attached.id },
+      data: { nickname },
     });
   }
 
@@ -288,6 +325,7 @@ export async function joinTable(
     session,
     guest: attached,
     closed: false as const,
+    idle: false as const,
   };
 }
 

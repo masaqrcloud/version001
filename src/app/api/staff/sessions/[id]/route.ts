@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getOrCreateOpenSession } from "@/lib/guest";
-import { isStaffProxyNickname } from "@/lib/media";
+import { isStaffProxyNickname, sittingIsOccupied } from "@/lib/media";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -51,20 +51,43 @@ export async function GET(_request: Request, context: Ctx) {
       id: { not: session.id },
       table: { venueId: user.venueId },
     },
-    include: { table: true, mergedTables: true },
+    include: {
+      table: true,
+      mergedTables: true,
+      guests: { select: { nickname: true } },
+      orders: {
+        where: { status: { not: "CANCELLED" } },
+        select: { id: true },
+      },
+    },
     orderBy: { openedAt: "asc" },
   });
   const venueTables = await prisma.table.findMany({
     where: { venueId: user.venueId },
     include: {
-      sessions: { where: { status: "OPEN" }, take: 1 },
+      sessions: {
+        where: { status: "OPEN" },
+        take: 1,
+        include: {
+          guests: { select: { nickname: true } },
+          orders: {
+            where: { status: { not: "CANCELLED" } },
+            select: { id: true },
+          },
+        },
+      },
       mergedSession: { select: { id: true, status: true } },
     },
     orderBy: { number: "asc" },
   });
   const busyTableIds = new Set<string>();
   for (const item of venueTables) {
-    if (item.sessions[0]) busyTableIds.add(item.id);
+    if (
+      item.sessions[0] &&
+      sittingIsOccupied(item.sessions[0].guests, item.sessions[0].orders.length)
+    ) {
+      busyTableIds.add(item.id);
+    }
     if (item.mergedSessionId && item.mergedSession?.status === "OPEN") {
       busyTableIds.add(item.id);
     }
@@ -97,13 +120,15 @@ export async function GET(_request: Request, context: Ctx) {
       id: table.id,
       number: table.number,
     })),
-    otherTables: others.map((item) => ({
-      id: item.id,
-      tableNumber: formatTableGroup(
-        item.table.number,
-        item.mergedTables.map((table) => table.number),
-      ),
-    })),
+    otherTables: others
+      .filter((item) => sittingIsOccupied(item.guests, item.orders.length))
+      .map((item) => ({
+        id: item.id,
+        tableNumber: formatTableGroup(
+          item.table.number,
+          item.mergedTables.map((table) => table.number),
+        ),
+      })),
     mergeTargets: venueTables
       .filter((table) => !groupedIds.has(table.id))
       .map((table) => ({

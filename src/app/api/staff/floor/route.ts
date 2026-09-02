@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { istanbulToday } from "@/lib/reservation-occupancy";
-import { isStaffProxyNickname } from "@/lib/media";
+import { isStaffProxyNickname, sittingIsOccupied } from "@/lib/media";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -81,6 +81,7 @@ export async function GET() {
       : host?.table.number ?? table.number;
     const guests = session?.guests ?? [];
     const orders = session?.orders ?? [];
+    const active = Boolean(session && sittingIsOccupied(guests, orders.length));
     const total = orders.reduce(
       (sum, order) =>
         sum +
@@ -97,24 +98,32 @@ export async function GET() {
       number: table.number,
       floorX: table.floorX,
       floorY: table.floorY,
-      occupied: Boolean(session),
+      occupied: active,
       reserved: reservedIds.has(table.id),
-      sessionId: session?.id ?? null,
-      primaryTableId: home ? table.id : host?.table.id ?? null,
-      mergedLabel: session
-        ? formatTableGroup(primaryNumber, extraNumbers)
+      sessionId: active ? session?.id ?? null : null,
+      primaryTableId: active
+        ? home
+          ? table.id
+          : host?.table.id ?? null
         : null,
-      isMerged: extraNumbers.length > 0,
-      isPrimary: Boolean(home),
-      guestCount: guests.filter((guest) => !isStaffProxyNickname(guest.nickname))
-        .length,
-      orderCount: orders.length,
-      pendingCount: orders.filter((order) =>
-        ["PENDING", "PREPARING", "READY"].includes(order.status),
-      ).length,
-      waiterCalledAt: session?.waiterCalledAt ?? null,
-      billRequestedAt: session?.billRequestedAt ?? null,
-      total,
+      mergedLabel:
+        active && session
+          ? formatTableGroup(primaryNumber, extraNumbers)
+          : null,
+      isMerged: active && extraNumbers.length > 0,
+      isPrimary: active && Boolean(home),
+      guestCount: active
+        ? guests.filter((guest) => !isStaffProxyNickname(guest.nickname)).length
+        : 0,
+      orderCount: active ? orders.length : 0,
+      pendingCount: active
+        ? orders.filter((order) =>
+            ["PENDING", "PREPARING", "READY"].includes(order.status),
+          ).length
+        : 0,
+      waiterCalledAt: active ? session?.waiterCalledAt ?? null : null,
+      billRequestedAt: active ? session?.billRequestedAt ?? null : null,
+      total: active ? total : 0,
     };
   });
 

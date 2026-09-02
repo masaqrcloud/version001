@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { parseOpeningHours } from "@/lib/opening-hours";
+import { sittingIsOccupied } from "@/lib/media";
 import {
   istanbulToday,
   reservationTimesOverlap,
@@ -51,10 +52,16 @@ async function busyTableIds(
       where: { status: "OPEN", table: { venueId } },
       select: {
         tableId: true,
+        guests: { select: { nickname: true } },
+        orders: {
+          where: { status: { not: "CANCELLED" } },
+          select: { id: true },
+        },
         mergedTables: { select: { id: true } },
       },
     });
     for (const session of open) {
+      if (!sittingIsOccupied(session.guests, session.orders.length)) continue;
       occupiedIds.add(session.tableId);
       for (const extra of session.mergedTables) occupiedIds.add(extra.id);
     }

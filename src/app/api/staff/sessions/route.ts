@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getOrCreateOpenSession } from "@/lib/guest";
-import { isStaffProxyNickname } from "@/lib/media";
+import { isStaffProxyNickname, sittingIsOccupied } from "@/lib/media";
+import { placeStaffOrder } from "@/lib/staff-place-order";
+import { staffOrderItemSchema } from "@/lib/staff-order-lines";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -57,6 +59,7 @@ export async function GET() {
 
   return NextResponse.json({
     sessions: [...byTable.values()]
+      .filter(({ guests, orders }) => sittingIsOccupied(guests, orders.length))
       .sort((a, b) => {
         const rank = (session: (typeof sessions)[number]) => {
           if (session.billRequestedAt) return 0;
@@ -124,20 +127,41 @@ export async function POST(request: Request) {
   if (error) return error;
 
   const body = z
-    .object({ tableId: z.string().min(1) })
+    .object({
+      tableId: z.string().min(1),
+      items: z.array(staffOrderItemSchema).min(1).max(40),
+      guestName: z.string().trim().min(2).max(40).optional(),
+    })
     .safeParse(await request.json().catch(() => null));
   if (!body.success) {
-    return NextResponse.json({ error: "Masa seç" }, { status: 400 });
+    return NextResponse.json({ error: "Sipariş kalemi seç" }, { status: 400 });
   }
 
   const table = await prisma.table.findFirst({
     where: { id: body.data.tableId, venueId: user.venueId },
-    select: { id: true },
+    select: { id: true, number: true },
   });
   if (!table) {
     return NextResponse.json({ error: "Masa yok" }, { status: 404 });
   }
 
   const session = await getOrCreateOpenSession(table.id);
-  return NextResponse.json({ id: session.id, tableId: table.id });
+  const placed = await placeStaffOrder({
+    venueId: user.venueId,
+    sessionId: session.id,
+    tableNumber: table.number,
+    items: body.data.items,
+    guestName: body.data.guestName,
+  });
+  if (!placed.ok) {
+    return NextResponse.json({ error: placed.error }, { status: placed.status });
+  }
+
+  return NextResponse.json({
+    id: session.id,
+    sessionId: session.id,
+    orderId: placed.orderId,
+    tableId: table.id,
+    status: placed.status,
+  });
 }

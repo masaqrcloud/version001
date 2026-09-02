@@ -370,13 +370,17 @@ export function GuestApp({
           setReady(true);
           return;
         }
+        if (data.idle || !data.guestToken) {
+          setReady(true);
+          return;
+        }
         setGuestId(data.guestId);
         setGuestToken(data.guestToken);
         window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
         if (data.nickname) {
           setName(data.nickname);
         }
-        setNamed(false);
+        setNamed(true);
         setReady(true);
       } catch {
         if (!cancelled) {
@@ -403,7 +407,7 @@ export function GuestApp({
   };
 
   const { data: live, setData: setLive } = usePoll<LiveResponse>(
-    ready && guestToken && !joinClosed ? "/api/guest/live" : null,
+    ready && named && guestToken && !joinClosed ? "/api/guest/live" : null,
     5000,
     guestToken,
   );
@@ -715,7 +719,7 @@ export function GuestApp({
     if (refreshed.ok) setLive(await refreshed.json());
   }
 
-  async function rejoin() {
+  async function sitDown(nickname?: string) {
     const saved =
       guestToken ||
       (typeof window !== "undefined"
@@ -728,15 +732,25 @@ export function GuestApp({
         ...(saved ? { "x-guest-token": saved } : {}),
       },
       credentials: "include",
-      body: JSON.stringify({ qr: qrToken, guestToken: saved }),
+      body: JSON.stringify({
+        qr: qrToken,
+        guestToken: saved,
+        sit: true,
+        ...(nickname ? { nickname } : {}),
+      }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.staffPreview || data.closed || !data.guestToken) {
+    if (!res.ok || data.staffPreview || data.closed || data.idle || !data.guestToken) {
+      if (data.closed) {
+        setCanStartNew(Boolean(data.canStartNew));
+        setJoinClosed(true);
+      }
       return null;
     }
     setGuestId(data.guestId);
     setGuestToken(data.guestToken);
     window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
+    if (data.nickname) setName(data.nickname);
     return data.guestToken as string;
   }
 
@@ -780,27 +794,20 @@ export function GuestApp({
     setBusy(true);
     setNameError(null);
     try {
-      const send = (token: string) =>
-        fetch("/api/guest/profile", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "x-guest-token": token } : {}),
-          },
-          credentials: "include",
-          body: JSON.stringify({ nickname: trimmed }),
-        });
-
-      let res = await send(guestToken);
-      if (res.status === 401) {
-        const token = await rejoin();
-        if (!token) {
-          setJoinClosed(true);
-          setNameError("Hesap kapatıldı. Evden tekrar sipariş verilemez.");
-          return;
-        }
-        res = await send(token);
+      const token = guestToken || (await sitDown(trimmed));
+      if (!token) {
+        setNameError("Hesap kapatıldı. Evden tekrar sipariş verilemez.");
+        return;
       }
+      const res = await fetch("/api/guest/profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "x-guest-token": token } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ nickname: trimmed }),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setNameError(data.error ?? "İsim kaydedilemedi, tekrar dene");
@@ -986,8 +993,8 @@ export function GuestApp({
         <div className="flex flex-1 flex-col justify-center px-5">
           <h2 className="text-3xl">Masaya katıl</h2>
           <p className="mt-2 text-[var(--muted)]">
-            Adını yazarsan hesapta sen görünürsün. İstemezsen isimsiz de
-            devam edebilirsin.
+            Adını yazıp katılınca masa dolu olur. Sadece QR’yi açmak veya
+            sayfayı yenilemek hesabı açmaz.
           </p>
           <form
             className="mt-8 space-y-4"
@@ -1012,7 +1019,22 @@ export function GuestApp({
           <button
             type="button"
             className="mt-4 min-h-11 text-sm text-[var(--muted)] underline-offset-4 hover:underline"
-            onClick={() => setNamed(true)}
+            disabled={busy}
+            onClick={() => {
+              void (async () => {
+                setBusy(true);
+                setNameError(null);
+                const token = await sitDown();
+                setBusy(false);
+                if (!token) {
+                  setNameError(
+                    "Hesap kapatıldı. Evden tekrar sipariş verilemez.",
+                  );
+                  return;
+                }
+                setNamed(true);
+              })();
+            }}
           >
             İsimsiz devam et
           </button>

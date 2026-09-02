@@ -38,11 +38,13 @@ type CartLine = {
 
 export function WaiterOrderForm({
   sessionId,
+  tableId,
   tableNumber,
   categories,
   editOrder,
 }: {
-  sessionId: string;
+  sessionId?: string;
+  tableId?: string;
   tableNumber: string;
   categories: { id: string; name: string; items: MenuItem[] }[];
   editOrder?: {
@@ -168,11 +170,16 @@ export function WaiterOrderForm({
     const response = await fetch(
       editOrder
         ? `/api/staff/orders/${editOrder.id}`
-        : `/api/staff/sessions/${sessionId}/orders`,
+        : sessionId
+          ? `/api/staff/sessions/${sessionId}/orders`
+          : "/api/staff/sessions",
       {
         method: editOrder ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          ...(!editOrder && tableId ? { tableId } : {}),
+        }),
       },
     );
     const json = await response.json().catch(() => ({}));
@@ -181,12 +188,20 @@ export function WaiterOrderForm({
       setError(json.error ?? (editOrder ? "Sipariş güncellenemedi" : "Sipariş gönderilemedi"));
       return;
     }
-    router.push(`/staff/waiter/${sessionId}`);
+    const nextSessionId = json.sessionId ?? sessionId;
+    if (!nextSessionId) {
+      setError("Sipariş alındı ama masa açılamadı");
+      return;
+    }
+    router.push(`/staff/waiter/${nextSessionId}`);
   }
 
   return (
     <div className="pb-28">
-      <Link href={`/staff/waiter/${sessionId}`} className="text-sm text-[var(--accent)]">
+      <Link
+        href={sessionId ? `/staff/waiter/${sessionId}` : "/staff/waiter"}
+        className="text-sm text-[var(--accent)]"
+      >
         ← {tableLabel(tableNumber)}
       </Link>
       <h1 className="mt-3 font-serif text-3xl">
@@ -195,7 +210,7 @@ export function WaiterOrderForm({
       <p className="mt-1 text-sm text-[var(--muted)]">
         {editOrder
           ? "Bekleyen bilet değişir, mutfak güncel hali görür."
-          : `QR yok. Yaşlı veya telefonsuz misafir için sen yazarsın; masada personel oturmuş görünmez.`}
+          : `QR yok. Mutfağa gönderince masa dolu olur; sadece forma girmek masayı açmaz.`}
       </p>
       {editOrder ? null : (
         <Input

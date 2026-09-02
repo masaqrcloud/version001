@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useRef, useState, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -156,9 +155,7 @@ export function VenueFloorPlan({
   editable?: boolean;
 }) {
   const { data, error } = usePoll<FloorResponse>("/api/staff/floor", 3000);
-  const router = useRouter();
   const floorRef = useRef<HTMLDivElement>(null);
-  const [openingId, setOpeningId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, Position>>({});
@@ -212,26 +209,6 @@ export function VenueFloorPlan({
     }
   }
 
-  async function openEmptyTable(tableId: string) {
-    if (openingId) return;
-    setOpeningId(tableId);
-    try {
-      const response = await fetch("/api/staff/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tableId }),
-      });
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        window.alert(json.error ?? "Masa açılamadı");
-        return;
-      }
-      router.push(`/staff/waiter/${json.id}/order`);
-    } finally {
-      setOpeningId(null);
-    }
-  }
-
   async function arrangeAutomatically() {
     if (!data) return;
     const positions = Object.fromEntries(
@@ -277,7 +254,7 @@ export function VenueFloorPlan({
           <p className="mt-1 text-sm text-[var(--muted)]">
             {editing
               ? "Masaları sürükleyin; bıraktığınız konum otomatik kaydedilir."
-              : "QR okutulan masalar en geç 3 saniye içinde dolu görünür."}
+              : "Masa, QR okutulunca veya sipariş mutfağa gidince dolu olur."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -354,7 +331,7 @@ export function VenueFloorPlan({
         {data?.tables.length ? (
           <div className="-mx-1 overflow-x-auto touch-pan-x">
             <p className="mb-2 text-center text-[11px] text-[var(--muted)] sm:hidden">
-              Krokiyi yana kaydır · boş masaya basınca sipariş yazarsın
+              Krokiyi yana kaydır · boş masaya basınca sipariş formuna gidersin
             </p>
           <div
             ref={floorRef}
@@ -372,14 +349,7 @@ export function VenueFloorPlan({
               ) : emptyHref ? (
                 <Link href={emptyHref}>{content}</Link>
               ) : (
-                <button
-                  type="button"
-                  className="block w-full text-left"
-                  disabled={openingId === table.id}
-                  onClick={() => void openEmptyTable(table.id)}
-                >
-                  {content}
-                </button>
+                <Link href={`/staff/waiter/t/${table.id}/order`}>{content}</Link>
               );
 
               return (

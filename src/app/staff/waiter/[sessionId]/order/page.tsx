@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { WaiterOrderForm } from "@/app/staff/waiter/[sessionId]/order/waiter-order-form";
+import { loadWaiterMenu } from "@/app/staff/waiter/waiter-menu";
 import { formatTableGroup } from "@/lib/table-groups";
 
 export default async function WaiterOrderPage({
@@ -34,7 +35,14 @@ export default async function WaiterOrderPage({
           tableSessionId: tableSession.id,
         },
         include: {
-          items: { include: { options: true, menuItem: { include: { optionGroups: { include: { options: true } } } } } },
+          items: {
+            include: {
+              options: true,
+              menuItem: {
+                include: { optionGroups: { include: { options: true } } },
+              },
+            },
+          },
         },
       })
     : null;
@@ -42,28 +50,6 @@ export default async function WaiterOrderPage({
   if (editOrder && editOrder.status !== "PENDING") {
     redirect(`/staff/waiter/${sessionId}`);
   }
-
-  const categories = await prisma.menuCategory.findMany({
-    where: { venueId: tableSession.table.venueId },
-    include: {
-      items: {
-        where: { available: true },
-        orderBy: { sortOrder: "asc" },
-        include: {
-          optionGroups: {
-            orderBy: { sortOrder: "asc" },
-            include: {
-              options: {
-                where: { available: true },
-                orderBy: { sortOrder: "asc" },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: { sortOrder: "asc" },
-  });
 
   function optionIdsFor(item: NonNullable<typeof editOrder>["items"][number]) {
     const remaining = item.options.map((option) => option.name);
@@ -103,29 +89,7 @@ export default async function WaiterOrderPage({
             }
           : undefined
       }
-      categories={categories.map((category) => ({
-        id: category.id,
-        name: category.name,
-        items: category.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          price: Number(item.price),
-          soldOut: item.stockTracked && item.stockQuantity <= 0,
-          optionGroups: item.optionGroups.map((group) => ({
-            id: group.id,
-            name: group.name,
-            required: group.required,
-            minSelections: group.minSelections,
-            maxSelections: group.maxSelections,
-            options: group.options.map((option) => ({
-              id: option.id,
-              name: option.name,
-              priceDelta: Number(option.priceDelta),
-            })),
-          })),
-        })),
-      }))}
+      categories={await loadWaiterMenu(tableSession.table.venueId)}
     />
   );
 }

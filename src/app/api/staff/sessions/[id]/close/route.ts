@@ -68,13 +68,6 @@ export async function POST(_request: Request, context: Ctx) {
     await tx.guestNotification.deleteMany({
       where: { guest: { tableSessionId: id } },
     });
-    await tx.guest.deleteMany({
-      where: {
-        tableSessionId: id,
-        orders: { none: {} },
-        receiptEmail: null,
-      },
-    });
   });
 
   const lines = session.orders
