@@ -310,8 +310,8 @@ export function SettingsForm({
           </p>
           <h2 className="mt-1 font-serif text-2xl">Haritada görün</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Rezervasyon ekranında müşteri bu konumu görür, yakınlaştırır ve
-            dokununca harita uygulamasına gider.
+            Harita Google Haritalar Türkiye verisiyle canlı açılır. Yeni
+            yollar ve işletmeler Google güncelleyince burada da görünür.
           </p>
         </div>
         <div className="relative">
@@ -320,7 +320,7 @@ export function SettingsForm({
             id="venue-address"
             value={form.address}
             maxLength={240}
-            placeholder="Mahalle, cadde, ilçe / il"
+            placeholder="Adres veya Google Haritalar bağlantısı"
             autoComplete="off"
             onChange={(event) =>
               setForm((current) => ({
@@ -366,9 +366,19 @@ export function SettingsForm({
           label={form.name}
           address={form.address}
           editable
-          onMove={(nextLat, nextLng) =>
-            applyLocation({ latitude: nextLat, longitude: nextLng })
-          }
+          onMove={(nextLat, nextLng) => {
+            void (async () => {
+              const response = await fetch(
+                `/api/admin/geocode?lat=${nextLat}&lng=${nextLng}`,
+              );
+              const json = await response.json().catch(() => ({}));
+              applyLocation({
+                latitude: nextLat,
+                longitude: nextLng,
+                address: json.address,
+              });
+            })();
+          }}
         />
       </Card>
 

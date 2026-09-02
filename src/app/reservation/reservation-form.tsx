@@ -218,15 +218,14 @@ export function ReservationForm({
           ))}
         </select>
       </div>
-      {selectedVenue && hasCoordinates(venueLat, venueLng) ? (
+      {selectedVenue &&
+      (hasCoordinates(venueLat, venueLng) || selectedVenue.address) ? (
         <VenueMap
           latitude={venueLat}
           longitude={venueLng}
           label={selectedVenue.name}
           address={selectedVenue.address}
         />
-      ) : selectedVenue?.address ? (
-        <p className="text-sm text-[var(--muted)]">{selectedVenue.address}</p>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

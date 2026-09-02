@@ -1,51 +1,59 @@
 import { NextResponse } from "next/server";
 import { getStaffUser } from "@/lib/tenant";
+import { asCoord, isGoogleMapsLink, parseGoogleMapsCoords } from "@/lib/maps";
+import {
+  resolveGoogleMapsLink,
+  reverseGeocode,
+  searchLocations,
+} from "@/lib/google-places";
 
 export async function GET(request: Request) {
   const { error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
   if (error) return error;
 
-  const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
+  const params = new URL(request.url).searchParams;
+  const latitude = asCoord(params.get("lat"));
+  const longitude = asCoord(params.get("lng"));
+  if (latitude != null && longitude != null) {
+    const address = await reverseGeocode(latitude, longitude);
+    return NextResponse.json({
+      address,
+      suggestions: address
+        ? [{ latitude, longitude, address }]
+        : [],
+    });
+  }
+
+  const query = params.get("q")?.trim() ?? "";
   if (query.length < 3) {
     return NextResponse.json({ suggestions: [] });
   }
 
-  const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("limit", "8");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("accept-language", "tr");
-  url.searchParams.set("q", query);
-
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "MasaQR/1.0 (masaqr.cloud@gmail.com)",
-    },
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    return NextResponse.json({ suggestions: [] });
+  if (
+    isGoogleMapsLink(query) ||
+    parseGoogleMapsCoords(query) ||
+    /@-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?/.test(query)
+  ) {
+    const resolved = await resolveGoogleMapsLink(query);
+    if (resolved) {
+      return NextResponse.json({ suggestions: [resolved] });
+    }
   }
 
-  const results = (await response.json()) as {
-    lat?: string;
-    lon?: string;
-    display_name?: string;
-  }[];
+  const pair = query.match(
+    /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/,
+  );
+  if (pair) {
+    const latitude = Number(pair[1]);
+    const longitude = Number(pair[2]);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      const address = (await reverseGeocode(latitude, longitude)) ?? query;
+      return NextResponse.json({
+        suggestions: [{ latitude, longitude, address }],
+      });
+    }
+  }
 
-  const suggestions = results
-    .map((item) => {
-      const latitude = Number(item.lat);
-      const longitude = Number(item.lon);
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-      return {
-        latitude,
-        longitude,
-        address: item.display_name ?? query,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
-
+  const suggestions = await searchLocations(query);
   return NextResponse.json({ suggestions });
 }
