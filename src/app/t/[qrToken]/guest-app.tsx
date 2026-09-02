@@ -307,6 +307,7 @@ export function GuestApp({
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [joinClosed, setJoinClosed] = useState(false);
+  const [reopenBusy, setReopenBusy] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
@@ -419,7 +420,7 @@ export function GuestApp({
     }[];
     total?: number;
   };
-  const { data: sessionStatus } = usePoll<SessionStatusResponse>(
+  const { data: sessionStatus, setData: setSessionStatus } = usePoll<SessionStatusResponse>(
     ready && guestToken ? "/api/guest/session-status" : null,
     5000,
     guestToken,
@@ -737,6 +738,37 @@ export function GuestApp({
     return data.guestToken as string;
   }
 
+  async function startNewSitting() {
+    setReopenBusy(true);
+    setNameError(null);
+    try {
+      const res = await fetch("/api/guest/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ qr: qrToken, startNew: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.closed || !data.guestToken) {
+        setNameError(data.error ?? "Masaya yeniden katılınamadı");
+        return;
+      }
+      setGuestId(data.guestId);
+      setGuestToken(data.guestToken);
+      window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
+      setSessionStatus(null);
+      setLive(null);
+      setJoinClosed(false);
+      setNamed(false);
+      setName("");
+      setFeedbackDone(false);
+    } catch {
+      setNameError("Bağlantı yok. Sayfayı yenile.");
+    } finally {
+      setReopenBusy(false);
+    }
+  }
+
   async function saveName() {
     const trimmed = name.trim();
     if (trimmed.length < 2) {
@@ -868,9 +900,23 @@ export function GuestApp({
           <h1 className="mt-2 font-serif text-4xl">Teşekkür ederiz</h1>
           <p className="mt-2 text-[var(--muted)]">
             {tableLabel(sessionStatus?.tableNumber ?? tableNumber)} hesabı
-            kapatıldı. Evden yenilesen de masaya tekrar girilmez.
+            kapatıldı.
           </p>
         </div>
+        <Button
+          className="mt-6 w-full"
+          size="lg"
+          disabled={reopenBusy}
+          onClick={() => void startNewSitting()}
+        >
+          {reopenBusy ? "Açılıyor…" : "Masadayım, yeni sipariş"}
+        </Button>
+        <p className="mt-2 text-center text-xs text-[var(--muted)]">
+          Masa boşsa yeni hesap açılır. Evdeysen bu butona basma.
+        </p>
+        {nameError ? (
+          <p className="mt-2 text-center text-sm text-red-700">{nameError}</p>
+        ) : null}
         {(sessionStatus?.lines?.length ?? 0) > 0 ? (
         <Card className="mt-6 p-5">
           <h2 className="font-serif text-2xl">Adisyon özeti</h2>

@@ -172,7 +172,11 @@ export async function getOrCreateOpenSession(tableId: string) {
   return session;
 }
 
-export async function joinTable(qrToken: string, clientToken?: string | null) {
+export async function joinTable(
+  qrToken: string,
+  clientToken?: string | null,
+  options?: { startNew?: boolean },
+) {
   const table = await prisma.table.findUnique({
     where: { qrToken },
     include: { venue: true },
@@ -182,7 +186,9 @@ export async function joinTable(qrToken: string, clientToken?: string | null) {
     return null;
   }
 
-  const existingToken = await readIncomingToken(clientToken);
+  const existingToken = options?.startNew
+    ? null
+    : await readIncomingToken(clientToken);
   let guest = existingToken
     ? await prisma.guest.findUnique({
         where: { guestToken: existingToken },
@@ -195,20 +201,19 @@ export async function joinTable(qrToken: string, clientToken?: string | null) {
     : null;
 
   const spentOnThisTable =
-    Boolean(existingToken) &&
-    (!guest ||
-      (guest.tableSession.status === "CLOSED" &&
-        (guest.tableSession.tableId === table.id ||
-          guest.tableSession.mergedTables.some((item) => item.id === table.id))));
+    guest &&
+    guest.tableSession.status === "CLOSED" &&
+    (guest.tableSession.tableId === table.id ||
+      guest.tableSession.mergedTables.some((item) => item.id === table.id));
 
-  if (spentOnThisTable) {
+  if (spentOnThisTable && guest) {
     const open = await getOpenSession(table.id);
     if (!open) {
       return {
         table,
         venue: table.venue,
-        session: guest?.tableSession ?? null,
-        guest: guest ?? null,
+        session: guest.tableSession,
+        guest,
         closed: true as const,
       };
     }

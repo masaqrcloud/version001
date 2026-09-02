@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     qr?: string;
     guestToken?: string;
     preview?: boolean;
+    startNew?: boolean;
   } | null;
   const qr = body?.qr?.trim();
   if (!qr) {
@@ -39,7 +40,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ staffPreview: true });
   }
 
-  const joined = await joinTable(qr, body?.guestToken);
+  const joined = await joinTable(
+    qr,
+    body?.startNew ? null : body?.guestToken,
+    { startNew: Boolean(body?.startNew) },
+  );
   if (!joined) {
     return NextResponse.json({ error: "Masa bulunamadı" }, { status: 404 });
   }
