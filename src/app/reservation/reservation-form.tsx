@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
-import { hasCoordinates } from "@/lib/maps";
+import { asCoord, hasCoordinates } from "@/lib/maps";
 import { VenueMap } from "@/components/venue-map";
 
 type TableOption = {
@@ -111,6 +111,8 @@ export function ReservationForm({
   const timeReady = Boolean(form.reservationDate && form.reservationTime);
   const selectedTable = tables.find((table) => table.id === form.tableId);
   const selectedVenue = venues.find((venue) => venue.id === form.venueId);
+  const venueLat = asCoord(selectedVenue?.latitude);
+  const venueLng = asCoord(selectedVenue?.longitude);
 
   useEffect(() => {
     if (!form.venueId) return;
@@ -216,11 +218,10 @@ export function ReservationForm({
           ))}
         </select>
       </div>
-      {selectedVenue &&
-      hasCoordinates(selectedVenue.latitude, selectedVenue.longitude) ? (
+      {selectedVenue && hasCoordinates(venueLat, venueLng) ? (
         <VenueMap
-          latitude={selectedVenue.latitude!}
-          longitude={selectedVenue.longitude!}
+          latitude={venueLat}
+          longitude={venueLng}
           label={selectedVenue.name}
           address={selectedVenue.address}
         />

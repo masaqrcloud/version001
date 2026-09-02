@@ -7,12 +7,14 @@ export async function GET(request: Request) {
 
   const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (query.length < 3) {
-    return NextResponse.json({ error: "Adres yaz" }, { status: 400 });
+    return NextResponse.json({ suggestions: [] });
   }
 
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("limit", "1");
+  url.searchParams.set("limit", "8");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "tr");
   url.searchParams.set("q", query);
 
   const response = await fetch(url, {
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
     cache: "no-store",
   });
   if (!response.ok) {
-    return NextResponse.json({ error: "Konum bulunamadı" }, { status: 502 });
+    return NextResponse.json({ suggestions: [] });
   }
 
   const results = (await response.json()) as {
@@ -31,16 +33,19 @@ export async function GET(request: Request) {
     lon?: string;
     display_name?: string;
   }[];
-  const hit = results[0];
-  const latitude = Number(hit?.lat);
-  const longitude = Number(hit?.lon);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    return NextResponse.json({ error: "Bu adres haritada yok" }, { status: 404 });
-  }
 
-  return NextResponse.json({
-    latitude,
-    longitude,
-    address: hit.display_name ?? query,
-  });
+  const suggestions = results
+    .map((item) => {
+      const latitude = Number(item.lat);
+      const longitude = Number(item.lon);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+      return {
+        latitude,
+        longitude,
+        address: item.display_name ?? query,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  return NextResponse.json({ suggestions });
 }

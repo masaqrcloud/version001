@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { mapsAppUrl } from "@/lib/maps";
+import { asCoord, mapsAppUrl } from "@/lib/maps";
+
+const FALLBACK = { latitude: 41.0082, longitude: 28.9784, zoom: 11 };
 
 type VenueMapProps = {
-  latitude: number;
-  longitude: number;
+  latitude?: number | null;
+  longitude?: number | null;
   label?: string | null;
   address?: string | null;
   editable?: boolean;
@@ -25,6 +27,9 @@ export function VenueMap({
   const labelRef = useRef(label);
   onMoveRef.current = onMove;
   labelRef.current = label;
+  const lat = asCoord(latitude);
+  const lng = asCoord(longitude);
+  const placed = lat != null && lng != null;
 
   useEffect(() => {
     const node = el.current;
@@ -38,31 +43,45 @@ export function VenueMap({
       if (cancelled || !node) return;
 
       const L = leaflet.default;
+      const startLat = lat ?? FALLBACK.latitude;
+      const startLng = lng ?? FALLBACK.longitude;
       map = L.map(node, { scrollWheelZoom: true }).setView(
-        [latitude, longitude],
-        16,
+        [startLat, startLng],
+        placed ? 16 : FALLBACK.zoom,
       );
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "&copy; OpenStreetMap",
       }).addTo(map);
 
-      const marker = L.circleMarker([latitude, longitude], {
-        radius: 11,
-        color: "#e23b2c",
-        weight: 3,
-        fillColor: "#e23b2c",
-        fillOpacity: 1,
-      }).addTo(map);
+      let marker: import("leaflet").CircleMarker | null = placed
+        ? L.circleMarker([startLat, startLng], {
+            radius: 11,
+            color: "#e23b2c",
+            weight: 3,
+            fillColor: "#e23b2c",
+            fillOpacity: 1,
+          }).addTo(map)
+        : null;
 
       if (editable) {
         map.on("click", (event) => {
-          marker.setLatLng(event.latlng);
+          if (marker) {
+            marker.setLatLng(event.latlng);
+          } else {
+            marker = L.circleMarker(event.latlng, {
+              radius: 11,
+              color: "#e23b2c",
+              weight: 3,
+              fillColor: "#e23b2c",
+              fillOpacity: 1,
+            }).addTo(map!);
+          }
           onMoveRef.current?.(event.latlng.lat, event.latlng.lng);
         });
-      } else {
+      } else if (placed) {
         map.on("click", () => {
           window.open(
-            mapsAppUrl(latitude, longitude, labelRef.current),
+            mapsAppUrl(startLat, startLng, labelRef.current),
             "_blank",
             "noopener,noreferrer",
           );
@@ -76,7 +95,7 @@ export function VenueMap({
       cancelled = true;
       map?.remove();
     };
-  }, [editable, latitude, longitude]);
+  }, [editable, lat, lng, placed]);
 
   return (
     <div>
@@ -89,7 +108,8 @@ export function VenueMap({
       />
       {editable ? (
         <p className="mt-2 text-xs text-[var(--muted)]">
-          Haritayı yakınlaştırabilirsin. Pin koymak için haritaya dokun.
+          Öneriden seç veya haritaya dokunarak pini koy. Kaydırarak
+          yakınlaştırabilirsin.
         </p>
       ) : (
         <p className="mt-2 text-xs text-[var(--muted)]">

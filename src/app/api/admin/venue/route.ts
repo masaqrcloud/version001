@@ -43,7 +43,7 @@ export async function PATCH(request: Request) {
       openingHours: z.array(dayHoursSchema).length(7).optional(),
       wifiName: z.string().trim().max(80).nullable().optional(),
       wifiPassword: z.string().max(120).nullable().optional(),
-      address: z.string().trim().max(200).nullable().optional(),
+      address: z.string().trim().max(240).nullable().optional(),
       latitude: z.number().min(-90).max(90).nullable().optional(),
       longitude: z.number().min(-180).max(180).nullable().optional(),
     })

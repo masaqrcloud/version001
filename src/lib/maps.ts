@@ -1,22 +1,20 @@
+export function asCoord(value: unknown) {
+  if (value == null || value === "") return null;
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 export function hasCoordinates(
-  latitude?: number | null,
-  longitude?: number | null,
+  latitude?: unknown,
+  longitude?: unknown,
 ) {
-  return (
-    typeof latitude === "number" &&
-    Number.isFinite(latitude) &&
-    typeof longitude === "number" &&
-    Number.isFinite(longitude)
-  );
+  return asCoord(latitude) != null && asCoord(longitude) != null;
 }
 
 export function mapsAppUrl(
   latitude: number,
   longitude: number,
-  label?: string | null,
+  _label?: string | null,
 ) {
-  const query = label?.trim()
-    ? `${label.trim()}@${latitude},${longitude}`
-    : `${latitude},${longitude}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return `https://maps.google.com/?q=${latitude},${longitude}`;
 }
