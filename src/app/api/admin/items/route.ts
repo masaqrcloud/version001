@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { isPublicImageUrl } from "@/lib/media";
 import { menuOptionGroupInputSchema } from "@/lib/menu-option-schema";
+import { nutritionFieldsSchema } from "@/lib/nutrition";
 
 export async function POST(request: Request) {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -21,6 +22,11 @@ export async function POST(request: Request) {
       stockQuantity: z.number().int().min(0).max(100000).optional(),
       lowStockThreshold: z.number().int().min(0).max(100000).optional(),
       optionGroups: z.array(menuOptionGroupInputSchema).max(20).optional(),
+      allergens: nutritionFieldsSchema.shape.allergens,
+      animalSource: nutritionFieldsSchema.shape.animalSource,
+      containsAlcohol: nutritionFieldsSchema.shape.containsAlcohol,
+      containsPork: nutritionFieldsSchema.shape.containsPork,
+      calories: z.number().int().min(0).max(99999),
     })
     .safeParse(await request.json());
 
@@ -54,6 +60,11 @@ export async function POST(request: Request) {
       stockTracked: body.data.stockTracked ?? false,
       stockQuantity: body.data.stockQuantity ?? 0,
       lowStockThreshold: body.data.lowStockThreshold ?? 5,
+      allergens: body.data.allergens ?? [],
+      animalSource: body.data.animalSource ?? null,
+      containsAlcohol: body.data.containsAlcohol ?? false,
+      containsPork: body.data.containsPork ?? false,
+      calories: body.data.calories,
       sortOrder: (last?.sortOrder ?? 0) + 1,
       optionGroups: body.data.optionGroups?.length
         ? {

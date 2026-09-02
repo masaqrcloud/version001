@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { findTable, removeInactiveStaffGuests } from "@/lib/guest";
 import { GuestApp } from "@/app/t/[qrToken]/guest-app";
 import { venueOpenState } from "@/lib/opening-hours";
+import { nutritionFromRow } from "@/lib/nutrition";
 
 export default async function TablePage({
   params,
@@ -70,6 +71,7 @@ export default async function TablePage({
           price: Number(item.price),
           imageUrl: item.imageUrl,
           soldOut: item.stockTracked && item.stockQuantity <= 0,
+          ...nutritionFromRow(item),
           optionGroups: item.optionGroups.map((group) => ({
             id: group.id,
             name: group.name,

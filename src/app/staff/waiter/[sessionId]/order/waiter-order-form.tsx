@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
 import { formatTRY } from "@/lib/utils";
+import { NutritionLabels } from "@/components/nutrition-labels";
+import type { AllergenId } from "@/lib/nutrition";
 
 type MenuItem = {
   id: string;
@@ -15,6 +17,11 @@ type MenuItem = {
   description: string | null;
   price: number;
   soldOut: boolean;
+  allergens: AllergenId[];
+  animalSource: string | null;
+  containsAlcohol: boolean;
+  containsPork: boolean;
+  calories: number | null;
   optionGroups: {
     id: string;
     name: string;
@@ -311,9 +318,14 @@ export function WaiterOrderForm({
                         {item.description}
                       </span>
                     ) : null}
+                    <NutritionLabels item={item} compact />
                   </span>
-                  <span className="shrink-0 text-sm">
-                    {item.soldOut ? "Tükendi" : formatTRY(item.price)}
+                  <span className="shrink-0 text-right text-sm">
+                    {item.soldOut
+                      ? "Tükendi"
+                      : item.calories != null
+                        ? `${formatTRY(item.price)} · ${item.calories} kcal`
+                        : formatTRY(item.price)}
                   </span>
                 </button>
               ))}
@@ -326,6 +338,7 @@ export function WaiterOrderForm({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-4 sm:items-center">
           <Card className="w-full max-w-md p-5">
             <h2 className="font-serif text-2xl">{configuring.name}</h2>
+            <NutritionLabels item={configuring} />
             {configuring.optionGroups.map((group) => (
               <div key={group.id} className="mt-4">
                 <p className="text-sm font-medium">{group.name}</p>

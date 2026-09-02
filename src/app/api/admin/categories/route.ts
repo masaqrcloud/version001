@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { parseAllergens } from "@/lib/nutrition";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -29,6 +30,7 @@ export async function GET() {
       items: category.items.map((item) => ({
         ...item,
         price: Number(item.price),
+        allergens: parseAllergens(item.allergens),
         optionGroups: item.optionGroups.map((group) => ({
           ...group,
           options: group.options.map((option) => ({

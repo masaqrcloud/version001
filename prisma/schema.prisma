@@ -209,6 +209,11 @@ model MenuItem {
   stockQuantity     Int               @default(0)
   lowStockThreshold Int               @default(5)
   sortOrder         Int               @default(0)
+  allergens         Json              @default("[]")
+  animalSource      String?
+  containsAlcohol   Boolean           @default(false)
+  containsPork      Boolean           @default(false)
+  calories          Int?
   cartItems         CartItem[]
   orderItems        OrderItem[]
   optionGroups      MenuOptionGroup[]

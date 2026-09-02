@@ -12,6 +12,12 @@ import { formatTRY } from "@/lib/utils";
 import { tableLabel } from "@/lib/table-label";
 import type { OrderStatus } from "@prisma/client";
 import { SessionFeedbackForm } from "@/components/session-feedback-form";
+import { AllergenFilter } from "@/components/allergen-filter";
+import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
+import {
+  itemHiddenByFilter,
+  type AllergenId,
+} from "@/lib/nutrition";
 
 type MenuItem = {
   id: string;
@@ -20,6 +26,11 @@ type MenuItem = {
   price: number;
   imageUrl: string | null;
   soldOut: boolean;
+  allergens: AllergenId[];
+  animalSource: string | null;
+  containsAlcohol: boolean;
+  containsPork: boolean;
+  calories: number | null;
   optionGroups: {
     id: string;
     name: string;
@@ -251,7 +262,11 @@ function MenuDish({
         {item.description ? (
           <p className="mt-1 text-sm text-[var(--muted)]">{item.description}</p>
         ) : null}
-        <p className="mt-2 text-sm">{formatTRY(item.price)}</p>
+        <CalorieBesidePrice
+          price={formatTRY(item.price)}
+          calories={item.calories}
+        />
+        <NutritionLabels item={item} compact />
         {item.soldOut ? (
           <p className="mt-1 text-xs font-semibold text-red-700">Tükendi</p>
         ) : null}
@@ -320,6 +335,22 @@ export function GuestApp({
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
   const pendingOrderKey = useRef<string | null>(null);
+  const [hideAllergens, setHideAllergens] = useState<AllergenId[]>([]);
+  const [hideAlcohol, setHideAlcohol] = useState(false);
+  const [hidePork, setHidePork] = useState(false);
+  const visibleCategories = useMemo(
+    () =>
+      categories
+        .map((category) => ({
+          ...category,
+          items: category.items.filter(
+            (item) =>
+              !itemHiddenByFilter(item, hideAllergens, hideAlcohol, hidePork),
+          ),
+        }))
+        .filter((category) => category.items.length > 0),
+    [categories, hideAllergens, hideAlcohol, hidePork],
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -1044,6 +1075,12 @@ export function GuestApp({
               <div>
                 <p className="page-kicker">Ürünü hazırla</p>
                 <h2 className="font-serif text-2xl">{configuringItem.name}</h2>
+                <NutritionLabels item={configuringItem} />
+                {configuringItem.calories != null ? (
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    {configuringItem.calories} kcal / porsiyon
+                  </p>
+                ) : null}
               </div>
               <Button
                 size="sm"
@@ -1225,7 +1262,27 @@ export function GuestApp({
 
       {tab === "menu" ? (
         <div className="space-y-8 px-4 py-6">
-          {categories.map((category) => (
+          <AllergenFilter
+            hideAllergens={hideAllergens}
+            hideAlcohol={hideAlcohol}
+            hidePork={hidePork}
+            onChange={(next) => {
+              setHideAllergens(next.hideAllergens);
+              setHideAlcohol(next.hideAlcohol);
+              setHidePork(next.hidePork);
+            }}
+          />
+          <p className="text-xs text-[var(--muted)]">
+            Alerjen, alkol, domuz türevi ve kalori bilgisi Tarım ve Orman
+            Bakanlığı toplu tüketim yerleri düzenlemesine göre gösterilir.
+            Cihazı olmayan misafirler garsona sorabilir.
+          </p>
+          {!visibleCategories.length ? (
+            <p className="text-sm text-[var(--muted)]">
+              Seçtiğin filtrelere uyan ürün yok. Filtreyi gevşet.
+            </p>
+          ) : null}
+          {visibleCategories.map((category) => (
             <section key={category.id}>
               <h2 className="text-2xl">{category.name}</h2>
               <div className="mt-3 space-y-3">

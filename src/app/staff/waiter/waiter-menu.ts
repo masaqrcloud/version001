@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { nutritionFromRow } from "@/lib/nutrition";
 
 export async function loadWaiterMenu(venueId: string) {
   const categories = await prisma.menuCategory.findMany({
@@ -32,6 +33,7 @@ export async function loadWaiterMenu(venueId: string) {
       description: item.description,
       price: Number(item.price),
       soldOut: item.stockTracked && item.stockQuantity <= 0,
+      ...nutritionFromRow(item),
       optionGroups: item.optionGroups.map((group) => ({
         id: group.id,
         name: group.name,

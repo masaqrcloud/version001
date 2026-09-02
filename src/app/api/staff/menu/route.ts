@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { nutritionFromRow } from "@/lib/nutrition";
 
 export async function GET() {
   const { user, error } = await getStaffUser([
@@ -44,6 +45,7 @@ export async function GET() {
         price: Number(item.price),
         imageUrl: item.imageUrl,
         soldOut: item.stockTracked && item.stockQuantity <= 0,
+        ...nutritionFromRow(item),
         optionGroups: item.optionGroups.map((group) => ({
           id: group.id,
           name: group.name,

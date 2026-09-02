@@ -8,6 +8,13 @@ import { Input, Label } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
 import { formatTRY } from "@/lib/utils";
 import { Popup } from "@/components/ui/popup";
+import { NutritionEditor } from "@/components/nutrition-editor";
+import { NutritionLabels } from "@/components/nutrition-labels";
+import {
+  EMPTY_NUTRITION,
+  nutritionFromRow,
+  type NutritionInfo,
+} from "@/lib/nutrition";
 
 type Item = {
   id: string;
@@ -20,6 +27,11 @@ type Item = {
   stockTracked: boolean;
   stockQuantity: number;
   lowStockThreshold: number;
+  allergens: string[];
+  animalSource: string | null;
+  containsAlcohol: boolean;
+  containsPork: boolean;
+  calories: number | null;
   optionGroups: {
     id: string;
     name: string;
@@ -47,6 +59,7 @@ type EditForm = {
   name: string;
   description: string;
   price: string;
+  nutrition: NutritionInfo;
   optionGroups: {
     key: string;
     name: string;
@@ -76,6 +89,7 @@ export function MenuManager() {
     imageUrl: "",
     stockTracked: false,
     stockQuantity: "0",
+    nutrition: EMPTY_NUTRITION,
   });
   const [popup, setPopup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +145,10 @@ export function MenuManager() {
       setError("Kategori, ad ve fiyat gerekli");
       return;
     }
+    if (itemForm.nutrition.calories == null) {
+      setError("Porsiyon kalorisi gerekli");
+      return;
+    }
     const res = await fetch("/api/admin/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -143,6 +161,11 @@ export function MenuManager() {
         imageUrl: itemForm.imageUrl || undefined,
         stockTracked: itemForm.stockTracked,
         stockQuantity: Number(itemForm.stockQuantity) || 0,
+        allergens: itemForm.nutrition.allergens,
+        animalSource: itemForm.nutrition.animalSource,
+        containsAlcohol: itemForm.nutrition.containsAlcohol,
+        containsPork: itemForm.nutrition.containsPork,
+        calories: itemForm.nutrition.calories,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -157,6 +180,7 @@ export function MenuManager() {
       price: "",
       imageUrl: "",
       stockQuantity: "0",
+      nutrition: EMPTY_NUTRITION,
     }));
     setError(null);
     await load();
@@ -194,6 +218,7 @@ export function MenuManager() {
       name: item.name,
       description: item.description ?? "",
       price: String(item.price),
+      nutrition: nutritionFromRow(item),
       optionGroups: item.optionGroups.map((group) => ({
         key: group.id,
         name: group.name,
@@ -234,6 +259,10 @@ export function MenuManager() {
       setError("Ürün ve seçenek adlarını eksiksiz doldurun");
       return;
     }
+    if (editForm.nutrition.calories == null) {
+      setError("Porsiyon kalorisi gerekli");
+      return;
+    }
     const response = await fetch(`/api/admin/items/${editForm.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -244,6 +273,11 @@ export function MenuManager() {
         description: editForm.description.trim() || null,
         price: Number(editForm.price),
         optionGroups,
+        allergens: editForm.nutrition.allergens,
+        animalSource: editForm.nutrition.animalSource,
+        containsAlcohol: editForm.nutrition.containsAlcohol,
+        containsPork: editForm.nutrition.containsPork,
+        calories: editForm.nutrition.calories,
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -328,6 +362,22 @@ export function MenuManager() {
                   }
                 />
               </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-[var(--line)] p-4">
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--accent)]">
+                Besin, alerjen ve beyan
+              </p>
+              <p className="mt-1 mb-3 text-xs text-[var(--muted)]">
+                Tarım ve Orman Bakanlığı toplu tüketim yerleri bildirimi.
+              </p>
+              <NutritionEditor
+                caloriesRequired
+                value={editForm.nutrition}
+                onChange={(nutrition) =>
+                  setEditForm((form) => (form ? { ...form, nutrition } : form))
+                }
+              />
             </div>
 
             <div className="mt-6 space-y-4">
@@ -696,8 +746,10 @@ export function MenuManager() {
                       </p>
                       <p className="text-sm text-[var(--muted)]">
                         {formatTRY(item.price)}
+                        {item.calories != null ? ` · ${item.calories} kcal` : ""}
                         {item.description ? ` · ${item.description}` : ""}
                       </p>
+                      <NutritionLabels item={nutritionFromRow(item)} compact />
                       <Link
                         href="/admin/stock"
                         className={`mt-2 inline-block text-xs font-medium ${
@@ -837,6 +889,18 @@ export function MenuManager() {
                 step="1"
                 value={itemForm.price}
                 onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
+              />
+            </div>
+            <div className="rounded-2xl border border-[var(--line)] p-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-[var(--accent)]">
+                Besin ve alerjen
+              </p>
+              <NutritionEditor
+                caloriesRequired
+                value={itemForm.nutrition}
+                onChange={(nutrition) =>
+                  setItemForm((form) => ({ ...form, nutrition }))
+                }
               />
             </div>
             <label className="flex items-center gap-2 text-sm">

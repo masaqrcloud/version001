@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { isPublicImageUrl } from "@/lib/media";
 import { menuOptionGroupInputSchema } from "@/lib/menu-option-schema";
+import { nutritionFieldsSchema } from "@/lib/nutrition";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -24,6 +25,11 @@ export async function PATCH(request: Request, context: Ctx) {
       lowStockThreshold: z.number().int().min(0).max(100000).optional(),
       categoryId: z.string().optional(),
       optionGroups: z.array(menuOptionGroupInputSchema).max(20).optional(),
+      allergens: nutritionFieldsSchema.shape.allergens,
+      animalSource: nutritionFieldsSchema.shape.animalSource,
+      containsAlcohol: nutritionFieldsSchema.shape.containsAlcohol,
+      containsPork: nutritionFieldsSchema.shape.containsPork,
+      calories: nutritionFieldsSchema.shape.calories,
     })
     .safeParse(await request.json());
 
