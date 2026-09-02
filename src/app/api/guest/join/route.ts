@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import {
   GUEST_COOKIE,
   findTable,
+  guestCookieClearOptions,
   guestCookieOptions,
   joinTable,
   removeInactiveStaffGuests,
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
     startNew?: boolean;
     sit?: boolean;
     nickname?: string;
+    freshScan?: boolean;
   } | null;
   const qr = body?.qr?.trim();
   if (!qr) {
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
       startNew: Boolean(body?.startNew),
       sit: Boolean(body?.sit),
       nickname: body?.nickname,
+      freshScan: Boolean(body?.freshScan),
     },
   );
   if (!joined) {
@@ -56,29 +59,34 @@ export async function POST(request: Request) {
   }
 
   if (joined.idle) {
-    return NextResponse.json({
+    const response = NextResponse.json({
       idle: true,
       closed: false,
       tableNumber: joined.table.number,
       venueName: joined.venue.name,
     });
+    response.cookies.set(GUEST_COOKIE, "", guestCookieClearOptions());
+    return response;
   }
 
   if (joined.closed) {
     const payload = {
       closed: true as const,
-      canStartNew: Boolean(joined.canStartNew),
+      closedAt:
+        joined.session && "closedAt" in joined.session
+          ? joined.session.closedAt
+          : null,
       tableNumber: joined.table.number,
       venueName: joined.venue.name,
       guestId: joined.guest?.id ?? null,
       guestToken: joined.guest?.guestToken ?? null,
       nickname: joined.guest?.nickname ?? null,
-      error: joined.canStartNew
-        ? undefined
-        : "Masa boş. Yeni sipariş için garson krokide masayı açmalı.",
     };
     if (body?.startNew) {
-      return NextResponse.json(payload, { status: 409 });
+      return NextResponse.json(
+        { ...payload, error: "Masaya yeniden katılınamadı" },
+        { status: 409 },
+      );
     }
     if (!joined.guest) {
       return NextResponse.json(payload);

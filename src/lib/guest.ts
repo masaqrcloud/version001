@@ -16,6 +16,13 @@ export function guestCookieOptions() {
   };
 }
 
+export function guestCookieClearOptions() {
+  return {
+    ...guestCookieOptions(),
+    maxAge: 0,
+  };
+}
+
 export function signedGuestCookie(token: string) {
   return sign(token);
 }
@@ -191,7 +198,12 @@ function guestIsOnTable(
 export async function joinTable(
   qrToken: string,
   clientToken?: string | null,
-  options?: { startNew?: boolean; sit?: boolean; nickname?: string | null },
+  options?: {
+    startNew?: boolean;
+    sit?: boolean;
+    nickname?: string | null;
+    freshScan?: boolean;
+  },
 ) {
   const table = await prisma.table.findUnique({
     where: { qrToken },
@@ -251,7 +263,17 @@ export async function joinTable(
     guest.tableSession.status === "CLOSED" &&
     guestIsOnTable(table, guest.tableSession);
 
-  if (spentOnThisTable && guest) {
+  if (spentOnThisTable && guest && !options?.sit) {
+    if (options?.freshScan) {
+      return {
+        table,
+        venue: table.venue,
+        session: null,
+        guest: null,
+        closed: false as const,
+        idle: true as const,
+      };
+    }
     const open = await getOpenSession(table.id);
     return {
       table,

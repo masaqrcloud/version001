@@ -93,6 +93,14 @@ function guestStorageKey(qr: string) {
   return `masaqr.guest.${qr}`;
 }
 
+function pageWasReloaded() {
+  const nav = performance.getEntriesByType("navigation")[0] as
+    | PerformanceNavigationTiming
+    | undefined;
+  if (nav?.type === "reload" || nav?.type === "back_forward") return true;
+  return false;
+}
+
 function GuestWifiCard({
   wifiName,
   wifiPassword,
@@ -307,8 +315,7 @@ export function GuestApp({
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [joinClosed, setJoinClosed] = useState(false);
-  const [canStartNew, setCanStartNew] = useState(false);
-  const [reopenBusy, setReopenBusy] = useState(false);
+  const [closedAt, setClosedAt] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
@@ -333,6 +340,7 @@ export function GuestApp({
           typeof window !== "undefined"
             ? window.localStorage.getItem(guestStorageKey(qrToken))
             : null;
+        const freshScan = !pageWasReloaded();
         const res = await fetch("/api/guest/join", {
           method: "POST",
           headers: {
@@ -344,6 +352,7 @@ export function GuestApp({
             qr: qrToken,
             guestToken: saved,
             preview: staffPreview,
+            freshScan,
           }),
         });
         const data = await res.json();
@@ -365,12 +374,17 @@ export function GuestApp({
               data.guestToken,
             );
           }
-          setCanStartNew(Boolean(data.canStartNew));
+          if (data.closedAt) setClosedAt(data.closedAt);
           setJoinClosed(true);
           setReady(true);
           return;
         }
         if (data.idle || !data.guestToken) {
+          window.localStorage.removeItem(guestStorageKey(qrToken));
+          setGuestId("");
+          setGuestToken("");
+          setJoinClosed(false);
+          setNamed(false);
           setReady(true);
           return;
         }
@@ -415,6 +429,7 @@ export function GuestApp({
     closed: boolean;
     venueName?: string;
     tableNumber?: string;
+    closedAt?: string | null;
     receiptSent?: boolean;
     feedbackSubmitted?: boolean;
     lines?: {
@@ -431,6 +446,31 @@ export function GuestApp({
     5000,
     guestToken,
   );
+
+  useEffect(() => {
+    if (!(joinClosed || sessionStatus?.closed)) return;
+    if (feedbackDone || sessionStatus?.feedbackSubmitted) return;
+    const stamp = sessionStatus?.closedAt ?? closedAt;
+    const closedMs = stamp ? new Date(stamp).getTime() : null;
+    const started = closedMs && !Number.isNaN(closedMs) ? closedMs : Date.now();
+    const deadline = started + 60_000;
+    const leave = () => {
+      if (Date.now() < deadline) return;
+      window.localStorage.removeItem(guestStorageKey(qrToken));
+      window.location.replace("/");
+    };
+    leave();
+    const timer = window.setInterval(leave, 1000);
+    return () => window.clearInterval(timer);
+  }, [
+    joinClosed,
+    sessionStatus?.closed,
+    sessionStatus?.closedAt,
+    sessionStatus?.feedbackSubmitted,
+    feedbackDone,
+    closedAt,
+    qrToken,
+  ]);
   const cart = live?.cart ?? null;
   const orders = live?.orders;
   const bill = live?.bill;
@@ -737,12 +777,12 @@ export function GuestApp({
         guestToken: saved,
         sit: true,
         ...(nickname ? { nickname } : {}),
+        freshScan: !pageWasReloaded(),
       }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.staffPreview || data.closed || data.idle || !data.guestToken) {
       if (data.closed) {
-        setCanStartNew(Boolean(data.canStartNew));
         setJoinClosed(true);
       }
       return null;
@@ -752,37 +792,6 @@ export function GuestApp({
     window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
     if (data.nickname) setName(data.nickname);
     return data.guestToken as string;
-  }
-
-  async function startNewSitting() {
-    setReopenBusy(true);
-    setNameError(null);
-    try {
-      const res = await fetch("/api/guest/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ qr: qrToken, startNew: true }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.closed || !data.guestToken) {
-        setNameError(data.error ?? "Masaya yeniden katılınamadı");
-        return;
-      }
-      setGuestId(data.guestId);
-      setGuestToken(data.guestToken);
-      window.localStorage.setItem(guestStorageKey(qrToken), data.guestToken);
-      setSessionStatus(null);
-      setLive(null);
-      setJoinClosed(false);
-      setNamed(false);
-      setName("");
-      setFeedbackDone(false);
-    } catch {
-      setNameError("Bağlantı yok. Sayfayı yenile.");
-    } finally {
-      setReopenBusy(false);
-    }
   }
 
   async function saveName() {
@@ -911,28 +920,11 @@ export function GuestApp({
             {tableLabel(sessionStatus?.tableNumber ?? tableNumber)} hesabı
             kapatıldı.
           </p>
-        </div>
-        {canStartNew ? (
-          <>
-            <Button
-              className="mt-6 w-full"
-              size="lg"
-              disabled={reopenBusy}
-              onClick={() => void startNewSitting()}
-            >
-              {reopenBusy ? "Açılıyor…" : "Masadayım, yeni sipariş"}
-            </Button>
-            <p className="mt-2 text-center text-xs text-[var(--muted)]">
-              Sadece garson bu masayı açtıysa bağlanır. Evden basınca hesap
-              açılmaz.
-            </p>
-          </>
-        ) : (
-          <p className="mt-6 text-center text-sm text-[var(--muted)]">
-            Masa şu an boş. Yeni sipariş için garson krokide masayı açar, sen
-            QR’yi tekrar okutursun.
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            Yeni sipariş için masadaki QR’yi tekrar okut. Sayfayı yenilemek
+            hesabı açmaz.
           </p>
-        )}
+        </div>
         {nameError ? (
           <p className="mt-2 text-center text-sm text-red-700">{nameError}</p>
         ) : null}
