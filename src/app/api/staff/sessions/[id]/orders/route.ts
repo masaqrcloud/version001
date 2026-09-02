@@ -22,7 +22,10 @@ export async function POST(request: Request, context: Ctx) {
 
   const { id } = await context.params;
   const body = z
-    .object({ items: z.array(staffOrderItemSchema).min(1).max(40) })
+    .object({
+      items: z.array(staffOrderItemSchema).min(1).max(40),
+      guestName: z.string().trim().min(2).max(40).optional(),
+    })
     .safeParse(await request.json().catch(() => null));
   if (!body.success) {
     return NextResponse.json({ error: "Sipariş kalemi seç" }, { status: 400 });
@@ -42,7 +45,10 @@ export async function POST(request: Request, context: Ctx) {
   }
   const { lines, stockLines } = resolved;
 
-  const guest = await getOrCreateStaffProxyGuest(session.id, user.name);
+  const guest = await getOrCreateStaffProxyGuest(
+    session.id,
+    body.data.guestName,
+  );
   let order;
   try {
     order = await prisma.$transaction(async (tx) => {

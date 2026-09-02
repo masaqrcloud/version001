@@ -10,6 +10,7 @@ import { OrderBadge } from "@/components/ui/badge";
 import { usePoll } from "@/lib/poll";
 import { formatTRY } from "@/lib/utils";
 import { tableLabel } from "@/lib/table-label";
+import { isStaffProxyNickname } from "@/lib/media";
 import type { OrderStatus } from "@prisma/client";
 
 type Detail = {
@@ -205,7 +206,12 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
         <div>
           <h1 className="text-4xl">{tableLabel(data.tableNumber)}</h1>
           <p className="mt-1 text-[var(--muted)]">
-            {data.guests.map((g) => g.nickname).join(", ") || "Misafir yok"}
+          <p className="mt-1 text-[var(--muted)]">
+            {data.guests
+              .filter((guest) => !isStaffProxyNickname(guest.nickname))
+              .map((guest) => guest.nickname)
+              .join(", ") || "QR yok · garson yazdı"}
+          </p>
           </p>
         </div>
         <div className="text-right">

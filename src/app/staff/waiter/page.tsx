@@ -16,13 +16,13 @@ export default async function WaiterPage() {
   return (
     <div>
       <PageIntro kicker="Salon" title="Açık masalar">
-        Yeni siparişler ve garson çağrıları burada durur.
+        Yeni siparişler üstte. Hesap kapatmak için masayı araman gerekmez.
       </PageIntro>
       <div className="mt-4">
         <EnableStaffNotifications />
       </div>
-      <VenueFloorPlan />
       <WaiterBoard />
+      <VenueFloorPlan />
     </div>
   );
 }

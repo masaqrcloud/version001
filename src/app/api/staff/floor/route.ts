@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { istanbulToday } from "@/lib/reservation-occupancy";
+import { isStaffProxyNickname } from "@/lib/media";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -21,7 +22,7 @@ export async function GET() {
           where: { status: "OPEN" },
           orderBy: { openedAt: "asc" },
           include: {
-            guests: { select: { id: true } },
+            guests: { select: { id: true, nickname: true } },
             orders: {
               where: { status: { not: "CANCELLED" } },
               select: {
@@ -35,7 +36,7 @@ export async function GET() {
         mergedSession: {
           include: {
             table: { select: { id: true, number: true } },
-            guests: { select: { id: true } },
+            guests: { select: { id: true, nickname: true } },
             orders: {
               where: { status: { not: "CANCELLED" } },
               select: {
@@ -105,7 +106,8 @@ export async function GET() {
         : null,
       isMerged: extraNumbers.length > 0,
       isPrimary: Boolean(home),
-      guestCount: guests.length,
+      guestCount: guests.filter((guest) => !isStaffProxyNickname(guest.nickname))
+        .length,
       orderCount: orders.length,
       pendingCount: orders.filter((order) =>
         ["PENDING", "PREPARING", "READY"].includes(order.status),

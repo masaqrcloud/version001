@@ -130,7 +130,9 @@ function FloorCard({ table }: { table: FloorTable }) {
           <div className="text-right text-[10px] text-[var(--muted)]">
             <p className="flex items-center justify-end gap-1">
               <PeopleIcon />
-              {table.guestCount} kişi
+              {table.guestCount
+                ? `${table.guestCount} kişi`
+                : "Garson yazdı"}
             </p>
             <p>
               {table.orderCount} sipariş

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getOrCreateOpenSession } from "@/lib/guest";
+import { isStaffProxyNickname } from "@/lib/media";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
 
@@ -57,8 +58,23 @@ export async function GET() {
   return NextResponse.json({
     sessions: [...byTable.values()]
       .sort((a, b) => {
-        if (a.session.waiterCalledAt && !b.session.waiterCalledAt) return -1;
-        if (!a.session.waiterCalledAt && b.session.waiterCalledAt) return 1;
+        const rank = (session: (typeof sessions)[number]) => {
+          if (session.billRequestedAt) return 0;
+          if (session.waiterCalledAt) return 1;
+          if (
+            session.orders.some(
+              (order) =>
+                order.status === "PENDING" ||
+                order.status === "PREPARING" ||
+                order.status === "READY",
+            )
+          ) {
+            return 2;
+          }
+          return 3;
+        };
+        const byNeed = rank(a.session) - rank(b.session);
+        if (byNeed !== 0) return byNeed;
         return a.session.openedAt.getTime() - b.session.openedAt.getTime();
       })
       .map(({ session, guests, orders }) => {
@@ -87,7 +103,9 @@ export async function GET() {
           openedAt: session.openedAt,
           waiterCalledAt: session.waiterCalledAt,
           billRequestedAt: session.billRequestedAt,
-          guestCount: guests.length,
+          guestCount: guests.filter(
+            (guest) => !isStaffProxyNickname(guest.nickname),
+          ).length,
           orderCount: orders.length,
           pendingCount: pending,
           total,

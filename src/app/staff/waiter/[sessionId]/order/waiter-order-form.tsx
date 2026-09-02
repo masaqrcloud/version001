@@ -83,6 +83,7 @@ export function WaiterOrderForm({
     return lines;
   });
   const [note, setNote] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState<MenuItem | null>(null);
@@ -160,6 +161,9 @@ export function WaiterOrderForm({
         note: [note.trim(), line.note.trim()].filter(Boolean).join(" · ") || undefined,
         optionIds: line.optionIds,
       })),
+      ...(!editOrder && guestName.trim().length >= 2
+        ? { guestName: guestName.trim() }
+        : {}),
     };
     const response = await fetch(
       editOrder
@@ -191,8 +195,17 @@ export function WaiterOrderForm({
       <p className="mt-1 text-sm text-[var(--muted)]">
         {editOrder
           ? "Bekleyen bilet değişir, mutfak güncel hali görür."
-          : `QR yok. Personel olarak ${tableLabel(tableNumber)} hesabına düşer.`}
+          : `QR yok. Yaşlı veya telefonsuz misafir için sen yazarsın; masada personel oturmuş görünmez.`}
       </p>
+      {editOrder ? null : (
+        <Input
+          className="mt-4"
+          placeholder="Misafir adı (isteğe bağlı, ör. Amca)"
+          maxLength={40}
+          value={guestName}
+          onChange={(event) => setGuestName(event.target.value)}
+        />
+      )}
 
       {cart.length ? (
         <Card className="mt-6 space-y-3 p-4">

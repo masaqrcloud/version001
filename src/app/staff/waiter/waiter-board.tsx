@@ -87,7 +87,9 @@ export function WaiterBoard() {
               ) : null}
             </div>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              {session.guestCount} misafir · {session.orderCount} sipariş
+              {session.guestCount
+                ? `${session.guestCount} misafir · ${session.orderCount} sipariş`
+                : `Garson yazdı · ${session.orderCount} sipariş`}
             </p>
             <p className="mt-4 text-lg">{formatTRY(session.total)}</p>
           </Card>

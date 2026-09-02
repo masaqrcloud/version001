@@ -6,3 +6,12 @@ export function displayGuestName(nickname?: string | null) {
   const name = nickname?.trim();
   return name || "Misafir";
 }
+
+export function isStaffProxyNickname(nickname?: string | null) {
+  const name = nickname?.trim() ?? "";
+  return (
+    name === "Garson yazdı" ||
+    name === "Personel" ||
+    name.startsWith("Personel ·")
+  );
+}

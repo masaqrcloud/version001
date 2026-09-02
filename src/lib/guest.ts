@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/db";
+import { isStaffProxyNickname } from "@/lib/media";
 
 export const GUEST_COOKIE = "guest_session";
 
@@ -317,11 +318,11 @@ export async function requireOpenGuest() {
 
 export async function getOrCreateStaffProxyGuest(
   sessionId: string,
-  staffName?: string | null,
+  guestName?: string | null,
 ) {
-  const nickname = staffName?.trim()
-    ? `Personel · ${staffName.trim()}`
-    : "Personel";
+  const named = guestName?.trim() ?? "";
+  const nickname =
+    named && !isStaffProxyNickname(named) ? named : "Garson yazdı";
   const existing = await prisma.guest.findFirst({
     where: { tableSessionId: sessionId, nickname },
   });

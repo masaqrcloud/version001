@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatTableGroup } from "@/lib/table-groups";
+import { isStaffProxyNickname } from "@/lib/media";
 import { getStaffUser } from "@/lib/tenant";
 
 export async function GET() {
@@ -32,7 +33,10 @@ export async function GET() {
         order.tableSession.table.number,
         order.tableSession.mergedTables.map((table) => table.number),
       ),
-      guestName: order.guestName || order.guest.nickname || "Misafir",
+      guestName: isStaffProxyNickname(order.guestName) ||
+        isStaffProxyNickname(order.guest.nickname)
+        ? "Garson yazdı"
+        : order.guestName || order.guest.nickname || "Misafir",
       items: order.items.map((item) => ({
         id: item.id,
         name: item.name,
