@@ -83,6 +83,9 @@ model Venue {
   openingHours String?
   wifiName     String?
   wifiPassword String?
+  address      String?
+  latitude     Float?
+  longitude    Float?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

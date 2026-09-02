@@ -43,6 +43,9 @@ export async function PATCH(request: Request) {
       openingHours: z.array(dayHoursSchema).length(7).optional(),
       wifiName: z.string().trim().max(80).nullable().optional(),
       wifiPassword: z.string().max(120).nullable().optional(),
+      address: z.string().trim().max(200).nullable().optional(),
+      latitude: z.number().min(-90).max(90).nullable().optional(),
+      longitude: z.number().min(-180).max(180).nullable().optional(),
     })
     .safeParse(await request.json());
 
@@ -62,6 +65,9 @@ export async function PATCH(request: Request) {
     openingHours?: string;
     wifiName?: string | null;
     wifiPassword?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -94,6 +100,15 @@ export async function PATCH(request: Request) {
   }
   if (body.data.wifiPassword !== undefined) {
     data.wifiPassword = body.data.wifiPassword || null;
+  }
+  if (body.data.address !== undefined) {
+    data.address = body.data.address?.trim() || null;
+  }
+  if (body.data.latitude !== undefined) {
+    data.latitude = body.data.latitude;
+  }
+  if (body.data.longitude !== undefined) {
+    data.longitude = body.data.longitude;
   }
 
   try {

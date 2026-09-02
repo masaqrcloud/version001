@@ -30,6 +30,9 @@ export default async function AdminSettingsPage() {
               openingHours={venue.openingHours}
               wifiName={venue.wifiName}
               wifiPassword={venue.wifiPassword}
+              address={venue.address}
+              latitude={venue.latitude}
+              longitude={venue.longitude}
             />
           </div>
         ) : null}
@@ -53,6 +56,9 @@ export default async function AdminSettingsPage() {
           openingHours={venue.openingHours}
           wifiName={venue.wifiName}
           wifiPassword={venue.wifiPassword}
+          address={venue.address}
+          latitude={venue.latitude}
+          longitude={venue.longitude}
         />
       ) : (
         <p className="mt-8 text-[var(--muted)]">Mekan bulunamadı.</p>

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
+import { hasCoordinates } from "@/lib/maps";
+import { VenueMap } from "@/components/venue-map";
 
 type TableOption = {
   id: string;
@@ -74,7 +76,13 @@ function TableGlyph({
 export function ReservationForm({
   venues,
 }: {
-  venues: { id: string; name: string }[];
+  venues: {
+    id: string;
+    name: string;
+    address: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  }[];
 }) {
   const today = useMemo(
     () =>
@@ -102,6 +110,7 @@ export function ReservationForm({
   const [tablesBusy, setTablesBusy] = useState(false);
   const timeReady = Boolean(form.reservationDate && form.reservationTime);
   const selectedTable = tables.find((table) => table.id === form.tableId);
+  const selectedVenue = venues.find((venue) => venue.id === form.venueId);
 
   useEffect(() => {
     if (!form.venueId) return;
@@ -207,6 +216,17 @@ export function ReservationForm({
           ))}
         </select>
       </div>
+      {selectedVenue &&
+      hasCoordinates(selectedVenue.latitude, selectedVenue.longitude) ? (
+        <VenueMap
+          latitude={selectedVenue.latitude!}
+          longitude={selectedVenue.longitude!}
+          label={selectedVenue.name}
+          address={selectedVenue.address}
+        />
+      ) : selectedVenue?.address ? (
+        <p className="text-sm text-[var(--muted)]">{selectedVenue.address}</p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="fullName">Ad soyad</Label>

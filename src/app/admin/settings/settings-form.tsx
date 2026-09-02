@@ -8,6 +8,8 @@ import { Input, Label } from "@/components/ui/input";
 import { ImageUpload } from "@/components/image-upload";
 import { slugify } from "@/lib/slug";
 import { parseOpeningHours } from "@/lib/opening-hours";
+import { hasCoordinates } from "@/lib/maps";
+import { VenueMap } from "@/components/venue-map";
 
 const dayNames = [
   "Pazar",
@@ -28,6 +30,9 @@ export function SettingsForm({
   openingHours,
   wifiName,
   wifiPassword,
+  address,
+  latitude,
+  longitude,
 }: {
   name: string;
   slug: string;
@@ -37,6 +42,9 @@ export function SettingsForm({
   openingHours: string | null;
   wifiName: string | null;
   wifiPassword: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }) {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -48,11 +56,40 @@ export function SettingsForm({
     openingHours: parseOpeningHours(openingHours),
     wifiName: wifiName ?? "",
     wifiPassword: wifiPassword ?? "",
+    address: address ?? "",
+    latitude,
+    longitude,
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showWifiPassword, setShowWifiPassword] = useState(false);
+  const [finding, setFinding] = useState(false);
+
+  async function findOnMap() {
+    const query = form.address.trim() || form.name.trim();
+    if (query.length < 3) {
+      setError("Konum için adres yaz");
+      return;
+    }
+    setFinding(true);
+    setError(null);
+    const response = await fetch(
+      `/api/admin/geocode?q=${encodeURIComponent(query)}`,
+    );
+    const json = await response.json().catch(() => ({}));
+    setFinding(false);
+    if (!response.ok) {
+      setError(json.error ?? "Konum bulunamadı");
+      return;
+    }
+    setForm((current) => ({
+      ...current,
+      latitude: json.latitude,
+      longitude: json.longitude,
+      address: current.address.trim() || json.address || current.address,
+    }));
+  }
 
   async function save() {
     setBusy(true);
@@ -72,6 +109,9 @@ export function SettingsForm({
         openingHours: form.openingHours,
         wifiName: form.wifiName.trim() || null,
         wifiPassword: form.wifiPassword || null,
+        address: form.address.trim() || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
       }),
     });
 
@@ -190,6 +230,67 @@ export function SettingsForm({
         <Button onClick={() => void save()} disabled={busy}>
           {busy ? "Kaydediliyor…" : "Wi‑Fi bilgisini kaydet"}
         </Button>
+      </Card>
+
+      <Card className="space-y-4 p-5 lg:col-span-2">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
+            Konum
+          </p>
+          <h2 className="mt-1 font-serif text-2xl">Haritada görün</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Rezervasyon ekranında müşteri bu konumu görür, yakınlaştırır ve
+            dokununca harita uygulamasına gider.
+          </p>
+        </div>
+        <div>
+          <Label htmlFor="venue-address">Adres</Label>
+          <Input
+            id="venue-address"
+            value={form.address}
+            maxLength={200}
+            placeholder="Mahalle, cadde, ilçe / il"
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                address: event.target.value,
+              }))
+            }
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={finding}
+            onClick={() => void findOnMap()}
+          >
+            {finding ? "Aranıyor…" : "Adresten konumu bul"}
+          </Button>
+          <Button onClick={() => void save()} disabled={busy}>
+            {busy ? "Kaydediliyor…" : "Konumu kaydet"}
+          </Button>
+        </div>
+        {hasCoordinates(form.latitude, form.longitude) ? (
+          <VenueMap
+            latitude={form.latitude!}
+            longitude={form.longitude!}
+            label={form.name}
+            address={form.address}
+            editable
+            onMove={(nextLat, nextLng) =>
+              setForm((current) => ({
+                ...current,
+                latitude: nextLat,
+                longitude: nextLng,
+              }))
+            }
+          />
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            Adresi yazıp konumu bul; pin yanlışsa haritaya dokunarak düzelt.
+          </p>
+        )}
       </Card>
 
       <Card className="space-y-6 p-5">
