@@ -120,6 +120,77 @@ async function geocodeAddress(query: string, key: string) {
     .filter((item): item is MapSuggestion => Boolean(item));
 }
 
+function parseGoogleLocalSearch(payload: string, query: string) {
+  const text = payload.replace(/^\)\]\}'\s*/, "");
+  const quoted = [...text.matchAll(/"([^"\\]{3,180})"/g)].map((item) =>
+    item[1].replace(/\\u003d/g, "="),
+  );
+  const needle = query.trim().toLowerCase();
+  const addresses = quoted.filter((value) => {
+    const normalized = value.toLowerCase();
+    return (
+      normalized.includes(needle) &&
+      (value.includes(",") || value.includes("/"))
+    );
+  });
+  const titles = quoted.filter((value) => {
+    const normalized = value.toLowerCase();
+    return (
+      normalized === needle ||
+      (normalized.includes(needle) &&
+        value.length <= 90 &&
+        !value.startsWith("http"))
+    );
+  });
+  const label =
+    addresses.sort((a, b) => b.length - a.length)[0] || titles[0] || query;
+
+  const seen = new Set<string>();
+  const coords: MapSuggestion[] = [];
+  for (const match of text.matchAll(/@(-?\d+\.\d+),(-?\d+\.\d+)/g)) {
+    const item = toSuggestion(Number(match[1]), Number(match[2]), label);
+    if (!item) continue;
+    const key = `${item.latitude.toFixed(6)},${item.longitude.toFixed(6)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    coords.push(item);
+  }
+  return coords.slice(0, 8).map((item, index) => ({
+    ...item,
+    address: addresses[index] || label,
+  }));
+}
+
+async function searchGoogleMapsTurkey(query: string) {
+  const url = new URL("https://www.google.com/search");
+  url.searchParams.set("tbm", "map");
+  url.searchParams.set("q", query);
+  url.searchParams.set("hl", "tr");
+  url.searchParams.set("gl", "tr");
+  url.searchParams.set("nfpr", "1");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4500);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "text/html,application/json",
+        "Accept-Language": "tr-TR,tr;q=0.9",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) return [];
+    return parseGoogleLocalSearch(await response.text(), query);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function nominatimSearch(query: string) {
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
@@ -231,6 +302,13 @@ export async function searchLocations(query: string): Promise<MapSuggestion[]> {
     if (legacy.length) return legacy;
     const geo = await geocodeAddress(query, key);
     if (geo.length) return geo;
+  }
+
+  const google = await searchGoogleMapsTurkey(query);
+  if (google.length) return google;
+  if (!/türkiye|turkey/i.test(query)) {
+    const biased = await searchGoogleMapsTurkey(`${query} Türkiye`);
+    if (biased.length) return biased;
   }
   return nominatimSearch(query);
 }

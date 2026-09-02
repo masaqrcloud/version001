@@ -70,12 +70,7 @@ export function SettingsForm({
   const suggestTimer = useRef<number | null>(null);
   const skipSuggest = useRef(false);
 
-  useEffect(() => {
-    if (skipSuggest.current) {
-      skipSuggest.current = false;
-      return;
-    }
-    const query = form.address.trim();
+  function requestSuggestions(query: string) {
     if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
     if (query.length < 3) {
       setSuggestions([]);
@@ -91,7 +86,15 @@ export function SettingsForm({
         setFinding(false);
         setSuggestions(json.suggestions ?? []);
       })();
-    }, 350);
+    }, 280);
+  }
+
+  useEffect(() => {
+    if (skipSuggest.current) {
+      skipSuggest.current = false;
+      return;
+    }
+    requestSuggestions(form.address.trim());
     return () => {
       if (suggestTimer.current) window.clearTimeout(suggestTimer.current);
     };
@@ -328,9 +331,15 @@ export function SettingsForm({
                 address: event.target.value,
               }))
             }
+            onFocus={() => {
+              const query = form.address.trim();
+              if (query.length >= 3 && !suggestions.length && !finding) {
+                requestSuggestions(query);
+              }
+            }}
           />
           {suggestions.length ? (
-            <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--line)] bg-white py-1 shadow-lg">
+            <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--line)] bg-white py-1 shadow-lg">
               {suggestions.map((item) => (
                 <li key={`${item.latitude}-${item.longitude}-${item.address}`}>
                   <button
