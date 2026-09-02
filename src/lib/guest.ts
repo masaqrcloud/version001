@@ -186,9 +186,34 @@ export async function joinTable(
     return null;
   }
 
-  const existingToken = options?.startNew
-    ? null
-    : await readIncomingToken(clientToken);
+  if (options?.startNew) {
+    const open = await getOpenSession(table.id);
+    if (!open) {
+      return {
+        table,
+        venue: table.venue,
+        session: null,
+        guest: null,
+        closed: true as const,
+        canStartNew: false as const,
+      };
+    }
+    const attached = await prisma.guest.create({
+      data: {
+        tableSessionId: open.id,
+        guestToken: randomBytes(24).toString("hex"),
+      },
+    });
+    return {
+      table,
+      venue: table.venue,
+      session: open,
+      guest: attached,
+      closed: false as const,
+    };
+  }
+
+  const existingToken = await readIncomingToken(clientToken);
   let guest = existingToken
     ? await prisma.guest.findUnique({
         where: { guestToken: existingToken },
@@ -208,16 +233,14 @@ export async function joinTable(
 
   if (spentOnThisTable && guest) {
     const open = await getOpenSession(table.id);
-    if (!open) {
-      return {
-        table,
-        venue: table.venue,
-        session: guest.tableSession,
-        guest,
-        closed: true as const,
-      };
-    }
-    guest = null;
+    return {
+      table,
+      venue: table.venue,
+      session: guest.tableSession,
+      guest,
+      closed: true as const,
+      canStartNew: Boolean(open),
+    };
   }
 
   const session = await getOrCreateOpenSession(table.id);

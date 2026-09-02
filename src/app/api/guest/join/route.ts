@@ -52,12 +52,19 @@ export async function POST(request: Request) {
   if (joined.closed) {
     const payload = {
       closed: true as const,
+      canStartNew: Boolean(joined.canStartNew),
       tableNumber: joined.table.number,
       venueName: joined.venue.name,
       guestId: joined.guest?.id ?? null,
       guestToken: joined.guest?.guestToken ?? null,
       nickname: joined.guest?.nickname ?? null,
+      error: joined.canStartNew
+        ? undefined
+        : "Masa boş. Yeni sipariş için garson krokide masayı açmalı.",
     };
+    if (body?.startNew) {
+      return NextResponse.json(payload, { status: 409 });
+    }
     if (!joined.guest) {
       return NextResponse.json(payload);
     }

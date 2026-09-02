@@ -307,6 +307,7 @@ export function GuestApp({
   const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [joinClosed, setJoinClosed] = useState(false);
+  const [canStartNew, setCanStartNew] = useState(false);
   const [reopenBusy, setReopenBusy] = useState(false);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
   const seenAlert = useRef<string | null>(null);
@@ -364,6 +365,7 @@ export function GuestApp({
               data.guestToken,
             );
           }
+          setCanStartNew(Boolean(data.canStartNew));
           setJoinClosed(true);
           setReady(true);
           return;
@@ -903,17 +905,27 @@ export function GuestApp({
             kapatıldı.
           </p>
         </div>
-        <Button
-          className="mt-6 w-full"
-          size="lg"
-          disabled={reopenBusy}
-          onClick={() => void startNewSitting()}
-        >
-          {reopenBusy ? "Açılıyor…" : "Masadayım, yeni sipariş"}
-        </Button>
-        <p className="mt-2 text-center text-xs text-[var(--muted)]">
-          Masa boşsa yeni hesap açılır. Evdeysen bu butona basma.
-        </p>
+        {canStartNew ? (
+          <>
+            <Button
+              className="mt-6 w-full"
+              size="lg"
+              disabled={reopenBusy}
+              onClick={() => void startNewSitting()}
+            >
+              {reopenBusy ? "Açılıyor…" : "Masadayım, yeni sipariş"}
+            </Button>
+            <p className="mt-2 text-center text-xs text-[var(--muted)]">
+              Sadece garson bu masayı açtıysa bağlanır. Evden basınca hesap
+              açılmaz.
+            </p>
+          </>
+        ) : (
+          <p className="mt-6 text-center text-sm text-[var(--muted)]">
+            Masa şu an boş. Yeni sipariş için garson krokide masayı açar, sen
+            QR’yi tekrar okutursun.
+          </p>
+        )}
         {nameError ? (
           <p className="mt-2 text-center text-sm text-red-700">{nameError}</p>
         ) : null}
