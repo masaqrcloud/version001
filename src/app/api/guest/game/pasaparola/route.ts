@@ -114,12 +114,14 @@ async function payload(guestId: string, sessionId: string) {
         : wordRows.map((row) => {
             const mine = answers[row.letter] ?? "";
             const correct = answersMatch(mine, row.word);
+            const passed = mine === PAS_MARK;
             return {
               letter: row.letter,
               clue: row.clue,
-              mine: mine === PAS_MARK ? "" : mine,
+              mine: passed ? "" : mine,
               correct,
-              passed: Boolean(mine) && !correct,
+              passed,
+              wrong: Boolean(mine) && !correct && !passed,
               claimedBy: claimNames[row.letter] ?? null,
             };
           }),
@@ -276,7 +278,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok,
-      passed: !ok,
+      passed: passing,
+      wrong: !ok && !passing,
       ...(await payload(guest.id, guest.tableSessionId)),
     });
   }

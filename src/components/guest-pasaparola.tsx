@@ -13,6 +13,7 @@ type LetterState = {
   mine: string;
   correct: boolean;
   passed: boolean;
+  wrong: boolean;
   claimedBy: { guestId: string; name: string } | null;
 };
 
@@ -44,17 +45,13 @@ function nextOpenLetter(letters: LetterState[], current: string) {
     ...PASAPAROLA_LETTERS.slice(from + 1),
     ...PASAPAROLA_LETTERS.slice(0, Math.max(from, 0)),
   ];
-  const open = rotated.find((item) => {
-    const state = letters.find((row) => row.letter === item);
-    return state && !state.correct && !state.passed && !state.claimedBy;
-  });
-  if (open) return open;
-  return (
+  const pick = (wantPassed: boolean) =>
     rotated.find((item) => {
       const state = letters.find((row) => row.letter === item);
-      return state && !state.correct && !state.claimedBy;
-    }) ?? current
-  );
+      if (!state || state.correct || state.wrong || state.claimedBy) return false;
+      return wantPassed ? state.passed : !state.passed;
+    });
+  return pick(false) ?? pick(true) ?? current;
 }
 
 export function GuestPasaparola({
@@ -77,7 +74,7 @@ export function GuestPasaparola({
   const [guess, setGuess] = useState("");
   const [left, setLeft] = useState(0);
   const [count, setCount] = useState(0);
-  const [flash, setFlash] = useState<"ok" | "pas" | string | null>(null);
+  const [flash, setFlash] = useState<"ok" | "wrong" | string | null>(null);
 
   useEffect(() => {
     setLeft(data?.remainingMs ?? 0);
@@ -145,6 +142,7 @@ export function GuestPasaparola({
     const json = (await res.json().catch(() => ({}))) as GameState & {
       ok?: boolean;
       passed?: boolean;
+      wrong?: boolean;
       error?: string;
     };
     setBusy(false);
@@ -154,15 +152,22 @@ export function GuestPasaparola({
       return;
     }
     setData(json);
+    const next = nextOpenLetter(json.letters, letter);
     if (json.ok) {
       setFlash("ok");
-      setLetter(nextOpenLetter(json.letters, letter));
+      setLetter(next);
       window.setTimeout(() => setFlash(null), 700);
       return;
     }
-    setFlash("pas");
+    if (action === "pass" || json.passed) {
+      setLetter(next);
+      setGuess("");
+      setFlash(null);
+      return;
+    }
+    setFlash("wrong");
     window.setTimeout(() => {
-      setLetter(nextOpenLetter(json.letters, letter));
+      setLetter(next);
       setGuess("");
       setFlash(null);
     }, 450);
@@ -281,7 +286,7 @@ export function GuestPasaparola({
           {current ? (
             <Card
               className={`p-5 text-center transition-colors ${
-                flash === "pas"
+                flash === "wrong"
                   ? "bg-red-50 ring-2 ring-red-500"
                   : flash === "ok"
                     ? "bg-emerald-50 ring-2 ring-emerald-500"
@@ -308,7 +313,7 @@ export function GuestPasaparola({
                     onChange={(event) => setGuess(event.target.value)}
                     placeholder={`${current.letter} ile başlayan kelime`}
                     maxLength={40}
-                    className={flash === "pas" ? "border-red-500" : undefined}
+                    className={flash === "wrong" ? "border-red-500" : undefined}
                     disabled={
                       busy ||
                       (data.mode === "CLAIM" &&
@@ -354,10 +359,10 @@ export function GuestPasaparola({
                   Doğru
                 </p>
               ) : null}
-              {flash === "pas" ? (
-                <p className="mt-2 text-sm font-semibold text-red-700">Pas</p>
+              {flash === "wrong" ? (
+                <p className="mt-2 text-sm font-semibold text-red-700">Yanlış</p>
               ) : null}
-              {flash && flash !== "ok" && flash !== "pas" ? (
+              {flash && flash !== "ok" && flash !== "wrong" ? (
                 <p className="mt-2 text-sm font-semibold text-[var(--accent)]">
                   {flash}
                 </p>
