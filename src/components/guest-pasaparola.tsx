@@ -262,19 +262,20 @@ export function GuestPasaparola({
     return <p className="text-sm text-[var(--muted)]">Oyun yükleniyor…</p>;
   }
 
-  const left = Boolean(data.left);
+  const leftRound = Boolean(data.left);
   const counting =
     data.live &&
     !data.finished &&
-    !left &&
+    !leftRound &&
     (count > 0 || data.letters.length === 0);
-  const playing = data.live && !data.finished && !left && !counting && data.letters.length > 0;
+  const playing =
+    data.live && !data.finished && !leftRound && !counting && data.letters.length > 0;
   const mineDone =
     data.mode === "RACE" &&
     data.letters.length > 0 &&
     data.letters.every((row) => row.correct || row.wrong);
   const lobby = !data.live && !data.finished;
-  const sittingOut = data.live && !data.finished && left;
+  const sittingOut = data.live && !data.finished && leftRound;
 
   return (
     <div className="space-y-4">
