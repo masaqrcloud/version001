@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { MemoryRound } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { isStaffProxyNickname } from "@/lib/media";
@@ -18,21 +19,7 @@ function nicknameOf(guest: { nickname: string | null }) {
   return name;
 }
 
-type RoundRow = {
-  id: string;
-  tiles: string;
-  faceUp: string;
-  matched: string;
-  players: string;
-  turnGuestId: string | null;
-  scores: string;
-  hideAt: Date | null;
-  startedAt: Date | null;
-  endedAt: Date | null;
-  moves: number;
-};
-
-async function syncRound(round: RoundRow): Promise<RoundRow> {
+async function syncRound(round: MemoryRound): Promise<MemoryRound> {
   if (round.endedAt) return round;
   if (!round.hideAt || round.hideAt.getTime() > Date.now()) return round;
   const players = parseJson<string[]>(round.players, []);
