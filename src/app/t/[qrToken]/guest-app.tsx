@@ -885,7 +885,11 @@ export function GuestApp({
     if (!latest || latest.id === seenAlert.current) return;
     seenAlert.current = latest.id;
     pingPhone(latest.title, latest.body);
-    if (latest.title === "Pasaparola" || latest.title === "Cevap Ver") {
+    if (
+      latest.title === "Pasaparola" ||
+      latest.title === "Cevap Ver" ||
+      latest.title === "Hafıza"
+    ) {
       setTab("games");
       return;
     }

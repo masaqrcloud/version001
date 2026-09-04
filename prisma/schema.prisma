@@ -165,6 +165,7 @@ model TableSession {
   mergedTables      Table[]            @relation("SessionMergedTables")
   pasaparolaRounds  PasaparolaRound[]
   ratherRounds      RatherRound[]
+  memoryRounds      MemoryRound[]
 }
 
 model Guest {
@@ -457,6 +458,25 @@ model RatherRound {
   questionId     String
   votes          String       @default("{}")
   seenIds        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@index([tableSessionId, createdAt])
+}
+
+model MemoryRound {
+  id             String       @id @default(cuid())
+  tableSessionId String
+  tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  tiles          String
+  faceUp         String       @default("[]")
+  matched        String       @default("{}")
+  players        String       @default("[]")
+  turnGuestId    String?
+  scores         String       @default("{}")
+  hideAt         DateTime?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  moves          Int          @default(0)
   createdAt      DateTime     @default(now())
 
   @@index([tableSessionId, createdAt])

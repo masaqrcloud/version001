@@ -4,8 +4,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { GuestPasaparola } from "@/components/guest-pasaparola";
 import { GuestRather } from "@/components/guest-rather";
+import { GuestMemory } from "@/components/guest-memory";
 
-type GameId = "hub" | "pasaparola" | "rather";
+type GameId = "hub" | "pasaparola" | "rather" | "memory";
 
 export function GuestGames({
   guestToken,
@@ -64,6 +65,33 @@ export function GuestGames({
     );
   }
 
+  if (game === "memory") {
+    return (
+      <div className="space-y-3">
+        {immersive ? null : (
+          <button
+            type="button"
+            className="text-sm text-[var(--muted)]"
+            onClick={() => {
+              onImmersiveChange?.(false);
+              setGame("hub");
+            }}
+          >
+            ← Oyunlar
+          </button>
+        )}
+        <GuestMemory
+          guestToken={guestToken}
+          guestHeaders={guestHeaders}
+          onImmersiveChange={(on) => {
+            setImmersive(on);
+            onImmersiveChange?.(on);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div>
@@ -86,6 +114,14 @@ export function GuestGames({
           <p className="font-serif text-2xl">Cevap Ver</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Would you rather. Tanışma, yemek, hayal… 360 soru.
+          </p>
+        </Card>
+      </button>
+      <button type="button" className="w-full text-left" onClick={() => setGame("memory")}>
+        <Card className="p-5">
+          <p className="font-serif text-2xl">Hafıza</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            5×5 yemek ve komik ikonlar. Süre veya sıra sıra eşleştir.
           </p>
         </Card>
       </button>
