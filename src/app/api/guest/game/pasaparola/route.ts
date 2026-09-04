@@ -15,7 +15,7 @@ import {
   ensurePasaparolaWords,
   parseJsonRecord,
   scoreAnswers,
-  nextUnclaimedLetter,
+  nextClaimLetter,
   allPlaysClosed,
   allLettersClaimed,
   type PasaparolaModeId,
@@ -53,7 +53,6 @@ async function syncClaimRound(round: PasaparolaRound): Promise<PasaparolaRound> 
   if (now < playAt) return round;
   if (new Date(round.endsAt).getTime() <= now) return round;
 
-  const claims = parseJsonRecord(round.claims);
   let letter = round.currentLetter || "A";
   let until =
     round.letterEndsAt?.getTime() ?? playAt + CLAIM_LETTER_MS;
@@ -61,7 +60,7 @@ async function syncClaimRound(round: PasaparolaRound): Promise<PasaparolaRound> 
   let ended = false;
 
   for (let step = 0; step < PASAPAROLA_LETTERS.length && now >= until; step += 1) {
-    const next = nextUnclaimedLetter(claims, letter);
+    const next = nextClaimLetter(letter);
     if (!next) {
       ended = true;
       changed = true;
@@ -387,7 +386,7 @@ export async function POST(request: Request) {
       if (ok) {
         answers[letter] = expected.word;
         claims[letter] = guest.id;
-        const next = nextUnclaimedLetter(claims, letter);
+        const next = nextClaimLetter(letter);
         if (next) {
           currentLetter = next;
           letterEndsAt = new Date(Date.now() + CLAIM_LETTER_MS);

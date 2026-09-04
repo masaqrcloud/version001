@@ -143,6 +143,11 @@ export function GuestPasaparola({
   }, [data?.startedAt]);
 
   useEffect(() => {
+    if (!data?.finished) return;
+    setEndTab(data.mode === "CLAIM" ? "skor" : "cevaplar");
+  }, [data?.finished, data?.startedAt]);
+
+  useEffect(() => {
     if (data?.mode === "CLAIM" && data.currentLetter) {
       setLetter(data.currentLetter);
       setGuess("");
@@ -318,7 +323,7 @@ export function GuestPasaparola({
             >
               <p className="font-serif text-xl">Kapışma</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Aynı harf, 20 saniye. İlk doğru bilen alır.
+                Aynı harf, 20 saniye. A’dan Z’ye bir tur, sonra skor.
               </p>
             </button>
           </div>

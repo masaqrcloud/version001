@@ -49,18 +49,12 @@ export function scoreAnswers(
   return score;
 }
 
-export function nextUnclaimedLetter(
-  claims: Record<string, string>,
-  current: string,
-) {
+export function nextClaimLetter(current: string) {
   const from = PASAPAROLA_LETTERS.indexOf(
     current as (typeof PASAPAROLA_LETTERS)[number],
   );
-  const rotated = [
-    ...PASAPAROLA_LETTERS.slice(from + 1),
-    ...PASAPAROLA_LETTERS.slice(0, Math.max(from, 0)),
-  ];
-  return rotated.find((letter) => !claims[letter]) ?? null;
+  if (from < 0) return PASAPAROLA_LETTERS[0] ?? null;
+  return PASAPAROLA_LETTERS[from + 1] ?? null;
 }
 
 export function hasClosedAllLetters(answers: Record<string, string>) {
