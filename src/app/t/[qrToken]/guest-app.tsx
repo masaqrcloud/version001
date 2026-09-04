@@ -314,6 +314,7 @@ export function GuestApp({
   staffPreview?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("menu");
+  const [gameImmersive, setGameImmersive] = useState(false);
   const [guestId, setGuestId] = useState("");
   const [guestToken, setGuestToken] = useState("");
   const [name, setName] = useState("");
@@ -1177,7 +1178,8 @@ export function GuestApp({
         </div>
       ) : null}
       {flash ? <div className="add-flash" /> : null}
-      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md">
+      <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${tab === "games" && gameImmersive ? "hidden" : ""}`}>
+        {tab !== "games" ? (
         <GuestBrand
           venueName={venueName}
           venueTagline={venueTagline}
@@ -1227,6 +1229,11 @@ export function GuestApp({
           ) : null}
           {nameError ? <p className="mt-2 text-sm text-red-700">{nameError}</p> : null}
         </GuestBrand>
+        ) : (
+          <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <p className="pb-2 font-serif text-xl">Oyunlar</p>
+          </div>
+        )}
         <div className="px-4 pb-3">
         <div className="mt-0 grid grid-cols-5 gap-1 rounded-full bg-black/5 p-1">
           {tabs.map(([key, label]) => (
@@ -1265,7 +1272,7 @@ export function GuestApp({
             </button>
           ))}
         </div>
-        {bill?.guests.length ? (
+        {tab !== "games" && bill?.guests.length ? (
           <p className="mt-2 text-xs text-[var(--muted)]">
             {bill.guests.map((g) => (g.isMe ? `${g.nickname} (sen)` : g.nickname)).join(" · ")}
           </p>
@@ -1273,6 +1280,8 @@ export function GuestApp({
         </div>
       </header>
 
+      {tab !== "games" ? (
+        <>
       <p
         className={`mx-4 mt-3 rounded-xl px-3 py-2 text-sm ${
           openState.isOpen
@@ -1291,6 +1300,8 @@ export function GuestApp({
 
       {message ? (
         <p className="px-4 pt-3 text-sm text-[var(--accent)]">{message}</p>
+      ) : null}
+        </>
       ) : null}
 
       {tab === "menu" ? (
@@ -1632,11 +1643,20 @@ export function GuestApp({
         onClose={() => setBillConfirmOpen(false)}
       />
 
-      <div className={tab === "games" ? "px-4 py-6" : "hidden"}>
+      <div
+        className={
+          tab === "games" && gameImmersive
+            ? "fixed inset-0 z-30 overflow-y-auto bg-[var(--bg)] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+            : tab === "games"
+              ? "flex-1 px-4 py-6"
+              : "hidden"
+        }
+      >
         <GuestPasaparola
           guestToken={guestToken}
           guestHeaders={guestHeaders}
           onRoundLive={() => setTab("games")}
+          onImmersiveChange={setGameImmersive}
         />
       </div>
 

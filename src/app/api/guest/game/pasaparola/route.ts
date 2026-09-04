@@ -7,11 +7,14 @@ import {
   PASAPAROLA_LETTERS,
   PAS_MARK,
   ROUND_MS,
+  CLAIM_LETTER_MS,
   COUNTDOWN_MS,
   answersMatch,
+  isPasGuess,
   ensurePasaparolaWords,
   parseJsonRecord,
   scoreAnswers,
+  nextUnclaimedLetter,
   type PasaparolaModeId,
 } from "@/lib/pasaparola";
 
@@ -40,9 +43,52 @@ async function pickRoundWords() {
   return ids;
 }
 
+async function syncClaimRound(round: {
+  id: string;
+  mode: string;
+  startedAt: Date;
+  endsAt: Date;
+  currentLetter: string;
+  letterEndsAt: Date | null;
+  claims: string;
+}) {
+  if (round.mode !== "CLAIM") return round;
+  const now = Date.now();
+  const playAt = new Date(round.startedAt).getTime() + COUNTDOWN_MS;
+  if (now < playAt) return round;
+  if (new Date(round.endsAt).getTime() <= now) return round;
+
+  const claims = parseJsonRecord(round.claims);
+  let letter = round.currentLetter || "A";
+  let until =
+    round.letterEndsAt?.getTime() ?? playAt + CLAIM_LETTER_MS;
+  let changed = false;
+  let ended = false;
+
+  for (let step = 0; step < PASAPAROLA_LETTERS.length && now >= until; step += 1) {
+    const next = nextUnclaimedLetter(claims, letter);
+    if (!next) {
+      ended = true;
+      changed = true;
+      break;
+    }
+    letter = next;
+    until += CLAIM_LETTER_MS;
+    changed = true;
+  }
+
+  if (!changed) return round;
+  return prisma.pasaparolaRound.update({
+    where: { id: round.id },
+    data: ended
+      ? { endsAt: new Date(now), currentLetter: letter, letterEndsAt: new Date(now) }
+      : { currentLetter: letter, letterEndsAt: new Date(until) },
+  });
+}
+
 async function payload(guestId: string, sessionId: string) {
   const now = Date.now();
-  const round = await prisma.pasaparolaRound.findFirst({
+  let round = await prisma.pasaparolaRound.findFirst({
     where: { tableSessionId: sessionId },
     orderBy: { startedAt: "desc" },
     include: {
@@ -50,12 +96,26 @@ async function payload(guestId: string, sessionId: string) {
     },
   });
 
+  if (round) {
+    const synced = await syncClaimRound(round);
+    if (synced.id === round.id && synced !== round) {
+      round = await prisma.pasaparolaRound.findUniqueOrThrow({
+        where: { id: round.id },
+        include: {
+          plays: { include: { guest: { select: { id: true, nickname: true } } } },
+        },
+      });
+    }
+  }
+
   if (!round) {
     return {
       live: false,
       finished: false,
       remainingMs: 0,
       countdownMs: 0,
+      letterMs: 0,
+      currentLetter: "A",
       startedAt: null,
       mode: null,
       letters: [],
@@ -68,10 +128,18 @@ async function payload(guestId: string, sessionId: string) {
 
   const playAt = new Date(round.startedAt).getTime() + COUNTDOWN_MS;
   const countdownMs = Math.max(0, playAt - now);
+  const claimLetterMs = Math.max(
+    0,
+    (round.letterEndsAt?.getTime() ?? playAt + CLAIM_LETTER_MS) - now,
+  );
   const remainingMs =
     countdownMs > 0
-      ? ROUND_MS
-      : Math.max(0, new Date(round.endsAt).getTime() - now);
+      ? round.mode === "CLAIM"
+        ? CLAIM_LETTER_MS
+        : ROUND_MS
+      : round.mode === "CLAIM"
+        ? claimLetterMs
+        : Math.max(0, new Date(round.endsAt).getTime() - now);
   const finished = countdownMs === 0 && remainingMs === 0;
   const live = !finished;
   const wordRows = await prisma.pasaparolaWord.findMany({
@@ -88,6 +156,9 @@ async function payload(guestId: string, sessionId: string) {
   const claims = parseJsonRecord(round.claims);
   const claimNames: Record<string, { guestId: string; name: string }> = {};
   for (const [letter, id] of Object.entries(claims)) {
+    if (!PASAPAROLA_LETTERS.includes(letter as (typeof PASAPAROLA_LETTERS)[number])) {
+      continue;
+    }
     const play = round.plays.find((item) => item.guestId === id);
     if (play) claimNames[letter] = { guestId: id, name: nicknameOf(play.guest) };
   }
@@ -106,6 +177,8 @@ async function payload(guestId: string, sessionId: string) {
     finished,
     remainingMs,
     countdownMs,
+    letterMs: round.mode === "CLAIM" ? remainingMs : 0,
+    currentLetter: round.currentLetter,
     startedAt: round.startedAt.toISOString(),
     mode: round.mode as PasaparolaModeId,
     letters:
@@ -128,7 +201,9 @@ async function payload(guestId: string, sessionId: string) {
     answers,
     claims: claimNames,
     standings,
-    solutions: finished ? expected : null,
+    solutions: finished
+      ? Object.fromEntries(wordRows.map((row) => [row.letter, row.word]))
+      : null,
   };
 }
 
@@ -149,24 +224,25 @@ export async function POST(request: Request) {
   await ensurePasaparolaWords();
 
   const body = (await request.json().catch(() => null)) as {
-    action?: "start" | "answer" | "pass";
+    action?: "start" | "answer" | "pass" | "end";
     mode?: PasaparolaModeId;
     letter?: string;
     word?: string;
   } | null;
 
   const now = new Date();
-  const live = await prisma.pasaparolaRound.findFirst({
+  let live = await prisma.pasaparolaRound.findFirst({
     where: {
       tableSessionId: guest.tableSessionId,
       endsAt: { gt: now },
     },
     orderBy: { startedAt: "desc" },
   });
+  if (live) live = await syncClaimRound(live);
 
   if (body?.action === "start") {
     const mode: PasaparolaModeId = body.mode === "CLAIM" ? "CLAIM" : "RACE";
-    let round = live;
+    let round = live && new Date(live.endsAt).getTime() > Date.now() ? live : null;
     if (!round) {
       const ids = await pickRoundWords();
       if (!ids) {
@@ -175,11 +251,19 @@ export async function POST(request: Request) {
           { status: 503 },
         );
       }
+      const playAt = now.getTime() + COUNTDOWN_MS;
       round = await prisma.pasaparolaRound.create({
         data: {
           tableSessionId: guest.tableSessionId,
           mode,
-          endsAt: new Date(now.getTime() + COUNTDOWN_MS + ROUND_MS),
+          endsAt: new Date(
+            playAt +
+              (mode === "CLAIM"
+                ? PASAPAROLA_LETTERS.length * CLAIM_LETTER_MS
+                : ROUND_MS),
+          ),
+          currentLetter: "A",
+          letterEndsAt: new Date(playAt + CLAIM_LETTER_MS),
           wordIds: ids.join(","),
         },
       });
@@ -200,8 +284,25 @@ export async function POST(request: Request) {
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
   }
 
+  if (body?.action === "end") {
+    if (!live || new Date(live.endsAt).getTime() <= Date.now()) {
+      return NextResponse.json(await payload(guest.id, guest.tableSessionId));
+    }
+    await prisma.pasaparolaRound.update({
+      where: { id: live.id },
+      data: { endsAt: now, letterEndsAt: now },
+    });
+    await notifyTableGuests(
+      guest.tableSessionId,
+      "Pasaparola",
+      `${nicknameOf(guest)} oyunu bitirdi.`,
+      guest.id,
+    );
+    return NextResponse.json(await payload(guest.id, guest.tableSessionId));
+  }
+
   if (body?.action === "answer" || body?.action === "pass") {
-    if (!live) {
+    if (!live || new Date(live.endsAt).getTime() <= Date.now()) {
       return NextResponse.json({ error: "Tur bitti." }, { status: 409 });
     }
     if (Date.now() < new Date(live.startedAt).getTime() + COUNTDOWN_MS) {
@@ -210,11 +311,14 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    const letter = (body.letter ?? "").toLocaleUpperCase("tr-TR");
+    const typedPas = isPasGuess(body.word ?? "");
+    const passing = body.action === "pass" || typedPas;
+    const letter = (
+      live.mode === "CLAIM" ? live.currentLetter : (body.letter ?? "")
+    ).toLocaleUpperCase("tr-TR");
     if (!PASAPAROLA_LETTERS.includes(letter as (typeof PASAPAROLA_LETTERS)[number])) {
       return NextResponse.json({ error: "Harf geçersiz." }, { status: 400 });
     }
-    const passing = body.action === "pass";
     const guess = passing ? PAS_MARK : (body.word ?? "").trim();
     if (!passing && !guess) {
       return NextResponse.json({ error: "Yanıt yazın." }, { status: 400 });
@@ -238,6 +342,8 @@ export async function POST(request: Request) {
     const ok = !passing && answersMatch(guess, expected.word);
     const answers = parseJsonRecord(play.answers);
     const claims = parseJsonRecord(live.claims);
+    let currentLetter = live.currentLetter;
+    let letterEndsAt = live.letterEndsAt;
 
     if (live.mode === "CLAIM") {
       if (claims[letter] && claims[letter] !== guest.id) {
@@ -249,8 +355,22 @@ export async function POST(request: Request) {
       if (ok) {
         answers[letter] = expected.word;
         claims[letter] = guest.id;
-      } else {
-        answers[letter] = passing ? PAS_MARK : guess;
+        const next = nextUnclaimedLetter(claims, letter);
+        if (next) {
+          currentLetter = next;
+          letterEndsAt = new Date(Date.now() + CLAIM_LETTER_MS);
+        } else {
+          letterEndsAt = now;
+        }
+      } else if (passing) {
+        answers[letter] = PAS_MARK;
+        const next = nextUnclaimedLetter(claims, letter);
+        if (next) {
+          currentLetter = next;
+          letterEndsAt = new Date(Date.now() + CLAIM_LETTER_MS);
+        } else {
+          letterEndsAt = now;
+        }
       }
     } else if (ok) {
       answers[letter] = expected.word;
@@ -262,8 +382,17 @@ export async function POST(request: Request) {
     for (const row of words) expectedMap[row.letter] = row.word;
     const score =
       live.mode === "CLAIM"
-        ? Object.values(claims).filter((id) => id === guest.id).length
+        ? Object.entries(claims).filter(
+            ([key, id]) =>
+              id === guest.id &&
+              PASAPAROLA_LETTERS.includes(key as (typeof PASAPAROLA_LETTERS)[number]),
+          ).length
         : scoreAnswers(answers, expectedMap);
+
+    const claimEnded =
+      live.mode === "CLAIM" &&
+      letterEndsAt &&
+      letterEndsAt.getTime() <= Date.now();
 
     await prisma.$transaction([
       prisma.pasaparolaPlay.update({
@@ -272,7 +401,12 @@ export async function POST(request: Request) {
       }),
       prisma.pasaparolaRound.update({
         where: { id: live.id },
-        data: { claims: JSON.stringify(claims) },
+        data: {
+          claims: JSON.stringify(claims),
+          currentLetter,
+          letterEndsAt,
+          ...(claimEnded ? { endsAt: now } : {}),
+        },
       }),
     ]);
 

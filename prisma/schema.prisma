@@ -424,6 +424,8 @@ model PasaparolaRound {
   mode           PasaparolaMode
   startedAt      DateTime         @default(now())
   endsAt         DateTime
+  currentLetter  String           @default("A")
+  letterEndsAt   DateTime?
   wordIds        String
   claims         String           @default("{}")
   plays          PasaparolaPlay[]

@@ -29,7 +29,8 @@ export const PASAPAROLA_LETTERS = [
   "Z",
 ] as const;
 
-export const ROUND_MS = 3 * 60 * 1000;
+export const ROUND_MS = 5 * 60 * 1000;
+export const CLAIM_LETTER_MS = 20 * 1000;
 export const COUNTDOWN_MS = 5 * 1000;
 export const PAS_MARK = "*";
 
@@ -55,4 +56,8 @@ export function answersMatch(guess: string, expected: string) {
   const a = foldAnswer(guess);
   const b = foldAnswer(expected);
   return a.length > 0 && a === b;
+}
+
+export function isPasGuess(value: string) {
+  return foldAnswer(value) === "pas";
 }
