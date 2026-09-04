@@ -13,7 +13,7 @@ import { tableLabel } from "@/lib/table-label";
 import type { OrderStatus } from "@prisma/client";
 import { SessionFeedbackForm } from "@/components/session-feedback-form";
 import { AllergenFilter } from "@/components/allergen-filter";
-import { GuestPasaparola } from "@/components/guest-pasaparola";
+import { GuestGames } from "@/components/guest-games";
 import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
 import {
   itemHiddenByFilter,
@@ -885,7 +885,7 @@ export function GuestApp({
     if (!latest || latest.id === seenAlert.current) return;
     seenAlert.current = latest.id;
     pingPhone(latest.title, latest.body);
-    if (latest.title === "Pasaparola") {
+    if (latest.title === "Pasaparola" || latest.title === "Cevap Ver") {
       setTab("games");
       return;
     }
@@ -1652,7 +1652,7 @@ export function GuestApp({
               : "hidden"
         }
       >
-        <GuestPasaparola
+        <GuestGames
           guestToken={guestToken}
           guestHeaders={guestHeaders}
           onRoundLive={() => setTab("games")}

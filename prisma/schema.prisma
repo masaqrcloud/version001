@@ -164,6 +164,7 @@ model TableSession {
   feedback       SessionFeedback[]
   mergedTables      Table[]            @relation("SessionMergedTables")
   pasaparolaRounds  PasaparolaRound[]
+  ratherRounds      RatherRound[]
 }
 
 model Guest {
@@ -446,6 +447,19 @@ model PasaparolaPlay {
   updatedAt DateTime        @updatedAt
 
   @@unique([roundId, guestId])
+}
+
+model RatherRound {
+  id             String       @id @default(cuid())
+  tableSessionId String
+  tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  category       String
+  questionId     String
+  votes          String       @default("{}")
+  seenIds        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@index([tableSessionId, createdAt])
 }
 
 model Bill {
