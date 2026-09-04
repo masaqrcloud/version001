@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { PasaparolaRound } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { isStaffProxyNickname } from "@/lib/media";
@@ -43,15 +44,7 @@ async function pickRoundWords() {
   return ids;
 }
 
-async function syncClaimRound(round: {
-  id: string;
-  mode: string;
-  startedAt: Date;
-  endsAt: Date;
-  currentLetter: string;
-  letterEndsAt: Date | null;
-  claims: string;
-}) {
+async function syncClaimRound(round: PasaparolaRound): Promise<PasaparolaRound> {
   if (round.mode !== "CLAIM") return round;
   const now = Date.now();
   const playAt = new Date(round.startedAt).getTime() + COUNTDOWN_MS;
