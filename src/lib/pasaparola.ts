@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import words from "@/lib/pasaparola-words.json";
 import extra from "@/lib/pasaparola-words-extra.json";
-import { PASAPAROLA_LETTERS, answersMatch } from "@/lib/pasaparola-shared";
+import { PASAPAROLA_LETTERS, PAS_MARK, answersMatch } from "@/lib/pasaparola-shared";
 
 export {
   PASAPAROLA_LETTERS,
