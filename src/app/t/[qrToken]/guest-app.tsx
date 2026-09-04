@@ -883,9 +883,13 @@ export function GuestApp({
     const latest = notes?.notifications.find((item) => !item.read);
     if (!latest || latest.id === seenAlert.current) return;
     seenAlert.current = latest.id;
+    pingPhone(latest.title, latest.body);
+    if (latest.title === "Pasaparola") {
+      setTab("games");
+      return;
+    }
     setMessage(`${latest.title}: ${latest.body}`);
     setAlertPopup({ title: latest.title, body: latest.body });
-    pingPhone(latest.title, latest.body);
   }, [notes]);
 
   const unread = notes?.unread ?? 0;
@@ -893,7 +897,7 @@ export function GuestApp({
     ["menu", "Menü"],
     ["cart", cartCount ? `Sepet (${cartCount})` : "Sepet"],
     ["bill", "Hesap"],
-    ["games", "Oyun"],
+    ["games", "Oyunlar"],
     ["alerts", unread ? `Bildirim (${unread})` : "Bildirim"],
   ] as const;
 
@@ -1230,12 +1234,28 @@ export function GuestApp({
               key={key}
               type="button"
               onClick={() => (key === "alerts" ? void openAlerts() : setTab(key))}
-              className={`relative min-h-11 touch-manipulation rounded-full px-1 text-xs font-medium sm:text-sm ${
+              className={`relative flex min-h-11 touch-manipulation flex-col items-center justify-center rounded-full px-0.5 text-[11px] font-medium leading-tight sm:text-sm ${
                 tab === key
                   ? "bg-[var(--ink)] text-[var(--bg)]"
                   : "text-[var(--ink)]"
               } ${key === "cart" && cartPulse ? "cart-pulse" : ""}`}
             >
+              {key === "games" ? (
+                <svg
+                  viewBox="0 0 24 24"
+                  className="mb-0.5 h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="8" width="18" height="11" rx="4" />
+                  <path d="M8 13v3M6.5 14.5h3" />
+                  <circle cx="15.5" cy="13" r="0.7" fill="currentColor" />
+                  <circle cx="17.5" cy="15.2" r="0.7" fill="currentColor" />
+                </svg>
+              ) : null}
               {label}
               {key === "cart" && cartCount > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] text-white">
@@ -1612,14 +1632,13 @@ export function GuestApp({
         onClose={() => setBillConfirmOpen(false)}
       />
 
-      {tab === "games" ? (
-        <div className="px-4 py-6">
-          <GuestPasaparola
-            guestToken={guestToken}
-            guestHeaders={guestHeaders}
-          />
-        </div>
-      ) : null}
+      <div className={tab === "games" ? "px-4 py-6" : "hidden"}>
+        <GuestPasaparola
+          guestToken={guestToken}
+          guestHeaders={guestHeaders}
+          onRoundLive={() => setTab("games")}
+        />
+      </div>
 
       {tab === "alerts" ? (
         <div className="space-y-3 px-4 py-6">

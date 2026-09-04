@@ -1,5 +1,6 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isStaffProxyNickname } from "@/lib/media";
 
 const statusCopy: Record<OrderStatus, { title: string; body: string }> = {
   PENDING: {
@@ -26,6 +27,30 @@ const statusCopy: Record<OrderStatus, { title: string; body: string }> = {
 
 function withItems(body: string, itemSummary?: string) {
   return itemSummary ? `${body} (${itemSummary})` : body;
+}
+
+export async function notifyTableGuests(
+  tableSessionId: string,
+  title: string,
+  body: string,
+  exceptGuestId?: string,
+) {
+  if (!prisma.guestNotification) return;
+  const guests = await prisma.guest.findMany({
+    where: {
+      tableSessionId,
+      ...(exceptGuestId ? { id: { not: exceptGuestId } } : {}),
+    },
+    select: { id: true, nickname: true },
+  });
+  const targets = guests.filter((guest) => {
+    const name = guest.nickname?.trim();
+    return Boolean(name) && !isStaffProxyNickname(name);
+  });
+  if (!targets.length) return;
+  await prisma.guestNotification.createMany({
+    data: targets.map((guest) => ({ guestId: guest.id, title, body })),
+  });
 }
 
 export async function notifyGuest(guestId: string, title: string, body: string) {

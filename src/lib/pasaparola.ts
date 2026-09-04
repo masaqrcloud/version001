@@ -4,7 +4,9 @@ import { PASAPAROLA_LETTERS, answersMatch } from "@/lib/pasaparola-shared";
 
 export {
   PASAPAROLA_LETTERS,
+  PAS_MARK,
   ROUND_MS,
+  COUNTDOWN_MS,
   answersMatch,
   foldAnswer,
   type PasaparolaModeId,

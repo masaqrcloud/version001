@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { isStaffProxyNickname } from "@/lib/media";
+import { notifyTableGuests } from "@/lib/notify";
 import {
   PASAPAROLA_LETTERS,
+  PAS_MARK,
   ROUND_MS,
+  COUNTDOWN_MS,
   answersMatch,
   ensurePasaparolaWords,
   parseJsonRecord,
@@ -52,6 +55,8 @@ async function payload(guestId: string, sessionId: string) {
       live: false,
       finished: false,
       remainingMs: 0,
+      countdownMs: 0,
+      startedAt: null,
       mode: null,
       letters: [],
       answers: {},
@@ -61,8 +66,13 @@ async function payload(guestId: string, sessionId: string) {
     };
   }
 
-  const remainingMs = Math.max(0, new Date(round.endsAt).getTime() - now);
-  const finished = remainingMs === 0;
+  const playAt = new Date(round.startedAt).getTime() + COUNTDOWN_MS;
+  const countdownMs = Math.max(0, playAt - now);
+  const remainingMs =
+    countdownMs > 0
+      ? ROUND_MS
+      : Math.max(0, new Date(round.endsAt).getTime() - now);
+  const finished = countdownMs === 0 && remainingMs === 0;
   const live = !finished;
   const wordRows = await prisma.pasaparolaWord.findMany({
     where: { id: { in: round.wordIds.split(",") } },
@@ -95,16 +105,24 @@ async function payload(guestId: string, sessionId: string) {
     live,
     finished,
     remainingMs,
+    countdownMs,
+    startedAt: round.startedAt.toISOString(),
     mode: round.mode as PasaparolaModeId,
-    letters: wordRows.map((row) => ({
-      letter: row.letter,
-      clue: row.clue,
-      mine: answers[row.letter] ?? "",
-      correct: finished
-        ? answersMatch(answers[row.letter] ?? "", row.word)
-        : Boolean(answers[row.letter] && answersMatch(answers[row.letter], row.word)),
-      claimedBy: claimNames[row.letter] ?? null,
-    })),
+    letters:
+      countdownMs > 0
+        ? []
+        : wordRows.map((row) => {
+            const mine = answers[row.letter] ?? "";
+            const correct = answersMatch(mine, row.word);
+            return {
+              letter: row.letter,
+              clue: row.clue,
+              mine: mine === PAS_MARK ? "" : mine,
+              correct,
+              passed: Boolean(mine) && !correct,
+              claimedBy: claimNames[row.letter] ?? null,
+            };
+          }),
     answers,
     claims: claimNames,
     standings,
@@ -129,7 +147,7 @@ export async function POST(request: Request) {
   await ensurePasaparolaWords();
 
   const body = (await request.json().catch(() => null)) as {
-    action?: "start" | "answer";
+    action?: "start" | "answer" | "pass";
     mode?: PasaparolaModeId;
     letter?: string;
     word?: string;
@@ -159,10 +177,18 @@ export async function POST(request: Request) {
         data: {
           tableSessionId: guest.tableSessionId,
           mode,
-          endsAt: new Date(now.getTime() + ROUND_MS),
+          endsAt: new Date(now.getTime() + COUNTDOWN_MS + ROUND_MS),
           wordIds: ids.join(","),
         },
       });
+      const who = nicknameOf(guest);
+      const modeLabel = mode === "CLAIM" ? "Kapışma" : "Hep beraber";
+      await notifyTableGuests(
+        guest.tableSessionId,
+        "Pasaparola",
+        `${who} ${modeLabel} turunu başlattı. 5 saniye.`,
+        guest.id,
+      );
     }
     await prisma.pasaparolaPlay.upsert({
       where: { roundId_guestId: { roundId: round.id, guestId: guest.id } },
@@ -172,16 +198,23 @@ export async function POST(request: Request) {
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
   }
 
-  if (body?.action === "answer") {
+  if (body?.action === "answer" || body?.action === "pass") {
     if (!live) {
       return NextResponse.json({ error: "Tur bitti." }, { status: 409 });
+    }
+    if (Date.now() < new Date(live.startedAt).getTime() + COUNTDOWN_MS) {
+      return NextResponse.json(
+        { error: "Oyun henüz başlamadı." },
+        { status: 409 },
+      );
     }
     const letter = (body.letter ?? "").toLocaleUpperCase("tr-TR");
     if (!PASAPAROLA_LETTERS.includes(letter as (typeof PASAPAROLA_LETTERS)[number])) {
       return NextResponse.json({ error: "Harf geçersiz." }, { status: 400 });
     }
-    const guess = (body.word ?? "").trim();
-    if (!guess) {
+    const passing = body.action === "pass";
+    const guess = passing ? PAS_MARK : (body.word ?? "").trim();
+    if (!passing && !guess) {
       return NextResponse.json({ error: "Yanıt yazın." }, { status: 400 });
     }
 
@@ -200,7 +233,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Harf yok." }, { status: 400 });
     }
 
-    const ok = answersMatch(guess, expected.word);
+    const ok = !passing && answersMatch(guess, expected.word);
     const answers = parseJsonRecord(play.answers);
     const claims = parseJsonRecord(live.claims);
 
@@ -214,11 +247,13 @@ export async function POST(request: Request) {
       if (ok) {
         answers[letter] = expected.word;
         claims[letter] = guest.id;
+      } else {
+        answers[letter] = passing ? PAS_MARK : guess;
       }
     } else if (ok) {
       answers[letter] = expected.word;
     } else {
-      answers[letter] = guess;
+      answers[letter] = passing ? PAS_MARK : guess;
     }
 
     const expectedMap: Record<string, string> = {};
@@ -241,6 +276,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok,
+      passed: !ok,
       ...(await payload(guest.id, guest.tableSessionId)),
     });
   }

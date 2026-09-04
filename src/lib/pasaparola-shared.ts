@@ -30,6 +30,8 @@ export const PASAPAROLA_LETTERS = [
 ] as const;
 
 export const ROUND_MS = 3 * 60 * 1000;
+export const COUNTDOWN_MS = 5 * 1000;
+export const PAS_MARK = "*";
 
 export type PasaparolaModeId = "RACE" | "CLAIM";
 
