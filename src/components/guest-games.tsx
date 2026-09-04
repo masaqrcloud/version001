@@ -83,6 +83,7 @@ export function GuestGames({
         <GuestMemory
           guestToken={guestToken}
           guestHeaders={guestHeaders}
+          onRoundLive={onRoundLive}
           onImmersiveChange={(on) => {
             setImmersive(on);
             onImmersiveChange?.(on);
@@ -121,7 +122,7 @@ export function GuestGames({
         <Card className="p-5">
           <p className="font-serif text-2xl">Hafıza</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            5×5 yemek ve komik ikonlar. Süre veya sıra sıra eşleştir.
+            5×5 kart. Birden fazla kişi varsa sıra sıra; bilemeyince geçer.
           </p>
         </Card>
       </button>

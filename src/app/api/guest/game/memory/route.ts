@@ -6,6 +6,7 @@ import { isStaffProxyNickname } from "@/lib/media";
 import { notifyTableGuests } from "@/lib/notify";
 import {
   JOKER_PAIR,
+  MEMORY_COUNTDOWN_MS,
   MEMORY_HIDE_MS,
   MEMORY_SIZE,
   dealMemoryBoard,
@@ -40,11 +41,38 @@ function nextPlayer(players: string[], current: string | null) {
   return players[(from + 1) % players.length] ?? players[0] ?? current;
 }
 
+async function tablePlayerIds(sessionId: string, firstId: string) {
+  const guests = await prisma.guest.findMany({
+    where: { tableSessionId: sessionId },
+    select: { id: true, nickname: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const ids = guests
+    .filter((row) => !isStaffProxyNickname(row.nickname))
+    .map((row) => row.id);
+  return [firstId, ...ids.filter((id) => id !== firstId)];
+}
+
+async function ensurePlayer(round: MemoryRound, guestId: string) {
+  const players = parseJson<string[]>(round.players, []);
+  if (round.endedAt || players.includes(guestId)) return round;
+  const scores = parseJson<Record<string, number>>(round.scores, {});
+  scores[guestId] = scores[guestId] ?? 0;
+  return prisma.memoryRound.update({
+    where: { id: round.id },
+    data: {
+      players: JSON.stringify([...players, guestId]),
+      scores: JSON.stringify(scores),
+    },
+  });
+}
+
 async function payload(guestId: string, sessionId: string) {
   let round = await prisma.memoryRound.findFirst({
     where: { tableSessionId: sessionId },
     orderBy: { createdAt: "desc" },
   });
+  if (round && !round.endedAt) round = await ensurePlayer(round, guestId);
   if (round) round = await syncRound(round);
   if (!round) {
     return {
@@ -54,6 +82,7 @@ async function payload(guestId: string, sessionId: string) {
       scores: [],
       turnGuestId: null,
       isMyTurn: true,
+      countdownMs: 0,
       elapsedMs: 0,
       moves: 0,
       pairsLeft: 13,
@@ -71,7 +100,12 @@ async function payload(guestId: string, sessionId: string) {
   });
   const names = new Map(guests.map((row) => [row.id, nicknameOf(row)]));
   const finished = Boolean(round.endedAt);
-  const started = round.startedAt?.getTime() ?? null;
+  const multi = players.length > 1;
+  const started = round.startedAt?.getTime() ?? Date.now();
+  const playAt = started + (multi ? MEMORY_COUNTDOWN_MS : 0);
+  const now = Date.now();
+  const countdownMs = finished ? 0 : Math.max(0, playAt - now);
+  const elapsedMs = countdownMs > 0 ? 0 : Math.max(0, (round.endedAt?.getTime() ?? now) - playAt);
 
   return {
     live: !finished,
@@ -94,10 +128,9 @@ async function payload(guestId: string, sessionId: string) {
       isMe: id === guestId,
     })),
     turnGuestId: round.turnGuestId,
-    isMyTurn: players.length < 2 || round.turnGuestId === guestId,
-    elapsedMs: started
-      ? Math.max(0, (round.endedAt?.getTime() ?? Date.now()) - started)
-      : 0,
+    isMyTurn: countdownMs === 0 && (!multi || round.turnGuestId === guestId),
+    countdownMs,
+    elapsedMs,
     moves: round.moves,
     pairsLeft: countPairsLeft(tiles.map((tile, index) => ({
       matched: Boolean(matched[String(index)]),
@@ -126,25 +159,58 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Oturum bulunamadı" }, { status: 401 });
   }
   const body = (await request.json().catch(() => null)) as {
-    action?: "start" | "flip";
+    action?: "start" | "flip" | "end";
     index?: number;
   } | null;
 
   if (body?.action === "start") {
+    const existing = await prisma.memoryRound.findFirst({
+      where: { tableSessionId: guest.tableSessionId, endedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      return NextResponse.json(await payload(guest.id, guest.tableSessionId));
+    }
     const tiles = dealMemoryBoard();
+    const players = await tablePlayerIds(guest.tableSessionId, guest.id);
+    const scores = Object.fromEntries(players.map((id) => [id, 0]));
     await prisma.memoryRound.create({
       data: {
         tableSessionId: guest.tableSessionId,
         tiles: JSON.stringify(tiles),
-        players: JSON.stringify([guest.id]),
+        players: JSON.stringify(players),
         turnGuestId: guest.id,
-        scores: JSON.stringify({ [guest.id]: 0 }),
+        scores: JSON.stringify(scores),
+        startedAt: new Date(),
       },
     });
     await notifyTableGuests(
       guest.tableSessionId,
       "Hafıza",
-      `${nicknameOf(guest)} hafıza açtı.`,
+      players.length > 1
+        ? `${nicknameOf(guest)} hafıza açtı. 5 saniye.`
+        : `${nicknameOf(guest)} hafıza açtı.`,
+      guest.id,
+    );
+    return NextResponse.json(await payload(guest.id, guest.tableSessionId));
+  }
+
+  if (body?.action === "end") {
+    const live = await prisma.memoryRound.findFirst({
+      where: { tableSessionId: guest.tableSessionId, endedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!live) {
+      return NextResponse.json(await payload(guest.id, guest.tableSessionId));
+    }
+    await prisma.memoryRound.update({
+      where: { id: live.id },
+      data: { endedAt: new Date(), hideAt: null, faceUp: "[]" },
+    });
+    await notifyTableGuests(
+      guest.tableSessionId,
+      "Hafıza",
+      `${nicknameOf(guest)} oyunu bitirdi.`,
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
@@ -178,7 +244,13 @@ export async function POST(request: Request) {
     players = [...players, guest.id];
     scores[guest.id] = scores[guest.id] ?? 0;
   }
-  if (players.length > 1 && live.turnGuestId && live.turnGuestId !== guest.id) {
+  const multi = players.length > 1;
+  const playAt =
+    (live.startedAt?.getTime() ?? Date.now()) + (multi ? MEMORY_COUNTDOWN_MS : 0);
+  if (Date.now() < playAt) {
+    return NextResponse.json({ error: "Oyun henüz başlamadı." }, { status: 409 });
+  }
+  if (multi && live.turnGuestId && live.turnGuestId !== guest.id) {
     return NextResponse.json({ error: "Sıra sende değil." }, { status: 409 });
   }
   if (matched[String(index)] || faceUp.includes(index) || faceUp.length >= 2) {

@@ -28,6 +28,7 @@ export const MEMORY_ICONS = [
 
 export const MEMORY_SIZE = 25;
 export const MEMORY_HIDE_MS = 850;
+export const MEMORY_COUNTDOWN_MS = 5 * 1000;
 export const JOKER_PAIR = "joker";
 
 export type MemoryTile = {

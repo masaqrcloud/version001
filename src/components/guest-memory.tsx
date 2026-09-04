@@ -18,6 +18,7 @@ type MemoryState = {
   scores: { guestId: string; name: string; score: number; isMe: boolean }[];
   turnGuestId: string | null;
   isMyTurn: boolean;
+  countdownMs: number;
   elapsedMs: number;
   moves: number;
   pairsLeft: number;
@@ -33,10 +34,12 @@ function clock(ms: number) {
 export function GuestMemory({
   guestToken,
   guestHeaders,
+  onRoundLive,
   onImmersiveChange,
 }: {
   guestToken: string;
   guestHeaders: (json?: boolean) => Record<string, string>;
+  onRoundLive?: () => void;
   onImmersiveChange?: (on: boolean) => void;
 }) {
   const { data, setData } = usePoll<MemoryState>(
@@ -46,6 +49,11 @@ export function GuestMemory({
   );
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if ((data?.countdownMs ?? 0) > 0) onRoundLive?.();
+  }, [data?.countdownMs, onRoundLive]);
 
   useEffect(() => {
     onImmersiveChange?.(Boolean(data?.live && !data.finished));
@@ -53,13 +61,23 @@ export function GuestMemory({
   }, [data?.live, data?.finished, onImmersiveChange]);
 
   useEffect(() => {
+    setCount(data?.countdownMs ?? 0);
     setElapsed(data?.elapsedMs ?? 0);
-    if (!data?.live || data.finished || !data.elapsedMs) return;
+  }, [data?.countdownMs, data?.elapsedMs]);
+
+  useEffect(() => {
+    if (!data?.live || data.finished || count <= 0) return;
+    const id = window.setInterval(() => setCount((ms) => Math.max(0, ms - 1000)), 1000);
+    return () => window.clearInterval(id);
+  }, [data?.live, data?.finished, count > 0]);
+
+  useEffect(() => {
+    if (!data?.live || data.finished || count > 0 || !data.elapsedMs) return;
     const id = window.setInterval(() => setElapsed((ms) => ms + 1000), 1000);
     return () => window.clearInterval(id);
-  }, [data?.live, data?.finished, data?.elapsedMs]);
+  }, [data?.live, data?.finished, data?.elapsedMs, count > 0]);
 
-  async function send(action: "start" | "flip", index?: number) {
+  async function send(action: "start" | "flip" | "end", index?: number) {
     setBusy(true);
     const res = await fetch("/api/guest/game/memory", {
       method: "POST",
@@ -83,29 +101,79 @@ export function GuestMemory({
     return <p className="text-sm text-[var(--muted)]">Kartlar karılıyor…</p>;
   }
 
-  const playing = data.live && data.tiles.length === 25;
+  const counting = data.live && !data.finished && count > 0;
+  const playing = data.live && !data.finished && !counting && data.tiles.length === 25;
+  const myTurn =
+    !counting &&
+    (data.scores.length < 2 ||
+      data.scores.some((row) => row.isMe && row.guestId === data.turnGuestId));
   const turnName = data.scores.find((row) => row.guestId === data.turnGuestId)?.name;
 
   return (
     <div className="space-y-3">
-      {!playing ? (
+      {!playing && !counting ? (
         <div>
           <p className="page-kicker">Masa oyunu</p>
           <h2 className="mt-1 font-serif text-3xl">Hafıza</h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            5×5 kart. 12 çift + 1 joker. Tek başına süreye karşı; masada sıra
-            sende, kim daha çok eşleştirirse o kazanır.
+            5×5 kart. Birden fazla kişi varsa 5 saniye, sonra sıra sıra.
+            Bilemeyince sıra geçer.
           </p>
         </div>
+      ) : null}
+
+      {counting ? (
+        <Card className="flex flex-col items-center justify-center px-4 py-12">
+          <p className="text-sm text-[var(--muted)]">Oyun başlıyor</p>
+          <p className="mt-3 font-serif text-8xl tabular-nums leading-none">
+            {Math.max(1, Math.ceil(count / 1000))}
+          </p>
+          <p className="mt-4 text-sm text-[var(--muted)]">Sıra sıra eşleştir</p>
+          {data.scores.length ? (
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+              {data.scores.map((row) => (
+                <span
+                  key={row.guestId}
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    row.isMe
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-black/5 text-[var(--ink)]"
+                  }`}
+                >
+                  {row.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <Button
+            className="mt-6"
+            variant="outline"
+            disabled={busy}
+            onClick={() => void send("end")}
+          >
+            Oyunu bitir
+          </Button>
+        </Card>
       ) : null}
 
       {playing || data.finished ? (
         <>
           <div className="flex items-center justify-between gap-2">
             <p className="font-serif text-2xl tabular-nums">{clock(elapsed)}</p>
-            <p className="text-xs text-[var(--muted)]">
-              {data.moves} hamle · {data.pairsLeft} kaldı
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-[var(--muted)]">
+                {data.moves} hamle · {data.pairsLeft} kaldı
+              </p>
+              {playing ? (
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => void send("end")}
+                >
+                  Bitir
+                </Button>
+              ) : null}
+            </div>
           </div>
           {data.scores.length ? (
             <div className="flex flex-wrap gap-1.5">
@@ -125,7 +193,7 @@ export function GuestMemory({
           ) : null}
           {playing && data.scores.length > 1 ? (
             <p className="text-xs text-[var(--muted)]">
-              {data.isMyTurn ? "Sıra sende" : `Sıra: ${turnName ?? "misafir"}`}
+              {myTurn ? "Sıra sende" : `Sıra: ${turnName ?? "misafir"}`}
             </p>
           ) : null}
 
@@ -136,7 +204,7 @@ export function GuestMemory({
                 <button
                   key={index}
                   type="button"
-                  disabled={busy || data.finished || open || !data.isMyTurn}
+                  disabled={busy || data.finished || counting || open || !myTurn}
                   onClick={() => void send("flip", index)}
                   className={`aspect-square rounded-xl text-lg leading-none transition-colors ${
                     tile.matched
@@ -162,14 +230,16 @@ export function GuestMemory({
 
       {data.finished ? (
         <Card className="p-4 text-center">
-          <p className="font-serif text-2xl">Kartlar bitti</p>
+          <p className="font-serif text-2xl">
+            {data.pairsLeft > 0 ? "Oyun bitti" : "Kartlar bitti"}
+          </p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {clock(data.elapsedMs)} · {data.moves} hamle
           </p>
         </Card>
       ) : null}
 
-      {!playing || data.finished ? (
+      {(!playing && !counting) || data.finished ? (
         <Button className="w-full" disabled={busy} onClick={() => void send("start")}>
           {data.finished ? "Yeniden kar" : "Başlat"}
         </Button>
