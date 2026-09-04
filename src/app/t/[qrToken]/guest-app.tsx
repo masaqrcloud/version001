@@ -18,6 +18,7 @@ import {
   itemHiddenByFilter,
   type AllergenId,
 } from "@/lib/nutrition";
+import { isAndroidDevice, openAndroidWifiConnect } from "@/lib/wifi";
 
 type MenuItem = {
   id: string;
@@ -122,7 +123,28 @@ function GuestWifiCard({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [android, setAndroid] = useState(false);
+
+  useEffect(() => {
+    setAndroid(isAndroidDevice());
+  }, []);
+
   if (!wifiName) return null;
+
+  function copyAndConnect() {
+    const text = wifiPassword || wifiName || "";
+    const write = navigator.clipboard.writeText(text);
+    if (isAndroidDevice()) {
+      openAndroidWifiConnect();
+    }
+    void write.then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      },
+      () => setCopied(false),
+    );
+  }
 
   return (
     <Card
@@ -134,28 +156,31 @@ function GuestWifiCard({
         </p>
         <p className="mt-1 truncate font-medium">{wifiName}</p>
         {wifiPassword ? (
-          <p className="mt-1 break-all text-sm text-[var(--muted)]">
+          <button
+            type="button"
+            onClick={copyAndConnect}
+            className="mt-1 block w-full break-all text-left text-sm text-[var(--muted)]"
+          >
             Şifre:{" "}
-            <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
-          </p>
+            <span className="rounded-md bg-white/70 px-1.5 py-0.5 font-medium text-[var(--ink)] underline decoration-sky-400 decoration-dotted underline-offset-2">
+              {wifiPassword}
+            </span>
+            {copied ? (
+              <span className="ml-2 whitespace-nowrap text-xs font-semibold text-sky-700">
+                Kopyalandı
+              </span>
+            ) : (
+              <span className="ml-2 whitespace-nowrap text-xs text-sky-700/80">
+                {android ? "Kopyala · Wi‑Fi açılır" : "Dokun, kopyala"}
+              </span>
+            )}
+          </button>
         ) : (
           <p className="mt-1 text-xs text-[var(--muted)]">Şifresiz ağ</p>
         )}
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(wifiPassword || wifiName);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-          } catch {
-            setCopied(false);
-          }
-        }}
-      >
-        {copied ? "Kopyalandı" : "Kopyala"}
+      <Button size="sm" variant="outline" onClick={copyAndConnect}>
+        {copied ? "Kopyalandı" : android ? "Bağlan" : "Kopyala"}
       </Button>
     </Card>
   );
