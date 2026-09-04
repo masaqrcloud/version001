@@ -16,6 +16,8 @@ import {
   parseJsonRecord,
   scoreAnswers,
   nextUnclaimedLetter,
+  allPlaysClosed,
+  allLettersClaimed,
   type PasaparolaModeId,
 } from "@/lib/pasaparola";
 
@@ -116,11 +118,25 @@ async function payload(guestId: string, sessionId: string) {
       claims: {},
       standings: [],
       solutions: null,
+      left: false,
     };
   }
 
   const playAt = new Date(round.startedAt).getTime() + COUNTDOWN_MS;
   const countdownMs = Math.max(0, playAt - now);
+  if (
+    countdownMs === 0 &&
+    new Date(round.endsAt).getTime() > now &&
+    (round.mode === "CLAIM"
+      ? allLettersClaimed(parseJsonRecord(round.claims))
+      : allPlaysClosed(round.plays))
+  ) {
+    const ended = await prisma.pasaparolaRound.update({
+      where: { id: round.id },
+      data: { endsAt: new Date(now), letterEndsAt: new Date(now) },
+    });
+    round = { ...round, ...ended };
+  }
   const claimLetterMs = Math.max(
     0,
     (round.letterEndsAt?.getTime() ?? playAt + CLAIM_LETTER_MS) - now,
@@ -162,12 +178,14 @@ async function payload(guestId: string, sessionId: string) {
       name: nicknameOf(play.guest),
       score: play.score,
       isMe: play.guestId === guestId,
+      left: Boolean(play.leftAt),
     }))
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "tr"));
 
   return {
     live,
     finished,
+    left: Boolean(mine?.leftAt),
     remainingMs,
     countdownMs,
     letterMs: round.mode === "CLAIM" ? remainingMs : 0,
@@ -269,11 +287,16 @@ export async function POST(request: Request) {
         guest.id,
       );
     }
-    await prisma.pasaparolaPlay.upsert({
+    const existing = await prisma.pasaparolaPlay.findUnique({
       where: { roundId_guestId: { roundId: round.id, guestId: guest.id } },
-      update: {},
-      create: { roundId: round.id, guestId: guest.id },
     });
+    if (!existing?.leftAt) {
+      await prisma.pasaparolaPlay.upsert({
+        where: { roundId_guestId: { roundId: round.id, guestId: guest.id } },
+        update: {},
+        create: { roundId: round.id, guestId: guest.id },
+      });
+    }
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
   }
 
@@ -281,14 +304,24 @@ export async function POST(request: Request) {
     if (!live || new Date(live.endsAt).getTime() <= Date.now()) {
       return NextResponse.json(await payload(guest.id, guest.tableSessionId));
     }
-    await prisma.pasaparolaRound.update({
-      where: { id: live.id },
-      data: { endsAt: now, letterEndsAt: now },
+    await prisma.pasaparolaPlay.upsert({
+      where: { roundId_guestId: { roundId: live.id, guestId: guest.id } },
+      update: { leftAt: now },
+      create: { roundId: live.id, guestId: guest.id, leftAt: now },
     });
+    const plays = await prisma.pasaparolaPlay.findMany({
+      where: { roundId: live.id },
+    });
+    if (allPlaysClosed(plays)) {
+      await prisma.pasaparolaRound.update({
+        where: { id: live.id },
+        data: { endsAt: now, letterEndsAt: now },
+      });
+    }
     await notifyTableGuests(
       guest.tableSessionId,
       "Pasaparola",
-      `${nicknameOf(guest)} oyunu bitirdi.`,
+      `${nicknameOf(guest)} oyundan çıktı.`,
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
@@ -304,8 +337,11 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
+    if (live.mode === "CLAIM" && body.action === "pass") {
+      return NextResponse.json({ error: "Kapışmada pas yok." }, { status: 400 });
+    }
     const typedPas = isPasGuess(body.word ?? "");
-    const passing = body.action === "pass" || typedPas;
+    const passing = live.mode !== "CLAIM" && (body.action === "pass" || typedPas);
     const letter = (
       live.mode === "CLAIM" ? live.currentLetter : (body.letter ?? "")
     ).toLocaleUpperCase("tr-TR");
@@ -322,6 +358,9 @@ export async function POST(request: Request) {
       update: {},
       create: { roundId: live.id, guestId: guest.id },
     });
+    if (play.leftAt) {
+      return NextResponse.json({ error: "Oyundan çıktın." }, { status: 409 });
+    }
 
     const ids = live.wordIds.split(",");
     const words = await prisma.pasaparolaWord.findMany({
@@ -355,15 +394,6 @@ export async function POST(request: Request) {
         } else {
           letterEndsAt = now;
         }
-      } else if (passing) {
-        answers[letter] = PAS_MARK;
-        const next = nextUnclaimedLetter(claims, letter);
-        if (next) {
-          currentLetter = next;
-          letterEndsAt = new Date(Date.now() + CLAIM_LETTER_MS);
-        } else {
-          letterEndsAt = now;
-        }
       }
     } else if (ok) {
       answers[letter] = expected.word;
@@ -386,6 +416,19 @@ export async function POST(request: Request) {
       live.mode === "CLAIM" &&
       letterEndsAt &&
       letterEndsAt.getTime() <= Date.now();
+    const plays = await prisma.pasaparolaPlay.findMany({
+      where: { roundId: live.id },
+    });
+    const roundOver =
+      live.mode === "CLAIM"
+        ? allLettersClaimed(claims) || Boolean(claimEnded)
+        : allPlaysClosed(
+            plays.map((row) =>
+              row.guestId === guest.id
+                ? { ...row, answers: JSON.stringify(answers) }
+                : row,
+            ),
+          );
 
     await prisma.$transaction([
       prisma.pasaparolaPlay.update({
@@ -398,7 +441,7 @@ export async function POST(request: Request) {
           claims: JSON.stringify(claims),
           currentLetter,
           letterEndsAt,
-          ...(claimEnded ? { endsAt: now } : {}),
+          ...(roundOver ? { endsAt: now } : {}),
         },
       }),
     ]);

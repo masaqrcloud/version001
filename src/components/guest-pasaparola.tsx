@@ -27,8 +27,15 @@ type GameState = {
   startedAt: string | null;
   mode: "RACE" | "CLAIM" | null;
   letters: LetterState[];
-  standings: { guestId: string; name: string; score: number; isMe: boolean }[];
+  standings: {
+    guestId: string;
+    name: string;
+    score: number;
+    isMe: boolean;
+    left?: boolean;
+  }[];
   solutions: Record<string, string> | null;
+  left?: boolean;
   error?: string;
 };
 
@@ -37,6 +44,28 @@ function clock(ms: number) {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function Mark({ ok }: { ok: boolean }) {
+  return ok ? (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+      <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z"
+        />
+      </svg>
+    </span>
+  ) : (
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" aria-hidden>
+        <path
+          fill="currentColor"
+          d="M5.3 5.3a1 1 0 0 1 1.4 0L10 8.6l3.3-3.3a1 1 0 1 1 1.4 1.4L11.4 10l3.3 3.3a1 1 0 0 1-1.4 1.4L10 11.4l-3.3 3.3a1 1 0 0 1-1.4-1.4L8.6 10 5.3 6.7a1 1 0 0 1 0-1.4Z"
+        />
+      </svg>
+    </span>
+  );
 }
 
 function nextOpenLetter(letters: LetterState[], current: string) {
@@ -105,9 +134,9 @@ export function GuestPasaparola({
   }, [data?.countdownMs, data?.startedAt, onRoundLive]);
 
   useEffect(() => {
-    onImmersiveChange?.(Boolean(data?.live && !data.finished));
+    onImmersiveChange?.(Boolean(data?.live && !data.finished && !data.left));
     return () => onImmersiveChange?.(false);
-  }, [data?.live, data?.finished, onImmersiveChange]);
+  }, [data?.live, data?.finished, data?.left, onImmersiveChange]);
 
   useEffect(() => {
     if (data?.startedAt) setLetter("A");
@@ -128,10 +157,10 @@ export function GuestPasaparola({
   }, [letter, current?.mine, data?.mode]);
 
   useEffect(() => {
-    if (!data?.live) return;
+    if (!data?.live || data.left) return;
     if (data.standings.some((row) => row.isMe)) return;
     void start(data.mode === "CLAIM" ? "CLAIM" : "RACE");
-  }, [data?.live, data?.mode, data?.standings]);
+  }, [data?.live, data?.left, data?.mode, data?.standings]);
 
   async function start(nextMode: "RACE" | "CLAIM") {
     setBusy(true);
@@ -162,14 +191,15 @@ export function GuestPasaparola({
     const json = (await res.json().catch(() => ({}))) as GameState;
     setBusy(false);
     if (res.ok) {
-      setEndTab("cevaplar");
       setData(json);
     }
   }
 
   async function send(action: "answer" | "pass") {
     if (!data?.live || count > 0) return;
-    const passing = action === "pass" || isPasGuess(guess);
+    if (data.mode === "CLAIM" && action === "pass") return;
+    const passing =
+      data.mode !== "CLAIM" && (action === "pass" || isPasGuess(guess));
     if (!passing && !guess.trim()) return;
     setBusy(true);
     const res = await fetch("/api/guest/game/pasaparola", {
@@ -232,10 +262,19 @@ export function GuestPasaparola({
     return <p className="text-sm text-[var(--muted)]">Oyun yükleniyor…</p>;
   }
 
+  const left = Boolean(data.left);
   const counting =
-    data.live && !data.finished && (count > 0 || data.letters.length === 0);
-  const playing = data.live && !counting && data.letters.length > 0;
+    data.live &&
+    !data.finished &&
+    !left &&
+    (count > 0 || data.letters.length === 0);
+  const playing = data.live && !data.finished && !left && !counting && data.letters.length > 0;
+  const mineDone =
+    data.mode === "RACE" &&
+    data.letters.length > 0 &&
+    data.letters.every((row) => row.correct || row.wrong);
   const lobby = !data.live && !data.finished;
+  const sittingOut = data.live && !data.finished && left;
 
   return (
     <div className="space-y-4">
@@ -244,8 +283,8 @@ export function GuestPasaparola({
           <p className="page-kicker">Masa oyunu</p>
           <h2 className="mt-1 font-serif text-3xl">Pasaparola</h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            Aynı masadaki herkes aynı kelimeleri görür. Hep beraber 5 dakika;
-            kapışmada her harf 20 saniye. Bitiren bitirir.
+            Hep beraber 5 dakika; kapışmada her harf 20 saniye. Bitir dersen sen
+            çıkarsın, masa oynamaya devam eder.
           </p>
         </div>
       ) : null}
@@ -264,7 +303,7 @@ export function GuestPasaparola({
             >
               <p className="font-serif text-xl">Hep beraber</p>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                5 dakika. Herkes kendi skorunu doldurur. Bitiren bitirir.
+                5 dakika. Herkes harflerini bitirince oyun kapanır.
               </p>
             </button>
             <button
@@ -290,6 +329,33 @@ export function GuestPasaparola({
             Başlat
           </Button>
         </div>
+      ) : null}
+
+      {sittingOut ? (
+        <Card className="p-5 text-center">
+          <p className="font-serif text-2xl">Oyundan çıktın</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Masa oynamaya devam ediyor. Tur bitince cevaplar açılır.
+          </p>
+          {data.standings.length ? (
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {data.standings.map((row) => (
+                <span
+                  key={row.guestId}
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    row.left
+                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      : row.isMe
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-black/5 text-[var(--ink)]"
+                  }`}
+                >
+                  {row.name} · {row.left ? "çıktı" : row.score}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </Card>
       ) : null}
 
       {counting ? (
@@ -336,18 +402,27 @@ export function GuestPasaparola({
                 <span
                   key={row.guestId}
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    row.isMe
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-black/5 text-[var(--ink)]"
+                    row.left
+                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      : row.isMe
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-black/5 text-[var(--ink)]"
                   }`}
                 >
-                  {row.name} · {row.score}
+                  {row.name} · {row.left ? "çıktı" : row.score}
                 </span>
               ))}
             </div>
           ) : null}
 
-          {current ? (
+          {playing && mineDone ? (
+            <Card className="p-5 text-center">
+              <p className="font-serif text-2xl">Sen bitirdin</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Masadakiler de bitince oyun kapanacak.
+              </p>
+            </Card>
+          ) : current ? (
             <Card
               className={`p-5 text-center transition-colors ${
                 flash === "wrong"
@@ -374,7 +449,11 @@ export function GuestPasaparola({
                 <Input
                   value={guess}
                   onChange={(event) => setGuess(event.target.value)}
-                  placeholder={`${current.letter} ile başlayan kelime veya pas`}
+                  placeholder={
+                    data.mode === "CLAIM"
+                      ? `${current.letter} ile başlayan kelime`
+                      : `${current.letter} ile başlayan kelime veya pas`
+                  }
                   maxLength={40}
                   className={flash === "wrong" ? "border-red-500" : undefined}
                   disabled={
@@ -387,20 +466,16 @@ export function GuestPasaparola({
                 <Button type="submit" disabled={busy}>
                   Gönder
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={
-                    busy ||
-                    current.correct ||
-                    (data.mode === "CLAIM" &&
-                      Boolean(current.claimedBy) &&
-                      !current.correct)
-                  }
-                  onClick={() => void send("pass")}
-                >
-                  Pas
-                </Button>
+                {data.mode === "RACE" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy || current.correct}
+                    onClick={() => void send("pass")}
+                  >
+                    Pas
+                  </Button>
+                ) : null}
               </form>
               {flash === "ok" ? (
                 <p className="mt-2 text-sm font-semibold text-emerald-800">
@@ -423,7 +498,7 @@ export function GuestPasaparola({
       {data.finished ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="font-serif text-2xl">Süre bitti</p>
+            <p className="font-serif text-2xl">Oyun bitti</p>
             <p className="text-sm text-[var(--muted)]">
               {data.mode === "CLAIM" ? "Kapışma" : "Hep beraber"}
             </p>
@@ -457,29 +532,77 @@ export function GuestPasaparola({
                 <span
                   key={row.guestId}
                   className={`rounded-full px-3 py-1 text-sm font-medium ${
-                    row.isMe
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-black/5 text-[var(--ink)]"
+                    row.left
+                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      : row.isMe
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-black/5 text-[var(--ink)]"
                   }`}
                 >
-                  {row.name} · {row.score}
+                  {row.name} · {row.left ? "çıktı" : row.score}
                 </span>
               ))}
             </div>
           ) : (
-            <div className="space-y-2">
-              {data.letters.map((item) => (
-                <Card key={item.letter} className="p-3">
-                  <p className="text-xs font-semibold text-[var(--accent)]">
-                    {item.letter}
-                    {item.claimedBy ? ` · ${item.claimedBy.name}` : ""}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{item.clue}</p>
-                  <p className="mt-1 text-sm font-medium">
-                    {data.solutions?.[item.letter] ?? "—"}
-                  </p>
-                </Card>
-              ))}
+            <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+              {data.letters.map((item, index) => {
+                const answer = data.solutions?.[item.letter] ?? "—";
+                const ok =
+                  data.mode === "CLAIM" ? Boolean(item.claimedBy) : item.correct;
+                return (
+                  <div
+                    key={item.letter}
+                    className={`flex gap-3 px-4 py-3 ${
+                      index ? "border-t border-[var(--line)]" : ""
+                    } ${
+                      ok
+                        ? "bg-emerald-50/80"
+                        : "bg-red-50/80"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2 pt-0.5">
+                      <span
+                        className={`font-serif text-xl leading-none ${
+                          ok ? "text-emerald-800" : "text-red-800"
+                        }`}
+                      >
+                        {item.letter}
+                      </span>
+                      <Mark ok={ok} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm leading-relaxed text-[var(--muted)]">
+                        {item.clue}
+                      </p>
+                      <p
+                        className={`mt-1 text-base font-semibold ${
+                          ok ? "text-emerald-900" : "text-red-900"
+                        }`}
+                      >
+                        {answer}
+                      </p>
+                      {ok && item.claimedBy ? (
+                        <p className="mt-0.5 text-xs font-medium text-emerald-800">
+                          {item.claimedBy.name} bildi
+                        </p>
+                      ) : null}
+                      {!ok && item.wrong && item.mine ? (
+                        <p className="mt-0.5 text-xs text-red-700">
+                          Senin: {item.mine}
+                        </p>
+                      ) : null}
+                      {!ok && item.passed ? (
+                        <p className="mt-0.5 text-xs text-red-700">Pas</p>
+                      ) : null}
+                      {!ok && data.mode === "CLAIM" && !item.claimedBy ? (
+                        <p className="mt-0.5 text-xs text-red-700">
+                          Kimse bilemedi
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 

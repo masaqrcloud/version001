@@ -62,3 +62,23 @@ export function nextUnclaimedLetter(
   ];
   return rotated.find((letter) => !claims[letter]) ?? null;
 }
+
+export function hasClosedAllLetters(answers: Record<string, string>) {
+  return PASAPAROLA_LETTERS.every((letter) => {
+    const value = answers[letter];
+    return Boolean(value) && value !== PAS_MARK;
+  });
+}
+
+export function allPlaysClosed(
+  plays: { answers: string; leftAt?: Date | null }[],
+) {
+  const active = plays.filter((play) => !play.leftAt);
+  if (plays.length === 0) return false;
+  if (active.length === 0) return true;
+  return active.every((play) => hasClosedAllLetters(parseJsonRecord(play.answers)));
+}
+
+export function allLettersClaimed(claims: Record<string, string>) {
+  return PASAPAROLA_LETTERS.every((letter) => Boolean(claims[letter]));
+}

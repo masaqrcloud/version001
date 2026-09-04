@@ -442,6 +442,7 @@ model PasaparolaPlay {
   guest     Guest           @relation(fields: [guestId], references: [id], onDelete: Cascade)
   answers   String          @default("{}")
   score     Int             @default(0)
+  leftAt    DateTime?
   updatedAt DateTime        @updatedAt
 
   @@unique([roundId, guestId])
