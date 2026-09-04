@@ -14,7 +14,7 @@ export default async function AdminStaffPage() {
     return (
       <div>
         <PageIntro kicker="Ekip" title="Personel">
-          Önce bir mekâna gir. Hesaplar o evin içine yazılır.
+          Önce bir mekâna gir. Hesaplar o mekânın içine yazılır.
         </PageIntro>
       </div>
     );
@@ -24,7 +24,7 @@ export default async function AdminStaffPage() {
     <div>
       <PageIntro kicker="Ekip" title={venue.name}>
         Bu mekânın sahibi, yöneticisi, garsonu ve mutfağı burada. Hesap sadece
-        bu evi görür.
+        bu mekânı görür.
       </PageIntro>
       <StaffManager
         venueName={venue.name}

@@ -28,7 +28,7 @@ export default async function AdminHomePage() {
       <div>
         <PageIntro kicker="Uygulama sahibi" title="Tüm mekânlar">
           Bir kafeye girince o mekânın sahibini, yöneticisini ve garsonunu
-          orada oluşturursun. Her hesap sadece kendi evini görür.
+          orada oluşturursun. Her hesap yalnızca kendi mekânını görür.
         </PageIntro>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
@@ -122,7 +122,7 @@ export default async function AdminHomePage() {
   return (
     <div>
       <PageIntro kicker="Mekân yönetimi" title={venue?.name ?? "Mekân"}>
-        Masalar, menü ve ekip aynı evin içinde.
+        Masalar, menü ve ekip aynı mekânda.
       </PageIntro>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((card) => (

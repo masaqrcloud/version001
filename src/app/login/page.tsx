@@ -18,23 +18,23 @@ export default async function LoginPage({
     <AppShell
       nav={
         <ButtonLink href="/apply" variant="ghost" size="sm">
-          Başvuru yap
+          Başvuru
         </ButtonLink>
       }
     >
       <div className="grid flex-1 items-center gap-12 py-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-10">
         <div className="max-w-xl">
-          <p className="page-kicker">Hoş geldin</p>
+          <p className="page-kicker">Giriş</p>
           <h1 className="page-title text-5xl sm:text-6xl">
-            Mekânın seni bekliyor.
+            İşletme panelinize hoş geldiniz.
           </h1>
           <p className="page-lead text-lg">
-            Masalar, menü, mutfak ve ekip aynı evin içinde. Giriş yaptığında
-            kaldığın yerden devam edersin.
+            Menü, masalar, mutfak ve ekip tek hesap altında yönetilir. Giriş
+            yaptığınızda kaldığınız yerden devam edersiniz.
           </p>
           <p className="mt-3 text-[var(--muted)]">
-            Misafir QR ile masaya oturur. Sen e-posta ve şifrenle evin kapısını
-            açarsın.
+            Misafirler masadaki kod ile menüye ulaşır. Siz e-posta ve şifrenizle
+            işletme paneline girersiniz.
           </p>
         </div>
 
@@ -42,14 +42,15 @@ export default async function LoginPage({
           <div className="h-2 bg-[var(--accent)]" />
           <div className="p-7 sm:p-8">
           <p className="page-kicker">MasaQR</p>
-          <h2 className="mt-3 text-3xl">İçeri buyur</h2>
+          <h2 className="mt-3 text-3xl">Hesabınıza giriş yapın</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Hesabınla mekânına gir. Yeni bir yer açacaksan başvurunu gönder.
+            Kayıtlı hesabınızla panele bağlanın. Yeni bir işletme için başvuru
+            formunu kullanabilirsiniz.
           </p>
           {session?.user?.name ? (
             <p className="mt-4 rounded-xl bg-black/5 px-3 py-2 text-sm">
               Şu an <span className="font-medium">{session.user.name}</span>{" "}
-              olarak açıksın.{" "}
+              olarak oturum açmış durumdasınız.{" "}
               <Link
                 href={homeForRole(session.user.role)}
                 className="text-[var(--accent)]"
@@ -60,14 +61,14 @@ export default async function LoginPage({
           ) : null}
           {query.password === "updated" ? (
             <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-              Şifren yenilendi. Yeni şifrenle giriş yapabilirsin.
+              Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.
             </p>
           ) : null}
           <LoginForm />
           <p className="mt-6 text-sm text-[var(--muted)]">
-            İlk kez misin?{" "}
+            Hesabınız yok mu?{" "}
             <Link href="/apply" className="text-[var(--accent)]">
-              Başvuru yap
+              Başvuru
             </Link>
           </p>
           </div>

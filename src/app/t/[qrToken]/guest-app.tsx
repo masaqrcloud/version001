@@ -123,11 +123,6 @@ function GuestWifiCard({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const [android, setAndroid] = useState(false);
-
-  useEffect(() => {
-    setAndroid(isAndroidDevice());
-  }, []);
 
   if (!wifiName) return null;
 
@@ -147,42 +142,33 @@ function GuestWifiCard({
   }
 
   return (
-    <Card
-      className={`flex items-center justify-between gap-3 border-sky-200 bg-sky-50/80 p-4 ${className}`}
+    <button
+      type="button"
+      onClick={copyAndConnect}
+      className={`block w-full text-left ${className}`}
     >
-      <div className="min-w-0">
+      <Card className="border-sky-200 bg-sky-50/80 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
           Misafir Wi‑Fi
         </p>
         <p className="mt-1 truncate font-medium">{wifiName}</p>
         {wifiPassword ? (
-          <button
-            type="button"
-            onClick={copyAndConnect}
-            className="mt-1 block w-full break-all text-left text-sm text-[var(--muted)]"
-          >
+          <p className="mt-1 break-all text-sm text-[var(--muted)]">
             Şifre:{" "}
-            <span className="rounded-md bg-white/70 px-1.5 py-0.5 font-medium text-[var(--ink)] underline decoration-sky-400 decoration-dotted underline-offset-2">
-              {wifiPassword}
-            </span>
+            <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
             {copied ? (
               <span className="ml-2 whitespace-nowrap text-xs font-semibold text-sky-700">
                 Kopyalandı
               </span>
-            ) : (
-              <span className="ml-2 whitespace-nowrap text-xs text-sky-700/80">
-                {android ? "Kopyala · Wi‑Fi açılır" : "Dokun, kopyala"}
-              </span>
-            )}
-          </button>
+            ) : null}
+          </p>
         ) : (
-          <p className="mt-1 text-xs text-[var(--muted)]">Şifresiz ağ</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {copied ? "Kopyalandı" : "Şifresiz ağ"}
+          </p>
         )}
-      </div>
-      <Button size="sm" variant="outline" onClick={copyAndConnect}>
-        {copied ? "Kopyalandı" : android ? "Bağlan" : "Kopyala"}
-      </Button>
-    </Card>
+      </Card>
+    </button>
   );
 }
 

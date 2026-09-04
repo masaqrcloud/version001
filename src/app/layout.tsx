@@ -14,7 +14,7 @@ const newsreader = Newsreader({
 
 export const metadata: Metadata = {
   title: "MasaQR",
-  description: "Kafe ve restoranlar için QR masa siparişi",
+  description: "Kafe ve restoran işletmeleri için dijital menü ve masa sipariş yönetimi",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/masaqr-icon.svg", apple: "/masaqr-icon.svg" },
   appleWebApp: {
@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="tr"
-      className={`${manrope.variable} ${newsreader.variable} h-full antialiased`}
+      className={`${manrope.variable} ${newsreader.variable} h-full scroll-smooth antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <div className="app-root">{children}</div>

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 
-export function ApplicationForm() {
+export function HomeContactForm() {
   const [form, setForm] = useState({
     fullName: "",
     email: "",
@@ -33,7 +33,7 @@ export function ApplicationForm() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(data.error ?? "Başvuru gönderilemedi.");
+        setError(data.error ?? "Mesaj gönderilemedi.");
         return;
       }
 
@@ -47,8 +47,8 @@ export function ApplicationForm() {
 
   if (sent) {
     return (
-      <div className="py-6 text-center">
-        <p className="font-serif text-3xl">Başvurunuz alındı.</p>
+      <div className="py-8 text-center">
+        <p className="font-serif text-3xl">Mesajınız alındı.</p>
         <p className="mt-3 text-sm text-[var(--muted)]">
           MasaQR ekibi, en kısa sürede kayıtlı e-posta adresiniz üzerinden
           sizinle iletişime geçecektir.
@@ -59,52 +59,41 @@ export function ApplicationForm() {
 
   return (
     <form onSubmit={(event) => void submit(event)} className="space-y-4">
-      <div>
-        <Label htmlFor="fullName">Ad soyad</Label>
-        <Input
-          id="fullName"
-          required
-          minLength={3}
-          maxLength={80}
-          autoComplete="name"
-          value={form.fullName}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, fullName: event.target.value }))
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="email">E-posta</Label>
-        <Input
-          id="email"
-          type="email"
-          required
-          maxLength={120}
-          autoComplete="email"
-          value={form.email}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, email: event.target.value }))
-          }
-        />
-      </div>
-      <div>
-        <Label htmlFor="venueName">Mekân adı</Label>
-        <Input
-          id="venueName"
-          required
-          minLength={2}
-          maxLength={100}
-          value={form.venueName}
-          onChange={(event) =>
-            setForm((current) => ({ ...current, venueName: event.target.value }))
-          }
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="home-fullName">Ad soyad</Label>
+          <Input
+            id="home-fullName"
+            required
+            minLength={3}
+            maxLength={80}
+            autoComplete="name"
+            value={form.fullName}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, fullName: event.target.value }))
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="home-email">E-posta</Label>
+          <Input
+            id="home-email"
+            type="email"
+            required
+            maxLength={120}
+            autoComplete="email"
+            value={form.email}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, email: event.target.value }))
+            }
+          />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="phone">Telefon</Label>
+          <Label htmlFor="home-phone">Telefon</Label>
           <Input
-            id="phone"
+            id="home-phone"
             type="tel"
             required
             maxLength={24}
@@ -116,10 +105,11 @@ export function ApplicationForm() {
           />
         </div>
         <div>
-          <Label htmlFor="city">Şehir</Label>
+          <Label htmlFor="home-city">Şehir</Label>
           <Input
-            id="city"
+            id="home-city"
             required
+            minLength={2}
             maxLength={60}
             autoComplete="address-level1"
             value={form.city}
@@ -129,33 +119,51 @@ export function ApplicationForm() {
           />
         </div>
       </div>
-      <div>
-        <Label htmlFor="venueType">Mekân türü</Label>
-        <select
-          id="venueType"
-          className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none ring-[var(--accent)] focus:ring-2"
-          value={form.venueType}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              venueType: event.target.value,
-            }))
-          }
-        >
-          <option>Kafe</option>
-          <option>Restoran</option>
-          <option>Bar</option>
-          <option>Pastane</option>
-          <option>Otel</option>
-          <option>Diğer</option>
-        </select>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="home-venueName">Mekân adı</Label>
+          <Input
+            id="home-venueName"
+            required
+            minLength={2}
+            maxLength={100}
+            value={form.venueName}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                venueName: event.target.value,
+              }))
+            }
+          />
+        </div>
+        <div>
+          <Label htmlFor="home-venueType">Mekân türü</Label>
+          <select
+            id="home-venueType"
+            className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none ring-[var(--accent)] focus:ring-2"
+            value={form.venueType}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                venueType: event.target.value,
+              }))
+            }
+          >
+            <option>Kafe</option>
+            <option>Restoran</option>
+            <option>Bar</option>
+            <option>Pastane</option>
+            <option>Otel</option>
+            <option>Diğer</option>
+          </select>
+        </div>
       </div>
       <div>
-        <Label htmlFor="message">İşletmeniz hakkında kısa not</Label>
+          <Label htmlFor="home-message">Mesajınız</Label>
         <Textarea
-          id="message"
+          id="home-message"
           maxLength={600}
-          placeholder="Masa sayısı, hizmet biçimi veya iletmek istediğiniz diğer bilgiler…"
+          placeholder="Masa sayısı, paket tercihi veya iletmek istediğiniz not…"
           value={form.message}
           onChange={(event) =>
             setForm((current) => ({ ...current, message: event.target.value }))
@@ -174,7 +182,7 @@ export function ApplicationForm() {
       />
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       <Button type="submit" className="w-full" size="lg" disabled={busy}>
-        {busy ? "Gönderiliyor…" : "Başvuruyu gönder"}
+        {busy ? "Gönderiliyor…" : "Gönder"}
       </Button>
     </form>
   );

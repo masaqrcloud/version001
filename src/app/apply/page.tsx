@@ -14,15 +14,15 @@ export default function ApplicationPage() {
     >
       <div className="mx-auto grid w-full max-w-5xl flex-1 items-start gap-10 py-8 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="lg:sticky lg:top-8">
-          <p className="page-kicker">MasaQR ailesi</p>
-          <h1 className="page-title">Mekânını dijitale taşı.</h1>
+          <p className="page-kicker">Başvuru</p>
+          <h1 className="page-title">İşletmenizi MasaQR’a taşıyın.</h1>
           <p className="page-lead">
-            Seni ve işletmeni tanıyalım. Başvurunu inceledikten sonra hesabını
-            güvenli kurulum bağlantısıyla açalım.
+            İşletme bilgilerinizi iletin. Başvurunuz incelendikten sonra
+            hesabınız güvenli kurulum bağlantısıyla açılır.
           </p>
           <div className="mt-8 space-y-3 text-sm">
             {[
-              "QR menü, sipariş ve masa yönetimi",
+              "Dijital menü, sipariş ve masa yönetimi",
               "Stok ve çalışma saatleri takibi",
               "Rezervasyon ve dijital adisyon",
             ].map((benefit) => (
@@ -35,8 +35,8 @@ export default function ApplicationPage() {
             ))}
           </div>
           <p className="mt-6 text-xs leading-relaxed text-[var(--muted)]">
-            Bilgilerin yalnızca başvurunu değerlendirmek ve seninle iletişim
-            kurmak için kullanılır.
+            Bilgileriniz yalnızca başvurunuzu değerlendirmek ve sizinle
+            iletişim kurmak amacıyla kullanılır.
           </p>
         </div>
         <Card className="overflow-hidden p-0">
@@ -44,7 +44,7 @@ export default function ApplicationPage() {
           <div className="p-6 sm:p-8">
             <p className="font-serif text-2xl">İşletme bilgileri</p>
             <p className="mb-6 mt-1 text-sm text-[var(--muted)]">
-              Formu doldurman yaklaşık iki dakika sürer.
+              Formun doldurulması yaklaşık iki dakika sürer.
             </p>
             <ApplicationForm />
           </div>
