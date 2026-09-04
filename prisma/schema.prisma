@@ -47,6 +47,11 @@ enum ReservationStatus {
   CANCELLED
 }
 
+enum PasaparolaMode {
+  RACE
+  CLAIM
+}
+
 enum StockMovementReason {
   ORDER
   CANCEL
@@ -157,7 +162,8 @@ model TableSession {
   orders         Order[]
   bill           Bill?
   feedback       SessionFeedback[]
-  mergedTables   Table[]           @relation("SessionMergedTables")
+  mergedTables      Table[]            @relation("SessionMergedTables")
+  pasaparolaRounds  PasaparolaRound[]
 }
 
 model Guest {
@@ -174,7 +180,8 @@ model Guest {
   cartItems      CartItem[]
   orders         Order[]
   notifications  GuestNotification[]
-  feedback       SessionFeedback[]
+  feedback          SessionFeedback[]
+  pasaparolaPlays   PasaparolaPlay[]
 }
 
 model GuestNotification {
@@ -399,6 +406,43 @@ model SessionFeedback {
 
   @@unique([tableSessionId, guestId])
   @@index([tableSessionId, createdAt])
+}
+
+model PasaparolaWord {
+  id     String @id @default(cuid())
+  letter String
+  word   String
+  clue   String
+
+  @@index([letter])
+}
+
+model PasaparolaRound {
+  id             String           @id @default(cuid())
+  tableSessionId String
+  tableSession   TableSession     @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  mode           PasaparolaMode
+  startedAt      DateTime         @default(now())
+  endsAt         DateTime
+  wordIds        String
+  claims         String           @default("{}")
+  plays          PasaparolaPlay[]
+  createdAt      DateTime         @default(now())
+
+  @@index([tableSessionId, startedAt])
+}
+
+model PasaparolaPlay {
+  id        String          @id @default(cuid())
+  roundId   String
+  round     PasaparolaRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  guestId   String
+  guest     Guest           @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  answers   String          @default("{}")
+  score     Int             @default(0)
+  updatedAt DateTime        @updatedAt
+
+  @@unique([roundId, guestId])
 }
 
 model Bill {

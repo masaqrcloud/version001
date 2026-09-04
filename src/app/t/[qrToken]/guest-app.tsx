@@ -13,6 +13,7 @@ import { tableLabel } from "@/lib/table-label";
 import type { OrderStatus } from "@prisma/client";
 import { SessionFeedbackForm } from "@/components/session-feedback-form";
 import { AllergenFilter } from "@/components/allergen-filter";
+import { GuestPasaparola } from "@/components/guest-pasaparola";
 import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
 import {
   itemHiddenByFilter,
@@ -88,7 +89,7 @@ type BillResponse = {
   total: number;
 };
 
-type Tab = "menu" | "cart" | "bill" | "alerts";
+type Tab = "menu" | "cart" | "bill" | "games" | "alerts";
 
 type NotesResponse = {
   unread: number;
@@ -892,6 +893,7 @@ export function GuestApp({
     ["menu", "Menü"],
     ["cart", cartCount ? `Sepet (${cartCount})` : "Sepet"],
     ["bill", "Hesap"],
+    ["games", "Oyun"],
     ["alerts", unread ? `Bildirim (${unread})` : "Bildirim"],
   ] as const;
 
@@ -1222,7 +1224,7 @@ export function GuestApp({
           {nameError ? <p className="mt-2 text-sm text-red-700">{nameError}</p> : null}
         </GuestBrand>
         <div className="px-4 pb-3">
-        <div className="mt-0 grid grid-cols-4 gap-1 rounded-full bg-black/5 p-1">
+        <div className="mt-0 grid grid-cols-5 gap-1 rounded-full bg-black/5 p-1">
           {tabs.map(([key, label]) => (
             <button
               key={key}
@@ -1609,6 +1611,15 @@ export function GuestApp({
         onConfirm={() => void requestBill()}
         onClose={() => setBillConfirmOpen(false)}
       />
+
+      {tab === "games" ? (
+        <div className="px-4 py-6">
+          <GuestPasaparola
+            guestToken={guestToken}
+            guestHeaders={guestHeaders}
+          />
+        </div>
+      ) : null}
 
       {tab === "alerts" ? (
         <div className="space-y-3 px-4 py-6">
