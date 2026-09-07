@@ -114,7 +114,7 @@ export function GuestGames({
         <Card className="p-5">
           <p className="font-serif text-2xl">Cevap Ver</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Would you rather. Tanışma, yemek, hayal… 360 soru.
+            Aynı soru masaya düşer. Tanışma, yemek, 10’da 10… altı yüzü aşkın soru.
           </p>
         </Card>
       </button>

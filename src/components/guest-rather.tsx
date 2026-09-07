@@ -72,8 +72,8 @@ export function GuestRather({
         <p className="page-kicker">Masa oyunu</p>
         <h2 className="mt-1 font-serif text-3xl">Cevap Ver</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Would you rather. Aynı soru masaya düşer, herkes bir taraf seçer.
-          Kategoriye sıkıştırmak istersen yukarıdan seç.
+          Aynı soru masaya düşer, herkes bir taraf seçer. 10’da 10’da
+          güzellik var, karakter konuşulur.
         </p>
       </div>
 
