@@ -114,7 +114,7 @@ export function GuestGames({
         <Card className="p-5">
           <p className="font-serif text-2xl">Cevap Ver</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Aynı soru masaya düşer. İki seçenek ya da 10’da 10 puanlama.
+            Aynı soru masaya düşer. İki seçenek, 10’da 10 veya en iyisi kapışması.
           </p>
         </Card>
       </button>

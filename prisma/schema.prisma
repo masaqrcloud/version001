@@ -167,6 +167,7 @@ model TableSession {
   ratherRounds      RatherRound[]
   memoryRounds      MemoryRound[]
   tenTenRounds      TenTenRound[]
+  bestOfRounds      BestOfRound[]
 }
 
 model Guest {
@@ -471,6 +472,21 @@ model TenTenRound {
   promptId       String
   scores         String       @default("{}")
   seenIds        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@index([tableSessionId, createdAt])
+}
+
+model BestOfRound {
+  id             String       @id @default(cuid())
+  tableSessionId String
+  tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  category       String
+  queue          String       @default("[]")
+  winners        String       @default("[]")
+  pair           String       @default("[]")
+  votes          String       @default("{}")
+  championId     String?
   createdAt      DateTime     @default(now())
 
   @@index([tableSessionId, createdAt])
