@@ -335,7 +335,7 @@ export function ReservationForm({
             Yeşil: uygun
           </span>
           <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800">
-            Kırmızı: dolu veya rezerve
+            Kırmızı: o gün ve saatte rezerve
           </span>
           <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[var(--accent)]">
             Turuncu: senin seçimin
@@ -416,13 +416,11 @@ export function ReservationForm({
                         ? "Seçildi"
                         : !timeReady
                           ? "Beklemede"
-                          : table.occupied
-                            ? "Dolu"
-                            : table.reserved
-                              ? "Rezerve"
-                              : table.available
-                                ? "Uygun"
-                                : "Dolu"}
+                          : table.reserved
+                            ? "Rezerve"
+                            : table.available
+                              ? "Uygun"
+                              : "Rezerve"}
                     </p>
                   </button>
                 );
