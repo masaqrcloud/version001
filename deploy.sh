@@ -9,6 +9,10 @@ echo "MasaQR güncelleniyor..."
 git fetch origin main
 git reset --hard origin/main
 
+if systemctl list-unit-files nextapp.service >/dev/null 2>&1; then
+  sudo systemctl stop nextapp || true
+fi
+
 npm install
 npx prisma generate
 npx prisma migrate deploy
