@@ -888,6 +888,7 @@ export function GuestApp({
     if (
       latest.title === "Pasaparola" ||
       latest.title === "Cevap Ver" ||
+      latest.title === "10’da 10" ||
       latest.title === "Hafıza"
     ) {
       setTab("games");

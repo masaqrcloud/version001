@@ -166,6 +166,7 @@ model TableSession {
   pasaparolaRounds  PasaparolaRound[]
   ratherRounds      RatherRound[]
   memoryRounds      MemoryRound[]
+  tenTenRounds      TenTenRound[]
 }
 
 model Guest {
@@ -457,6 +458,18 @@ model RatherRound {
   category       String
   questionId     String
   votes          String       @default("{}")
+  seenIds        String       @default("")
+  createdAt      DateTime     @default(now())
+
+  @@index([tableSessionId, createdAt])
+}
+
+model TenTenRound {
+  id             String       @id @default(cuid())
+  tableSessionId String
+  tableSession   TableSession @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  promptId       String
+  scores         String       @default("{}")
   seenIds        String       @default("")
   createdAt      DateTime     @default(now())
 

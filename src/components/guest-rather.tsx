@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GuestTenTen } from "@/components/guest-tenten";
 import { usePoll } from "@/lib/poll";
 
 type RatherState = {
@@ -24,6 +25,56 @@ type RatherState = {
 };
 
 export function GuestRather({
+  guestToken,
+  guestHeaders,
+}: {
+  guestToken: string;
+  guestHeaders: (json?: boolean) => Record<string, string>;
+}) {
+  const [tab, setTab] = useState<"rather" | "tenten">("rather");
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="page-kicker">Masa oyunu</p>
+        <h2 className="mt-1 font-serif text-3xl">Cevap Ver</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+          Aynı soru masaya düşer. İki seçenek ya da 10’da 10 puan.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        {(
+          [
+            ["rather", "Cevap Ver"],
+            ["tenten", "10’da 10"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium ${
+              tab === id
+                ? "bg-[var(--ink)] text-[var(--bg)]"
+                : "bg-black/5 text-[var(--ink)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "tenten" ? (
+        <GuestTenTen guestToken={guestToken} guestHeaders={guestHeaders} />
+      ) : (
+        <RatherPlay guestToken={guestToken} guestHeaders={guestHeaders} />
+      )}
+    </div>
+  );
+}
+
+function RatherPlay({
   guestToken,
   guestHeaders,
 }: {
@@ -68,15 +119,6 @@ export function GuestRather({
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="page-kicker">Masa oyunu</p>
-        <h2 className="mt-1 font-serif text-3xl">Cevap Ver</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Aynı soru masaya düşer, herkes bir taraf seçer. 10’da 10’da
-          güzellik var, karakter konuşulur.
-        </p>
-      </div>
-
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {chips.map((row) => {
           const active = (playing ? data.category : filter) === row.id;
