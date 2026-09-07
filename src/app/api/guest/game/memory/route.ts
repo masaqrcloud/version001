@@ -5,10 +5,9 @@ import { requireOpenGuest } from "@/lib/guest";
 import { isStaffProxyNickname } from "@/lib/media";
 import { notifyTableGuests } from "@/lib/notify";
 import {
-  JOKER_PAIR,
   MEMORY_COUNTDOWN_MS,
   MEMORY_HIDE_MS,
-  MEMORY_SIZE,
+  MEMORY_PAIRS,
   dealMemoryBoard,
   parseJson,
   type MemoryTile,
@@ -85,7 +84,7 @@ async function payload(guestId: string, sessionId: string) {
       countdownMs: 0,
       elapsedMs: 0,
       moves: 0,
-      pairsLeft: 13,
+      pairsLeft: MEMORY_PAIRS,
     };
   }
 
@@ -115,7 +114,6 @@ async function payload(guestId: string, sessionId: string) {
       const open = faceUp.has(index) || Boolean(owner);
       return {
         icon: open ? tile.icon : null,
-        joker: tile.pair === JOKER_PAIR,
         matched: Boolean(owner),
         mine: owner === guestId,
         faceUp: faceUp.has(index),
@@ -132,17 +130,10 @@ async function payload(guestId: string, sessionId: string) {
     countdownMs,
     elapsedMs,
     moves: round.moves,
-    pairsLeft: countPairsLeft(tiles.map((tile, index) => ({
-      matched: Boolean(matched[String(index)]),
-      joker: tile.pair === JOKER_PAIR,
-    }))),
+    pairsLeft: Math.ceil(
+      tiles.filter((_, index) => !matched[String(index)]).length / 2,
+    ),
   };
-}
-
-function countPairsLeft(tiles: { matched: boolean; joker: boolean }[]) {
-  const closed = tiles.filter((tile) => !tile.matched);
-  const joker = closed.some((tile) => tile.joker) ? 1 : 0;
-  return Math.ceil((closed.length - joker) / 2) + joker;
 }
 
 export async function GET() {
@@ -229,12 +220,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "İşlem geçersiz." }, { status: 400 });
   }
 
+  const tiles = parseJson<MemoryTile[]>(live.tiles, []);
   const index = Number(body.index);
-  if (!Number.isInteger(index) || index < 0 || index >= MEMORY_SIZE) {
+  if (!Number.isInteger(index) || index < 0 || index >= tiles.length) {
     return NextResponse.json({ error: "Kart yok." }, { status: 400 });
   }
-
-  const tiles = parseJson<MemoryTile[]>(live.tiles, []);
   const faceUp = parseJson<number[]>(live.faceUp, []);
   const matched = parseJson<Record<string, string>>(live.matched, {});
   const scores = parseJson<Record<string, number>>(live.scores, {});
@@ -264,27 +254,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Kart yok." }, { status: 400 });
   }
 
-  if (tile.pair === JOKER_PAIR) {
-    matched[String(index)] = guest.id;
-    scores[guest.id] = (scores[guest.id] ?? 0) + 1;
-    const done = Object.keys(matched).length >= MEMORY_SIZE;
-    await prisma.memoryRound.update({
-      where: { id: live.id },
-      data: {
-        matched: JSON.stringify(matched),
-        scores: JSON.stringify(scores),
-        players: JSON.stringify(players),
-        turnGuestId: guest.id,
-        startedAt,
-        moves: live.moves + 1,
-        endedAt: done ? now : null,
-        faceUp: JSON.stringify(faceUp),
-        hideAt: null,
-      },
-    });
-    return NextResponse.json(await payload(guest.id, guest.tableSessionId));
-  }
-
   const nextFace = [...faceUp, index];
   let hideAt: Date | null = null;
   let turn = guest.id;
@@ -304,7 +273,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const done = Object.keys(matched).length >= MEMORY_SIZE;
+  const done = Object.keys(matched).length >= tiles.length;
   await prisma.memoryRound.update({
     where: { id: live.id },
     data: {

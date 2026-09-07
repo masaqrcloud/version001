@@ -26,10 +26,11 @@ export const MEMORY_ICONS = [
   { id: "waffle", emoji: "🧇" },
 ] as const;
 
-export const MEMORY_SIZE = 25;
+export const MEMORY_SIZE = 24;
+export const MEMORY_COLS = 6;
+export const MEMORY_PAIRS = 12;
 export const MEMORY_HIDE_MS = 850;
 export const MEMORY_COUNTDOWN_MS = 5 * 1000;
-export const JOKER_PAIR = "joker";
 
 export type MemoryTile = {
   icon: string;
@@ -46,17 +47,13 @@ function shuffle<T>(items: T[]) {
 }
 
 export function dealMemoryBoard(): MemoryTile[] {
-  const pool = shuffle([...MEMORY_ICONS]);
-  const joker = pool[0]!;
-  const pairs = pool.slice(1, 13);
-  const tiles: MemoryTile[] = [
-    { icon: joker.emoji, pair: JOKER_PAIR },
-    ...pairs.flatMap((icon) => [
+  const pairs = shuffle([...MEMORY_ICONS]).slice(0, MEMORY_PAIRS);
+  return shuffle(
+    pairs.flatMap((icon) => [
       { icon: icon.emoji, pair: icon.id },
       { icon: icon.emoji, pair: icon.id },
     ]),
-  ];
-  return shuffle(tiles);
+  );
 }
 
 export function parseJson<T>(value: string, fallback: T): T {

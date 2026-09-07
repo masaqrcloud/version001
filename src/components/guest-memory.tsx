@@ -10,7 +10,6 @@ type MemoryState = {
   finished: boolean;
   tiles: {
     icon: string | null;
-    joker: boolean;
     matched: boolean;
     mine: boolean;
     faceUp: boolean;
@@ -102,7 +101,7 @@ export function GuestMemory({
   }
 
   const counting = data.live && !data.finished && count > 0;
-  const playing = data.live && !data.finished && !counting && data.tiles.length === 25;
+  const playing = data.live && !data.finished && !counting && data.tiles.length >= 24;
   const myTurn =
     !counting &&
     (data.scores.length < 2 ||
@@ -116,8 +115,8 @@ export function GuestMemory({
           <p className="page-kicker">Masa oyunu</p>
           <h2 className="mt-1 font-serif text-3xl">Hafıza</h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            5×5 kart. Birden fazla kişi varsa 5 saniye, sonra sıra sıra.
-            Bilemeyince sıra geçer.
+            6×4 kart, 12 çift. Birden fazla kişi varsa 5 saniye, sonra sıra
+            sıra. Bilemeyince sıra geçer.
           </p>
         </div>
       ) : null}
@@ -197,7 +196,11 @@ export function GuestMemory({
             </p>
           ) : null}
 
-          <div className="grid grid-cols-5 gap-1.5">
+          <div
+            className={`grid gap-1.5 ${
+              data.tiles.length === 25 ? "grid-cols-5" : "grid-cols-6"
+            }`}
+          >
             {data.tiles.map((tile, index) => {
               const open = Boolean(tile.icon);
               return (

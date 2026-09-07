@@ -122,7 +122,7 @@ export function GuestGames({
         <Card className="p-5">
           <p className="font-serif text-2xl">Hafıza</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            5×5 kart. Birden fazla kişi varsa sıra sıra; bilemeyince geçer.
+            6×4 kart, 12 çift. Birden fazla kişi varsa sıra sıra; bilemeyince geçer.
           </p>
         </Card>
       </button>
