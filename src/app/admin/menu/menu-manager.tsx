@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -94,6 +94,7 @@ export function MenuManager() {
   const [popup, setPopup] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const editCardRef = useRef<HTMLDivElement>(null);
 
   async function load() {
     const res = await fetch("/api/admin/categories", { cache: "no-store" });
@@ -210,6 +211,11 @@ export function MenuManager() {
     await load();
   }
 
+  useEffect(() => {
+    if (!editForm) return;
+    editCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [editForm?.id]);
+
   function editItem(item: Item) {
     setError(null);
     setEditForm({
@@ -296,6 +302,7 @@ export function MenuManager() {
       <Popup message={popup} onClose={() => setPopup(null)} />
       <div className="space-y-6">
         {editForm ? (
+          <div ref={editCardRef} className="scroll-mt-20">
           <Card className="border-[var(--accent)] p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-serif text-2xl">Ürünü düzenle</h2>
@@ -710,6 +717,7 @@ export function MenuManager() {
               Değişiklikleri kaydet
             </Button>
           </Card>
+          </div>
         ) : null}
 
         {categories.map((category) => (
