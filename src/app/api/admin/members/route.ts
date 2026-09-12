@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { punchCard } from "@/lib/loyalty";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -24,6 +25,10 @@ export async function GET() {
   });
 
   const customerIds = members.map((member) => member.customerId);
+  const venue = await prisma.venue.findUnique({
+    where: { id: user.venueId },
+    select: { loyaltyItemId: true },
+  });
   const orders = customerIds.length
     ? await prisma.order.findMany({
         where: {
@@ -44,14 +49,45 @@ export async function GET() {
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
 
+  const stamps = new Map<string, number>();
+  if (venue?.loyaltyItemId && customerIds.length) {
+    const items = await prisma.orderItem.findMany({
+      where: {
+        menuItemId: venue.loyaltyItemId,
+        order: {
+          status: { not: "CANCELLED" },
+          guest: {
+            customerId: { in: customerIds },
+            tableSession: { table: { venueId: user.venueId } },
+          },
+        },
+      },
+      select: {
+        quantity: true,
+        order: { select: { guest: { select: { customerId: true } } } },
+      },
+    });
+    for (const item of items) {
+      const id = item.order.guest.customerId;
+      if (!id) continue;
+      stamps.set(id, (stamps.get(id) ?? 0) + item.quantity);
+    }
+  }
+
   return NextResponse.json({
     count: members.length,
-    members: members.map((member) => ({
-      id: member.id,
-      name: member.customer.name,
-      email: member.customer.email,
-      joinedAt: member.joinedAt.toISOString(),
-      orderCount: counts.get(member.customerId) ?? 0,
-    })),
+    loyaltyEnabled: Boolean(venue?.loyaltyItemId),
+    members: members.map((member) => {
+      const punch = punchCard(stamps.get(member.customerId) ?? 0);
+      return {
+        id: member.id,
+        name: member.customer.name,
+        email: member.customer.email,
+        joinedAt: member.joinedAt.toISOString(),
+        orderCount: counts.get(member.customerId) ?? 0,
+        loyaltyFilled: punch.filled,
+        loyaltyRewards: punch.rewards,
+      };
+    }),
   });
 }

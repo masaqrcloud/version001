@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { SettingsForm } from "@/app/admin/settings/settings-form";
+import { LoyaltySettings } from "@/app/admin/settings/loyalty-settings";
 import { VenuesManager } from "@/app/admin/settings/venues-manager";
 import { PageIntro } from "@/components/page-intro";
 
@@ -34,6 +35,7 @@ export default async function AdminSettingsPage() {
               latitude={venue.latitude}
               longitude={venue.longitude}
             />
+            <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
           </div>
         ) : null}
       </div>
@@ -47,6 +49,7 @@ export default async function AdminSettingsPage() {
         ekranında görünür.
       </PageIntro>
       {venue ? (
+        <>
         <SettingsForm
           name={venue.name}
           slug={venue.slug}
@@ -60,6 +63,8 @@ export default async function AdminSettingsPage() {
           latitude={venue.latitude}
           longitude={venue.longitude}
         />
+        <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
+        </>
       ) : (
         <p className="mt-8 text-[var(--muted)]">Mekan bulunamadı.</p>
       )}

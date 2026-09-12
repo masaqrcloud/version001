@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GuestHistory } from "@/components/guest-history";
+import { GuestLoyalty } from "@/components/guest-loyalty";
 import { LocaleProvider } from "@/components/locale-provider";
 
 export default function AccountPage() {
@@ -19,9 +20,12 @@ export default function AccountPage() {
       }
     >
       <LocaleProvider>
-        <div className="mx-auto w-full max-w-xl py-8">
+        <div className="mx-auto w-full max-w-xl space-y-6 py-8">
           <Card className="p-6 sm:p-8">
             <GuestHistory />
+          </Card>
+          <Card className="p-6 sm:p-8">
+            <GuestLoyalty />
           </Card>
         </div>
       </LocaleProvider>

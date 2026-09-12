@@ -702,3 +702,42 @@ img {
     var(--bg) 100%
   );
 }
+
+.loyalty-ring {
+  position: relative;
+  width: 16rem;
+  height: 16rem;
+  margin: 0.5rem auto 0;
+}
+
+.loyalty-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin: -1.175rem;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.loyalty-dot-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(229, 75, 50, 0.28);
+}
+
+.loyalty-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+}

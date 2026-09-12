@@ -89,10 +89,12 @@ model Venue {
   wifiName     String?
   wifiPassword String?
   address      String?
-  latitude     Float?
-  longitude    Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  latitude      Float?
+  longitude     Float?
+  loyaltyItemId String?
+  loyaltyItem   MenuItem? @relation("VenueLoyaltyItem", fields: [loyaltyItemId], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   users           User[]
   tables          Table[]
@@ -100,6 +102,8 @@ model Venue {
   reservations    Reservation[]
   stockMovements  StockMovement[]
   members         VenueMember[]
+
+  @@index([loyaltyItemId])
 }
 
 model User {
@@ -265,6 +269,7 @@ model MenuItem {
   orderItems        OrderItem[]
   optionGroups      MenuOptionGroup[]
   stockMovements    StockMovement[]
+  loyaltyVenues     Venue[]           @relation("VenueLoyaltyItem")
 }
 
 model StockMovement {

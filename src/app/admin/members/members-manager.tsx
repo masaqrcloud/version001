@@ -11,6 +11,8 @@ type Member = {
   email: string;
   joinedAt: string;
   orderCount: number;
+  loyaltyFilled?: number;
+  loyaltyRewards?: number;
 };
 
 export function MembersManager() {
@@ -84,6 +86,13 @@ export function MembersManager() {
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   {new Date(member.joinedAt).toLocaleDateString("tr-TR")} ·{" "}
                   {member.orderCount} sipariş
+                  {member.loyaltyFilled != null
+                    ? ` · Müdavim ${member.loyaltyFilled}/10${
+                        member.loyaltyRewards
+                          ? ` · ${member.loyaltyRewards} ikram`
+                          : ""
+                      }`
+                    : ""}
                 </p>
               </div>
               <Button

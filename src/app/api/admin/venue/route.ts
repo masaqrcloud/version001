@@ -46,6 +46,7 @@ export async function PATCH(request: Request) {
       address: z.string().trim().max(240).nullable().optional(),
       latitude: z.number().min(-90).max(90).nullable().optional(),
       longitude: z.number().min(-180).max(180).nullable().optional(),
+      loyaltyItemId: z.string().trim().nullable().optional(),
     })
     .safeParse(await request.json());
 
@@ -68,6 +69,7 @@ export async function PATCH(request: Request) {
     address?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    loyaltyItemId?: string | null;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -109,6 +111,24 @@ export async function PATCH(request: Request) {
   }
   if (body.data.longitude !== undefined) {
     data.longitude = body.data.longitude;
+  }
+  if (body.data.loyaltyItemId !== undefined) {
+    const itemId = body.data.loyaltyItemId?.trim() || null;
+    if (itemId) {
+      const item = await prisma.menuItem.findFirst({
+        where: { id: itemId, category: { venueId: user.venueId } },
+        select: { id: true },
+      });
+      if (!item) {
+        return NextResponse.json(
+          { error: "İkram ürünü bu mekâna ait olmalı" },
+          { status: 400 },
+        );
+      }
+      data.loyaltyItemId = item.id;
+    } else {
+      data.loyaltyItemId = null;
+    }
   }
 
   try {

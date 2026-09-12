@@ -15,6 +15,7 @@ import { SessionFeedbackForm } from "@/components/session-feedback-form";
 import { AllergenFilter } from "@/components/allergen-filter";
 import { GuestGames } from "@/components/guest-games";
 import { GuestHistory } from "@/components/guest-history";
+import { GuestLoyalty } from "@/components/guest-loyalty";
 import { GoogleJoinButton } from "@/components/google-join-button";
 import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
 import {
@@ -156,7 +157,7 @@ type BillResponse = {
   total: number;
 };
 
-type Area = "hub" | "menu" | "play" | "history";
+type Area = "hub" | "menu" | "play" | "history" | "loyalty";
 type Tab = "menu" | "cart" | "bill" | "alerts";
 
 type NotesResponse = {
@@ -382,6 +383,7 @@ function GuestWelcomeHub({
   onMenu,
   onPlay,
   onHistory,
+  onLoyalty,
 }: {
   venueName: string;
   venueTagline?: string | null;
@@ -396,6 +398,7 @@ function GuestWelcomeHub({
   onMenu: () => void;
   onPlay: () => void;
   onHistory: () => void;
+  onLoyalty: () => void;
 }) {
   const { t, dir } = useLocale();
   const tableGuests = guests ?? [];
@@ -476,8 +479,13 @@ function GuestWelcomeHub({
             title={t("hubHistory")}
             hint={t("hubHistoryHint")}
             image="/guest/hub-history.png"
-            wide
             onClick={onHistory}
+          />
+          <HubBubble
+            title={t("hubLoyalty")}
+            hint={t("hubLoyaltyHint")}
+            image="/guest/hub-loyalty.svg"
+            onClick={onLoyalty}
           />
         </div>
         <p className="mt-6 rounded-2xl bg-black/5 px-4 py-3 text-sm text-[var(--muted)]">
@@ -1510,6 +1518,7 @@ function GuestAppContent({
         }}
         onPlay={() => setArea("play")}
         onHistory={() => setArea("history")}
+        onLoyalty={() => setArea("loyalty")}
       />
     );
   }
@@ -1683,7 +1692,11 @@ function GuestAppContent({
                 {t("hubBack")}
               </button>
               <p className="font-serif text-xl">
-                {area === "history" ? t("hubHistory") : t("hubPlay")}
+                {area === "history"
+                  ? t("hubHistory")
+                  : area === "loyalty"
+                    ? t("hubLoyalty")
+                    : t("hubPlay")}
               </p>
               <LanguageSwitch />
             </div>
@@ -2106,6 +2119,12 @@ function GuestAppContent({
       {area === "history" ? (
         <div className="flex-1 px-4 py-6">
           <GuestHistory qrToken={qrToken} />
+        </div>
+      ) : null}
+
+      {area === "loyalty" ? (
+        <div className="flex-1 px-4 py-6">
+          <GuestLoyalty qrToken={qrToken} />
         </div>
       ) : null}
 
