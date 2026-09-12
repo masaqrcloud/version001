@@ -154,7 +154,7 @@ type BillResponse = {
   total: number;
 };
 
-type Area = "menu" | "play";
+type Area = "hub" | "menu" | "play";
 type Tab = "menu" | "cart" | "bill" | "alerts";
 
 type NotesResponse = {
@@ -321,6 +321,139 @@ function GuestBrand({
   );
 }
 
+function HubBubble({
+  title,
+  hint,
+  icon,
+  onClick,
+}: {
+  title: string;
+  hint: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="hub-bubble" onClick={onClick}>
+      <span className="hub-bubble-icon">{icon}</span>
+      <span className="font-serif text-3xl leading-none">{title}</span>
+      <span className="px-3 text-center text-xs leading-snug text-[var(--muted)]">
+        {hint}
+      </span>
+    </button>
+  );
+}
+
+function GuestWelcomeHub({
+  venueName,
+  venueTagline,
+  venueLogo,
+  venueCover,
+  tableNumber,
+  guestName,
+  hoursLabel,
+  wifiName,
+  wifiPassword,
+  onMenu,
+  onPlay,
+}: {
+  venueName: string;
+  venueTagline?: string | null;
+  venueLogo?: string | null;
+  venueCover?: string | null;
+  tableNumber: string;
+  guestName: string;
+  hoursLabel: string;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  onMenu: () => void;
+  onPlay: () => void;
+}) {
+  const { t, dir } = useLocale();
+  return (
+    <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col">
+      <div className="relative">
+        {venueCover ? (
+          <div className="photo-box h-[44vh] min-h-64 w-full">
+            <img src={venueCover} alt="" />
+          </div>
+        ) : (
+          <div
+            className="h-[44vh] min-h-64 w-full"
+            style={{
+              background:
+                "linear-gradient(145deg, #ff5a3c 0%, #e23b2c 42%, #e89b1a 100%)",
+            }}
+          />
+        )}
+        <div className="hub-cover-fade pointer-events-none absolute inset-0" />
+        <div className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="rounded-full bg-white/80 px-1 py-1 shadow-sm backdrop-blur-md">
+            <LanguageSwitch />
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-1">
+          <div className="flex items-end gap-3">
+            {venueLogo ? (
+              <div className="photo-box h-16 w-16 rounded-[1.35rem] border-2 border-white bg-white shadow-lg">
+                <img src={venueLogo} alt={venueName} />
+              </div>
+            ) : null}
+            <div className="min-w-0 pb-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)]">
+                {venueName}
+              </p>
+              {venueTagline ? (
+                <p className="mt-0.5 text-sm text-[var(--ink)]/70">{venueTagline}</p>
+              ) : null}
+              <h1 className="font-serif text-4xl text-[var(--ink)]">
+                {tableLabel(tableNumber, t("tableWord"))}
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
+        <p className="text-sm text-[var(--muted)]">{t("hubWelcome")}</p>
+        <p className="font-serif text-3xl">{t("hello", { name: guestName })}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{t("hubPick")}</p>
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <HubBubble
+            title={t("tabMenu")}
+            hint={t("hubMenuHint")}
+            onClick={onMenu}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" />
+              </svg>
+            }
+          />
+          <HubBubble
+            title={t("hubPlay")}
+            hint={t("hubPlayHint")}
+            onClick={onPlay}
+            icon={
+              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="8" width="18" height="11" rx="4" />
+                <path d="M8 13v3M6.5 14.5h3" strokeLinecap="round" />
+                <circle cx="15.5" cy="13" r="0.8" fill="currentColor" />
+                <circle cx="17.5" cy="15.2" r="0.8" fill="currentColor" />
+              </svg>
+            }
+          />
+        </div>
+        <p className="mt-6 rounded-2xl bg-black/5 px-4 py-3 text-sm text-[var(--muted)]">
+          {hoursLabel}
+        </p>
+        <GuestWifiCard
+          className="mt-3"
+          wifiName={wifiName}
+          wifiPassword={wifiPassword}
+        />
+      </div>
+    </div>
+  );
+}
+
 function SectionLogo({
   src,
   label,
@@ -431,7 +564,7 @@ function GuestAppContent({
       : openState.isOpen
         ? t("openUntil", { time: openState.closesAt ?? "" })
         : t("closedUntil", { time: openState.opensAt ?? "" });
-  const [area, setArea] = useState<Area>("menu");
+  const [area, setArea] = useState<Area>("hub");
   const [tab, setTab] = useState<Tab>("menu");
   const [gameImmersive, setGameImmersive] = useState(false);
   const [guestId, setGuestId] = useState("");
@@ -1096,6 +1229,7 @@ function GuestAppContent({
       setArea("play");
       return;
     }
+    setArea("menu");
     setMessage(`${copy.title}: ${copy.body}`);
     setAlertPopup({ title: copy.title, body: copy.body });
   }, [notes, locale]);
@@ -1301,6 +1435,27 @@ function GuestAppContent({
     );
   }
 
+  if (area === "hub") {
+    return (
+      <GuestWelcomeHub
+        venueName={venueName}
+        venueTagline={venueTagline}
+        venueLogo={venueLogo}
+        venueCover={venueCover}
+        tableNumber={tableNumber}
+        guestName={shownName}
+        hoursLabel={hoursLabel}
+        wifiName={wifiName}
+        wifiPassword={wifiPassword}
+        onMenu={() => {
+          setTab("menu");
+          setArea("menu");
+        }}
+        onPlay={() => setArea("play")}
+      />
+    );
+  }
+
   return (
     <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
       {configuringItem ? (
@@ -1405,6 +1560,16 @@ function GuestAppContent({
           compact
         >
           <div className="mt-1 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="text-xs font-semibold text-[var(--accent)]"
+              onClick={() => {
+                setGameImmersive(false);
+                setArea("hub");
+              }}
+            >
+              {t("hubBack")}
+            </button>
             <p className="text-xs text-[var(--muted)]">
               {t("guestsAtTable", { n: bill?.guests.length ?? 1 })}
             </p>
@@ -1449,41 +1614,24 @@ function GuestAppContent({
         ) : (
           <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div className="flex items-center justify-between gap-2 pb-2">
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--accent)]"
+                onClick={() => {
+                  setGameImmersive(false);
+                  setArea("hub");
+                }}
+              >
+                {t("hubBack")}
+              </button>
               <p className="font-serif text-xl">{t("hubPlay")}</p>
               <LanguageSwitch />
             </div>
           </div>
         )}
         <div className="px-4 pb-3">
-        <div className="grid grid-cols-2 gap-1 rounded-full bg-black/5 p-1">
-          <button
-            type="button"
-            onClick={() => {
-              setGameImmersive(false);
-              setArea("menu");
-            }}
-            className={`flex min-h-11 items-center justify-center rounded-full text-sm font-semibold ${
-              area === "menu"
-                ? "bg-[var(--ink)] text-[var(--bg)]"
-                : "text-[var(--ink)]"
-            }`}
-          >
-            {t("tabMenu")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setArea("play")}
-            className={`flex min-h-11 items-center justify-center rounded-full text-sm font-semibold ${
-              area === "play"
-                ? "bg-[var(--ink)] text-[var(--bg)]"
-                : "text-[var(--ink)]"
-            }`}
-          >
-            {t("hubPlay")}
-          </button>
-        </div>
         {area === "menu" ? (
-        <div className="mt-2 grid grid-cols-4 gap-1 rounded-full bg-black/5 p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-full bg-black/5 p-1">
           {tabs.map(([key, label]) => (
             <button
               key={key}

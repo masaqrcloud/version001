@@ -550,3 +550,45 @@ img {
 .dish-added {
   animation: dish-glow 0.85s ease-out;
 }
+
+.hub-bubble {
+  display: flex;
+  aspect-ratio: 1;
+  min-height: 9.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 2.25rem;
+  background:
+    radial-gradient(120% 90% at 20% 10%, rgba(255, 255, 255, 0.95), transparent 48%),
+    linear-gradient(165deg, #fffaf4 0%, #ffe8d4 100%);
+  box-shadow:
+    0 22px 44px rgba(26, 21, 20, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.hub-bubble:active {
+  transform: scale(0.97);
+}
+
+.hub-bubble-icon {
+  display: grid;
+  height: 3.25rem;
+  width: 3.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-soft) 80%, white);
+  color: var(--accent);
+}
+
+.hub-cover-fade {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 21, 20, 0.18) 0%,
+    rgba(26, 21, 20, 0.08) 42%,
+    var(--bg) 100%
+  );
+}

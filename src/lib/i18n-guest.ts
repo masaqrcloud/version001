@@ -3,6 +3,11 @@ import { interpolate, type Locale } from "@/lib/i18n";
 export const guestTr = {
   tabMenu: "Menü",
   hubPlay: "Oyun",
+  hubWelcome: "Hoş geldin",
+  hubPick: "Ne yapmak istersin?",
+  hubMenuHint: "Sipariş ver, menüyü incele",
+  hubPlayHint: "Masayla oyun oyna",
+  hubBack: "← Karşılama",
   tabCart: "Sepet",
   tabCartN: "Sepet ({n})",
   tabBill: "Hesap",
@@ -235,6 +240,11 @@ export type GuestMessage = keyof typeof guestTr;
 const guestEn: Record<GuestMessage, string> = {
   tabMenu: "Menu",
   hubPlay: "Play",
+  hubWelcome: "Welcome",
+  hubPick: "What would you like to do?",
+  hubMenuHint: "Browse the menu and order",
+  hubPlayHint: "Play with the table",
+  hubBack: "← Welcome",
   tabCart: "Cart",
   tabCartN: "Cart ({n})",
   tabBill: "Bill",
