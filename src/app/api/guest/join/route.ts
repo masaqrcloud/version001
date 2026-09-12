@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
+  attachCustomerToGuest,
+  getCustomerFromCookie,
+  isGoogleAuthConfigured,
+} from "@/lib/customer";
+import {
   GUEST_COOKIE,
   findTable,
   guestCookieClearOptions,
@@ -59,11 +64,14 @@ export async function POST(request: Request) {
   }
 
   if (joined.idle) {
+    const customer = await getCustomerFromCookie();
     const response = NextResponse.json({
       idle: true,
       closed: false,
       tableNumber: joined.table.number,
       venueName: joined.venue.name,
+      customerName: customer?.name ?? null,
+      googleAuth: isGoogleAuthConfigured(),
     });
     response.cookies.set(GUEST_COOKIE, "", guestCookieClearOptions());
     return response;
@@ -98,17 +106,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Masaya bağlanılamadı" }, { status: 500 });
   }
 
+  const guest = await attachCustomerToGuest(
+    joined.guest,
+    joined.table.venueId,
+    { explicit: false },
+  );
+
   return applyGuestCookie(
     NextResponse.json({
       closed: false as const,
       idle: false as const,
-      guestId: joined.guest.id,
-      guestToken: joined.guest.guestToken,
-      nickname: joined.guest.nickname,
+      guestId: guest.id,
+      guestToken: guest.guestToken,
+      nickname: guest.nickname,
+      customerLinked: Boolean(guest.customerId),
+      googleAuth: isGoogleAuthConfigured(),
       tableNumber: joined.table.number,
       venueName: joined.venue.name,
     }),
-    joined.guest.guestToken,
+    guest.guestToken,
   );
 }
 

@@ -573,6 +573,12 @@ img {
   transform: scale(0.97);
 }
 
+.hub-bubble-wide {
+  grid-column: 1 / -1;
+  aspect-ratio: 2.35 / 1;
+  min-height: 6.75rem;
+}
+
 .hub-bubble-photo {
   position: absolute;
   inset: 0;

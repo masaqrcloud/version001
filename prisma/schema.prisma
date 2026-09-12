@@ -99,6 +99,7 @@ model Venue {
   categories      MenuCategory[]
   reservations    Reservation[]
   stockMovements  StockMovement[]
+  members         VenueMember[]
 }
 
 model User {
@@ -170,6 +171,32 @@ model TableSession {
   bestOfRounds      BestOfRound[]
 }
 
+model Customer {
+  id        String        @id @default(cuid())
+  email     String        @unique
+  name      String?
+  googleSub String?       @unique
+  createdAt DateTime      @default(now())
+  deletedAt DateTime?
+  guests    Guest[]
+  members   VenueMember[]
+
+  @@index([deletedAt])
+}
+
+model VenueMember {
+  id         String    @id @default(cuid())
+  venueId    String
+  venue      Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime  @default(now())
+  unlinkedAt DateTime?
+
+  @@unique([venueId, customerId])
+  @@index([venueId, unlinkedAt])
+}
+
 model Guest {
   id             String              @id @default(cuid())
   tableSessionId String
@@ -180,12 +207,16 @@ model Guest {
   receiptSentAt  DateTime?
   waiterCalledAt DateTime?
   billRequestedAt DateTime?
+  customerId     String?
+  customer       Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
   createdAt      DateTime            @default(now())
   cartItems      CartItem[]
   orders         Order[]
   notifications  GuestNotification[]
   feedback          SessionFeedback[]
   pasaparolaPlays   PasaparolaPlay[]
+
+  @@index([customerId])
 }
 
 model GuestNotification {

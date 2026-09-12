@@ -14,6 +14,7 @@ import type { OrderStatus } from "@prisma/client";
 import { SessionFeedbackForm } from "@/components/session-feedback-form";
 import { AllergenFilter } from "@/components/allergen-filter";
 import { GuestGames } from "@/components/guest-games";
+import { GuestHistory } from "@/components/guest-history";
 import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
 import {
   itemHiddenByFilter,
@@ -154,7 +155,7 @@ type BillResponse = {
   total: number;
 };
 
-type Area = "hub" | "menu" | "play";
+type Area = "hub" | "menu" | "play" | "history";
 type Tab = "menu" | "cart" | "bill" | "alerts";
 
 type NotesResponse = {
@@ -335,15 +336,21 @@ function HubBubble({
   title,
   hint,
   image,
+  wide,
   onClick,
 }: {
   title: string;
   hint: string;
   image: string;
+  wide?: boolean;
   onClick: () => void;
 }) {
   return (
-    <button type="button" className="hub-bubble" onClick={onClick}>
+    <button
+      type="button"
+      className={`hub-bubble${wide ? " hub-bubble-wide" : ""}`}
+      onClick={onClick}
+    >
       <span className="hub-bubble-photo">
         <img src={image} alt="" />
       </span>
@@ -373,6 +380,7 @@ function GuestWelcomeHub({
   wifiPassword,
   onMenu,
   onPlay,
+  onHistory,
 }: {
   venueName: string;
   venueTagline?: string | null;
@@ -386,6 +394,7 @@ function GuestWelcomeHub({
   wifiPassword?: string | null;
   onMenu: () => void;
   onPlay: () => void;
+  onHistory: () => void;
 }) {
   const { t, dir } = useLocale();
   const tableGuests = guests ?? [];
@@ -461,6 +470,13 @@ function GuestWelcomeHub({
             hint={t("hubPlayHint")}
             image="/guest/hub-play.png"
             onClick={onPlay}
+          />
+          <HubBubble
+            title={t("hubHistory")}
+            hint={t("hubHistoryHint")}
+            image="/guest/hub-history.png"
+            wide
+            onClick={onHistory}
           />
         </div>
         <p className="mt-6 rounded-2xl bg-black/5 px-4 py-3 text-sm text-[var(--muted)]">
@@ -589,6 +605,7 @@ function GuestAppContent({
   const [area, setArea] = useState<Area>("hub");
   const [tab, setTab] = useState<Tab>("menu");
   const [gameImmersive, setGameImmersive] = useState(false);
+  const [googleAuth, setGoogleAuth] = useState(false);
   const [guestId, setGuestId] = useState("");
   const [guestToken, setGuestToken] = useState("");
   const [name, setName] = useState("");
@@ -680,6 +697,12 @@ function GuestAppContent({
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const google = new URLSearchParams(window.location.search).get("google");
+    if (google === "error") setNameError(t("googleFail"));
+    if (google === "off") setNameError(t("googleUnavailable"));
+  }, [t]);
 
   useEffect(() => {
     if (locale !== "en" || fetchedEn.current) return;
@@ -784,12 +807,14 @@ function GuestAppContent({
           setReady(true);
           return;
         }
+        if (data.googleAuth != null) setGoogleAuth(Boolean(data.googleAuth));
         if (data.idle || !data.guestToken) {
           window.localStorage.removeItem(guestStorageKey(qrToken));
           setGuestId("");
           setGuestToken("");
           setJoinClosed(false);
           setNamed(false);
+          if (data.customerName) setName(data.customerName);
           setReady(true);
           return;
         }
@@ -1432,6 +1457,20 @@ function GuestAppContent({
               {busy ? t("saving") : t("joinNamed")}
             </Button>
           </form>
+          {googleAuth ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full"
+              size="lg"
+              disabled={busy}
+              onClick={() => {
+                window.location.href = `/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`;
+              }}
+            >
+              {t("joinGoogle")}
+            </Button>
+          ) : null}
           <button
             type="button"
             className="mt-4 min-h-11 text-sm text-[var(--muted)] underline-offset-4 hover:underline"
@@ -1475,6 +1514,7 @@ function GuestAppContent({
           setArea("menu");
         }}
         onPlay={() => setArea("play")}
+        onHistory={() => setArea("history")}
       />
     );
   }
@@ -1573,7 +1613,7 @@ function GuestAppContent({
       ) : null}
       {flash ? <div className="add-flash" /> : null}
       <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${area === "play" && gameImmersive ? "hidden" : ""}`}>
-        {area !== "play" ? (
+        {area === "menu" ? (
         <GuestBrand
           venueName={venueName}
           venueTagline={venueTagline}
@@ -1647,7 +1687,9 @@ function GuestAppContent({
               >
                 {t("hubBack")}
               </button>
-              <p className="font-serif text-xl">{t("hubPlay")}</p>
+              <p className="font-serif text-xl">
+                {area === "history" ? t("hubHistory") : t("hubPlay")}
+              </p>
               <LanguageSwitch />
             </div>
           </div>
@@ -1684,7 +1726,7 @@ function GuestAppContent({
         </div>
       </header>
 
-      {area !== "play" ? (
+      {area === "menu" ? (
         <>
       <p
         className={`mx-4 mt-3 rounded-xl px-3 py-2 text-sm ${
@@ -2065,6 +2107,12 @@ function GuestAppContent({
           onImmersiveChange={setGameImmersive}
         />
       </div>
+
+      {area === "history" ? (
+        <div className="flex-1 px-4 py-6">
+          <GuestHistory qrToken={qrToken} />
+        </div>
+      ) : null}
 
       {area === "menu" && tab === "alerts" ? (
         <div className="space-y-3 px-4 py-6">

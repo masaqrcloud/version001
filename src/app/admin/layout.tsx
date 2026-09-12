@@ -13,6 +13,7 @@ const venueLinks = [
   { href: "/admin/tables", label: "Masalar" },
   { href: "/admin/reservations", label: "Rezervasyonlar" },
   { href: "/admin/staff", label: "Personel" },
+  { href: "/admin/members", label: "Üyeler" },
   { href: "/admin/settings", label: "Ayarlar" },
 ];
 
