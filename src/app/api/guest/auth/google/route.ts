@@ -4,6 +4,7 @@ import {
   createOAuthState,
   customerCookieOptions,
   googleCallbackUrl,
+  publicUrl,
   googleClientId,
   isGoogleAuthConfigured,
 } from "@/lib/customer";
@@ -16,12 +17,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "QR eksik" }, { status: 400 });
   }
   if (!isGoogleAuthConfigured()) {
-    return NextResponse.redirect(new URL(`/t/${qr}?google=off`, request.url));
+    return NextResponse.redirect(publicUrl(`/t/${qr}?google=off`, request));
   }
 
   const table = await findTable(qr);
   if (!table) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(publicUrl("/", request));
   }
 
   const { state, nonce } = createOAuthState(qr);

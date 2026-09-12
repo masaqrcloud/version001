@@ -6,6 +6,7 @@ import {
   attachCustomerToGuest,
   customerCookieOptions,
   googleCallbackUrl,
+  publicUrl,
   googleClientId,
   googleClientSecret,
   isGoogleAuthConfigured,
@@ -22,7 +23,7 @@ import {
 
 function fail(request: Request, qr: string | null, reason: string) {
   const path = qr ? `/t/${qr}?google=${reason}` : `/?google=${reason}`;
-  const response = NextResponse.redirect(new URL(path, request.url));
+  const response = NextResponse.redirect(publicUrl(path, request));
   response.cookies.set(CUSTOMER_OAUTH_COOKIE, "", customerCookieOptions(0));
   return response;
 }
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
   });
 
   const response = NextResponse.redirect(
-    new URL(`/t/${state.qr}`, request.url),
+    publicUrl(`/t/${state.qr}`, request),
   );
   response.cookies.set(
     CUSTOMER_COOKIE,

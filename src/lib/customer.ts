@@ -46,18 +46,23 @@ export function appUrl(request?: Request) {
     envValue("AUTH_URL") ||
     envValue("NEXT_PUBLIC_APP_URL")
   ).replace(/\/$/, "");
-  if (fromEnv && !/localhost|127\.0\.0\.1/.test(fromEnv)) {
-    return fromEnv;
-  }
-  if (request) {
-    const proto = request.headers.get("x-forwarded-proto") || "https";
-    const host =
-      request.headers.get("x-forwarded-host") || request.headers.get("host");
+  let url = fromEnv;
+  if (!url || /localhost|127\.0\.0\.1/.test(url)) {
+    const host = request
+      ? request.headers.get("x-forwarded-host") || request.headers.get("host")
+      : null;
     if (host && !/localhost|127\.0\.0\.1/.test(host)) {
-      return `${proto}://${host}`.replace(/\/$/, "");
+      url = `https://${host}`;
+    } else if (process.env.NODE_ENV === "production") {
+      url = "https://masaqr.net";
     }
   }
-  return fromEnv || "http://localhost:3000";
+  if (!url) url = "http://localhost:3000";
+  url = url.replace(/\/$/, "");
+  if (!/localhost|127\.0\.0\.1/.test(url)) {
+    url = url.replace(/^http:\/\//, "https://");
+  }
+  return url;
 }
 
 export function isGoogleAuthConfigured() {
@@ -68,14 +73,17 @@ export function googleCallbackUrl(request?: Request) {
   return `${appUrl(request)}/api/guest/auth/google/callback`;
 }
 
+export function publicUrl(path: string, request?: Request) {
+  return new URL(path, `${appUrl(request)}/`).toString();
+}
+
 export function customerCookieOptions(maxAge = CUSTOMER_MAX_AGE) {
-  const authUrl = envValue("AUTH_URL") || envValue("NEXT_PUBLIC_APP_URL");
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
     maxAge,
-    secure: authUrl.startsWith("https://"),
+    secure: appUrl().startsWith("https://"),
   };
 }
 
