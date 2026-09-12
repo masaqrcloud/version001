@@ -154,7 +154,8 @@ type BillResponse = {
   total: number;
 };
 
-type Tab = "menu" | "cart" | "bill" | "games" | "alerts";
+type Area = "menu" | "play";
+type Tab = "menu" | "cart" | "bill" | "alerts";
 
 type NotesResponse = {
   unread: number;
@@ -430,6 +431,7 @@ function GuestAppContent({
       : openState.isOpen
         ? t("openUntil", { time: openState.closesAt ?? "" })
         : t("closedUntil", { time: openState.opensAt ?? "" });
+  const [area, setArea] = useState<Area>("menu");
   const [tab, setTab] = useState<Tab>("menu");
   const [gameImmersive, setGameImmersive] = useState(false);
   const [guestId, setGuestId] = useState("");
@@ -971,6 +973,7 @@ function GuestAppContent({
       }
       pendingOrderKey.current = null;
       setCart({ items: [] });
+      setArea("menu");
       setTab("cart");
       setMessage(t("orderSent"));
     } catch {
@@ -1090,7 +1093,7 @@ function GuestAppContent({
     const copy = localizedNotice(locale, latest);
     pingPhone(copy.title, copy.body);
     if (isGuestNoticeCode(latest.code) && GAME_NOTICE_CODES.has(latest.code)) {
-      setTab("games");
+      setArea("play");
       return;
     }
     setMessage(`${copy.title}: ${copy.body}`);
@@ -1100,6 +1103,7 @@ function GuestAppContent({
   const unread = notes?.unread ?? 0;
 
   async function openAlerts() {
+    setArea("menu");
     setTab("alerts");
     if (!unread) return;
     await fetch("/api/guest/notifications", {
@@ -1114,7 +1118,6 @@ function GuestAppContent({
     ["menu", t("tabMenu")],
     ["cart", cartCount ? t("tabCartN", { n: cartCount }) : t("tabCart")],
     ["bill", t("tabBill")],
-    ["games", t("tabGames")],
     ["alerts", unread ? t("tabAlertsN", { n: unread }) : t("tabAlerts")],
   ] as const;
 
@@ -1391,8 +1394,8 @@ function GuestAppContent({
         </div>
       ) : null}
       {flash ? <div className="add-flash" /> : null}
-      <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${tab === "games" && gameImmersive ? "hidden" : ""}`}>
-        {tab !== "games" ? (
+      <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${area === "play" && gameImmersive ? "hidden" : ""}`}>
+        {area !== "play" ? (
         <GuestBrand
           venueName={venueName}
           venueTagline={venueTagline}
@@ -1446,13 +1449,41 @@ function GuestAppContent({
         ) : (
           <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <div className="flex items-center justify-between gap-2 pb-2">
-              <p className="font-serif text-xl">{t("tabGames")}</p>
+              <p className="font-serif text-xl">{t("hubPlay")}</p>
               <LanguageSwitch />
             </div>
           </div>
         )}
         <div className="px-4 pb-3">
-        <div className="mt-0 grid grid-cols-5 gap-1 rounded-full bg-black/5 p-1">
+        <div className="grid grid-cols-2 gap-1 rounded-full bg-black/5 p-1">
+          <button
+            type="button"
+            onClick={() => {
+              setGameImmersive(false);
+              setArea("menu");
+            }}
+            className={`flex min-h-11 items-center justify-center rounded-full text-sm font-semibold ${
+              area === "menu"
+                ? "bg-[var(--ink)] text-[var(--bg)]"
+                : "text-[var(--ink)]"
+            }`}
+          >
+            {t("tabMenu")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setArea("play")}
+            className={`flex min-h-11 items-center justify-center rounded-full text-sm font-semibold ${
+              area === "play"
+                ? "bg-[var(--ink)] text-[var(--bg)]"
+                : "text-[var(--ink)]"
+            }`}
+          >
+            {t("hubPlay")}
+          </button>
+        </div>
+        {area === "menu" ? (
+        <div className="mt-2 grid grid-cols-4 gap-1 rounded-full bg-black/5 p-1">
           {tabs.map(([key, label]) => (
             <button
               key={key}
@@ -1464,22 +1495,6 @@ function GuestAppContent({
                   : "text-[var(--ink)]"
               } ${key === "cart" && cartPulse ? "cart-pulse" : ""}`}
             >
-              {key === "games" ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  className="mb-0.5 h-3.5 w-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <rect x="3" y="8" width="18" height="11" rx="4" />
-                  <path d="M8 13v3M6.5 14.5h3" />
-                  <circle cx="15.5" cy="13" r="0.7" fill="currentColor" />
-                  <circle cx="17.5" cy="15.2" r="0.7" fill="currentColor" />
-                </svg>
-              ) : null}
               {label}
               {key === "cart" && cartCount > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] text-white">
@@ -1489,7 +1504,8 @@ function GuestAppContent({
             </button>
           ))}
         </div>
-        {tab !== "games" && bill?.guests.length ? (
+        ) : null}
+        {area === "menu" && bill?.guests.length ? (
           <p className="mt-2 text-xs text-[var(--muted)]">
             {bill.guests.map((g) => (g.isMe ? `${g.nickname}${t("youParen")}` : g.nickname)).join(" · ")}
           </p>
@@ -1497,7 +1513,7 @@ function GuestAppContent({
         </div>
       </header>
 
-      {tab !== "games" ? (
+      {area !== "play" ? (
         <>
       <p
         className={`mx-4 mt-3 rounded-xl px-3 py-2 text-sm ${
@@ -1521,7 +1537,7 @@ function GuestAppContent({
         </>
       ) : null}
 
-      {tab === "menu" ? (
+      {area === "menu" && tab === "menu" ? (
         <div className="space-y-8 px-4 py-6">
           <AllergenFilter
             hideAllergens={hideAllergens}
@@ -1578,7 +1594,7 @@ function GuestAppContent({
         </div>
       ) : null}
 
-      {tab === "cart" ? (
+      {area === "menu" && tab === "cart" ? (
         <div className="space-y-4 px-4 py-6">
           <SectionLogo src={venueLogo} label={t("tabCart")} />
           {!cart?.items.length ? (
@@ -1727,7 +1743,7 @@ function GuestAppContent({
         </div>
       ) : null}
 
-      {tab === "bill" ? (
+      {area === "menu" && tab === "bill" ? (
         <div className="space-y-4 px-4 py-6">
           <SectionLogo src={venueLogo} label={t("tabBill")} />
           <p className="text-sm text-[var(--muted)]">
@@ -1743,7 +1759,10 @@ function GuestAppContent({
                 className="mt-3"
                 size="sm"
                 variant="outline"
-                onClick={() => setTab("cart")}
+                onClick={() => {
+                  setArea("menu");
+                  setTab("cart");
+                }}
               >
                 {t("goToOrders")}
               </Button>
@@ -1861,9 +1880,9 @@ function GuestAppContent({
 
       <div
         className={
-          tab === "games" && gameImmersive
+          area === "play" && gameImmersive
             ? "fixed inset-0 z-30 overflow-y-auto bg-[var(--bg)] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
-            : tab === "games"
+            : area === "play"
               ? "flex-1 px-4 py-6"
               : "hidden"
         }
@@ -1871,12 +1890,12 @@ function GuestAppContent({
         <GuestGames
           guestToken={guestToken}
           guestHeaders={guestHeaders}
-          onRoundLive={() => setTab("games")}
+          onRoundLive={() => setArea("play")}
           onImmersiveChange={setGameImmersive}
         />
       </div>
 
-      {tab === "alerts" ? (
+      {area === "menu" && tab === "alerts" ? (
         <div className="space-y-3 px-4 py-6">
           <SectionLogo src={venueLogo} label={t("tabAlerts")} />
           {!notes?.notifications.length ? (
