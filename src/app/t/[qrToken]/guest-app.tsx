@@ -15,6 +15,7 @@ import { SessionFeedbackForm } from "@/components/session-feedback-form";
 import { AllergenFilter } from "@/components/allergen-filter";
 import { GuestGames } from "@/components/guest-games";
 import { GuestHistory } from "@/components/guest-history";
+import { GoogleJoinButton } from "@/components/google-join-button";
 import { CalorieBesidePrice, NutritionLabels } from "@/components/nutrition-labels";
 import {
   itemHiddenByFilter,
@@ -1458,18 +1459,12 @@ function GuestAppContent({
             </Button>
           </form>
           {googleAuth ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3 w-full"
-              size="lg"
+            <GoogleJoinButton
+              className="mt-3"
+              href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
+              label={t("joinGoogle")}
               disabled={busy}
-              onClick={() => {
-                window.location.href = `/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`;
-              }}
-            >
-              {t("joinGoogle")}
-            </Button>
+            />
           ) : null}
           <button
             type="button"

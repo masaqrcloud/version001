@@ -29,26 +29,47 @@ function verifySigned(value: string | undefined) {
   return token;
 }
 
-export function appUrl() {
-  return (
-    process.env.AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000"
+function envValue(name: string) {
+  return (process.env[name] ?? "").trim().replace(/^["']|["']$/g, "");
+}
+
+export function googleClientId() {
+  return envValue("GOOGLE_CLIENT_ID");
+}
+
+export function googleClientSecret() {
+  return envValue("GOOGLE_CLIENT_SECRET");
+}
+
+export function appUrl(request?: Request) {
+  const fromEnv = (
+    envValue("AUTH_URL") ||
+    envValue("NEXT_PUBLIC_APP_URL")
   ).replace(/\/$/, "");
+  if (fromEnv && !/localhost|127\.0\.0\.1/.test(fromEnv)) {
+    return fromEnv;
+  }
+  if (request) {
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    const host =
+      request.headers.get("x-forwarded-host") || request.headers.get("host");
+    if (host && !/localhost|127\.0\.0\.1/.test(host)) {
+      return `${proto}://${host}`.replace(/\/$/, "");
+    }
+  }
+  return fromEnv || "http://localhost:3000";
 }
 
 export function isGoogleAuthConfigured() {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-  );
+  return Boolean(googleClientId() && googleClientSecret());
 }
 
-export function googleCallbackUrl() {
-  return `${appUrl()}/api/guest/auth/google/callback`;
+export function googleCallbackUrl(request?: Request) {
+  return `${appUrl(request)}/api/guest/auth/google/callback`;
 }
 
 export function customerCookieOptions(maxAge = CUSTOMER_MAX_AGE) {
-  const authUrl = process.env.AUTH_URL ?? "";
+  const authUrl = envValue("AUTH_URL") || envValue("NEXT_PUBLIC_APP_URL");
   return {
     httpOnly: true,
     sameSite: "lax" as const,

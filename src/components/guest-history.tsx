@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GoogleJoinButton } from "@/components/google-join-button";
 import { Popup } from "@/components/ui/popup";
 import { useLocale } from "@/components/locale-provider";
 import { formatTRY } from "@/lib/utils";
@@ -86,15 +86,11 @@ export function GuestHistory({
         <Card className="p-5">
           <p className="text-sm text-[var(--muted)]">{t("historyNeedGoogle")}</p>
           {data.googleAuth ? (
-            <Button
-              className="mt-4 w-full"
-              size="lg"
-              onClick={() => {
-                window.location.href = `/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`;
-              }}
-            >
-              {t("joinGoogle")}
-            </Button>
+            <GoogleJoinButton
+              className="mt-4"
+              href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
+              label={t("joinGoogle")}
+            />
           ) : (
             <p className="mt-3 text-sm text-[var(--muted)]">
               {t("googleUnavailable")}

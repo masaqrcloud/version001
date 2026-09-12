@@ -6,6 +6,8 @@ import {
   attachCustomerToGuest,
   customerCookieOptions,
   googleCallbackUrl,
+  googleClientId,
+  googleClientSecret,
   isGoogleAuthConfigured,
   readOAuthState,
   signedCustomerCookie,
@@ -49,9 +51,9 @@ export async function GET(request: Request) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: googleCallbackUrl(),
+      client_id: googleClientId(),
+      client_secret: googleClientSecret(),
+      redirect_uri: googleCallbackUrl(request),
       grant_type: "authorization_code",
     }),
   });

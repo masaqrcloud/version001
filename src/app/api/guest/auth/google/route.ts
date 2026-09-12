@@ -4,6 +4,7 @@ import {
   createOAuthState,
   customerCookieOptions,
   googleCallbackUrl,
+  googleClientId,
   isGoogleAuthConfigured,
 } from "@/lib/customer";
 import { findTable } from "@/lib/guest";
@@ -25,8 +26,8 @@ export async function GET(request: Request) {
 
   const { state, nonce } = createOAuthState(qr);
   const google = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  google.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID!);
-  google.searchParams.set("redirect_uri", googleCallbackUrl());
+  google.searchParams.set("client_id", googleClientId());
+  google.searchParams.set("redirect_uri", googleCallbackUrl(request));
   google.searchParams.set("response_type", "code");
   google.searchParams.set("scope", "openid email profile");
   google.searchParams.set("state", state);
