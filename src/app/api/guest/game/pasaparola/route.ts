@@ -277,12 +277,10 @@ export async function POST(request: Request) {
           wordIds: ids.join(","),
         },
       });
-      const who = nicknameOf(guest);
-      const modeLabel = mode === "CLAIM" ? "Kapışma" : "Hep beraber";
       await notifyTableGuests(
         guest.tableSessionId,
-        "Pasaparola",
-        `${who} ${modeLabel} turunu başlattı. 5 saniye.`,
+        "noticePasaparola",
+        { name: nicknameOf(guest), mode },
         guest.id,
       );
     }
@@ -319,8 +317,8 @@ export async function POST(request: Request) {
     }
     await notifyTableGuests(
       guest.tableSessionId,
-      "Pasaparola",
-      `${nicknameOf(guest)} oyundan çıktı.`,
+      "noticePasaparolaLeft",
+      { name: nicknameOf(guest) },
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));

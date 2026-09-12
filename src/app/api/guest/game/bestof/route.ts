@@ -134,8 +134,8 @@ export async function POST(request: Request) {
     });
     await notifyTableGuests(
       guest.tableSessionId,
-      "En İyisi",
-      `${nicknameOf(guest)} ${categoryLabel(body.category as string)} kapışması açtı.`,
+      "noticeBestOf",
+      { name: nicknameOf(guest), category: String(body.category) },
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));

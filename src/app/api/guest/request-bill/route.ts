@@ -69,11 +69,7 @@ export async function POST() {
     }
 
     try {
-      await notifyGuest(
-        guest.id,
-        "Hesap isteniyor",
-        "Garson hesabınla masaya gelecek.",
-      );
+      await notifyGuest(guest.id, "noticeBillRequested");
     } catch {
       // bildirim olmasa da istek gider
     }

@@ -136,6 +136,8 @@ export async function GET() {
         id: item.id,
         title: item.title,
         body: item.body,
+        code: item.code,
+        vars: item.vars,
         read: item.read,
         createdAt: item.createdAt,
       })),

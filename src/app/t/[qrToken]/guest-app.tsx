@@ -23,6 +23,12 @@ import { isAndroidDevice, openAndroidWifiConnect } from "@/lib/wifi";
 import { LanguageSwitch } from "@/components/language-switch";
 import { LocaleProvider, useLocale } from "@/components/locale-provider";
 import { pickLocalized, type Locale } from "@/lib/i18n";
+import {
+  GAME_NOTICE_CODES,
+  isGuestNoticeCode,
+  renderGuestNotice,
+  type GuestNoticeVars,
+} from "@/lib/i18n-guest";
 
 type MenuItem = {
   id: string;
@@ -156,10 +162,35 @@ type NotesResponse = {
     id: string;
     title: string;
     body: string;
+    code?: string | null;
+    vars?: GuestNoticeVars | null;
     read: boolean;
     createdAt: string;
   }[];
 };
+
+function noticeVars(value: NotesResponse["notifications"][number]["vars"]) {
+  if (!value) return undefined;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as GuestNoticeVars;
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  return undefined;
+}
+
+function localizedNotice(
+  locale: Locale,
+  item: NotesResponse["notifications"][number],
+) {
+  if (!isGuestNoticeCode(item.code)) {
+    return { title: item.title, body: item.body };
+  }
+  return renderGuestNotice(locale, item.code, noticeVars(item.vars));
+}
 
 function guestStorageKey(qr: string) {
   return `masaqr.guest.${qr}`;
@@ -1056,20 +1087,15 @@ function GuestAppContent({
     const latest = notes?.notifications.find((item) => !item.read);
     if (!latest || latest.id === seenAlert.current) return;
     seenAlert.current = latest.id;
-    pingPhone(latest.title, latest.body);
-    if (
-      latest.title === "Pasaparola" ||
-      latest.title === "Cevap Ver" ||
-      latest.title === "10’da 10" ||
-      latest.title === "En İyisi" ||
-      latest.title === "Hafıza"
-    ) {
+    const copy = localizedNotice(locale, latest);
+    pingPhone(copy.title, copy.body);
+    if (isGuestNoticeCode(latest.code) && GAME_NOTICE_CODES.has(latest.code)) {
       setTab("games");
       return;
     }
-    setMessage(`${latest.title}: ${latest.body}`);
-    setAlertPopup({ title: latest.title, body: latest.body });
-  }, [notes]);
+    setMessage(`${copy.title}: ${copy.body}`);
+    setAlertPopup({ title: copy.title, body: copy.body });
+  }, [notes, locale]);
 
   const unread = notes?.unread ?? 0;
 
@@ -1856,13 +1882,15 @@ function GuestAppContent({
           {!notes?.notifications.length ? (
             <p className="text-[var(--muted)]">{t("noAlerts")}</p>
           ) : (
-            notes.notifications.map((item) => (
+            notes.notifications.map((item) => {
+              const copy = localizedNotice(locale, item);
+              return (
               <Card
                 key={item.id}
                 className={`p-4 ${item.read ? "" : "border-[var(--accent)]"}`}
               >
-                <p className="font-medium">{item.title}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">{item.body}</p>
+                <p className="font-medium">{copy.title}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{copy.body}</p>
                 <p className="mt-2 text-xs text-[var(--muted)]">
                   {new Date(item.createdAt).toLocaleTimeString(dateLocale, {
                     hour: "2-digit",
@@ -1870,7 +1898,8 @@ function GuestAppContent({
                   })}
                 </p>
               </Card>
-            ))
+              );
+            })
           )}
         </div>
       ) : null}

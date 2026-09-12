@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/i18n";
+import { interpolate, type Locale } from "@/lib/i18n";
 
 export const guestTr = {
   tabMenu: "Menü",
@@ -179,6 +179,54 @@ export const guestTr = {
   meat_karisik: "Karışık et",
   meat_diger: "Diğer hayvansal",
   language: "Dil",
+  noticeOrderWho: "Masadaki sipariş",
+  noticeOrderPENDING: "Sipariş alındı",
+  noticeOrderPENDINGBody: "Sipariş mutfağa iletildi.{itemsPart}",
+  noticeOrderPENDINGOtherBody: "{who}: Sipariş mutfağa iletildi.{itemsPart}",
+  noticeOrderPREPARING: "Mutfak hazırlıyor",
+  noticeOrderPREPARINGBody: "Mutfak hazırlamaya başladı.{itemsPart}",
+  noticeOrderPREPARINGOtherBody: "{who}: Mutfak hazırlamaya başladı.{itemsPart}",
+  noticeOrderREADY: "Sipariş hazır",
+  noticeOrderREADYBody: "Mutfak hazır dedi. Garson masaya getirecek.{itemsPart}",
+  noticeOrderREADYOtherBody:
+    "{who}: Mutfak hazır dedi. Garson masaya getirecek.{itemsPart}",
+  noticeOrderSERVED: "Servis edildi",
+  noticeOrderSERVEDBody: "Sipariş masaya geldi. Afiyet olsun.{itemsPart}",
+  noticeOrderSERVEDOtherBody: "{who}: Sipariş masaya geldi. Afiyet olsun.{itemsPart}",
+  noticeOrderCANCELLED: "Sipariş iptal",
+  noticeOrderCANCELLEDBody: "Sipariş iptal edildi.{itemsPart}",
+  noticeOrderCANCELLEDOtherBody: "{who}: Sipariş iptal edildi.{itemsPart}",
+  noticeWaiterCalled: "Garson çağrıldı",
+  noticeWaiterCalledBody: "{name}, garson masaya geliyor.",
+  noticeBillRequested: "Hesap isteniyor",
+  noticeBillRequestedBody: "Garson hesabınla masaya gelecek.",
+  noticeWaiterComing: "Garson geliyor",
+  noticeWaiterComingBody: "{table} için garson yolda.",
+  noticeBillComing: "Hesabın geliyor",
+  noticeBillComingBody: "{table} için hesap alınıyor.",
+  noticeOrderUpdated: "Sipariş güncellendi",
+  noticeOrderUpdatedBody: "{items}",
+  noticePasaparola: "Pasaparola",
+  noticePasaparolaBody: "{name} {mode} turunu başlattı. 5 saniye.",
+  noticePasaparolaLeft: "Pasaparola",
+  noticePasaparolaLeftBody: "{name} oyundan çıktı.",
+  noticeMemory: "Hafıza",
+  noticeMemoryBody: "{name} hafıza açtı.",
+  noticeMemoryPeek: "Hafıza",
+  noticeMemoryPeekBody: "{name} hafıza açtı. 5 saniye.",
+  noticeMemoryDone: "Hafıza",
+  noticeMemoryDoneBody: "{name} oyunu bitirdi.",
+  noticeRather: "Cevap Ver",
+  noticeRatherBody: "{name} bir soru açtı.",
+  noticeTenTen: "10’da 10",
+  noticeTenTenBody: "{name} bir soru açtı.",
+  noticeBestOf: "En İyisi",
+  noticeBestOfBody: "{name} {category} kapışması açtı.",
+  pasaparolaRace: "Hep beraber",
+  pasaparolaClaim: "Kapışma",
+  bestof_yemek: "Yemek",
+  bestof_meyve: "Meyve",
+  bestof_atistirmalik: "Atıştırmalık",
 };
 
 export type GuestMessage = keyof typeof guestTr;
@@ -358,9 +406,130 @@ const guestEn: Record<GuestMessage, string> = {
   meat_karisik: "Mixed meat",
   meat_diger: "Other meat",
   language: "Language",
+  noticeOrderWho: "A table order",
+  noticeOrderPENDING: "Order received",
+  noticeOrderPENDINGBody: "The order was sent to the kitchen.{itemsPart}",
+  noticeOrderPENDINGOtherBody: "{who}: The order was sent to the kitchen.{itemsPart}",
+  noticeOrderPREPARING: "Kitchen is preparing",
+  noticeOrderPREPARINGBody: "The kitchen has started preparing.{itemsPart}",
+  noticeOrderPREPARINGOtherBody: "{who}: The kitchen has started preparing.{itemsPart}",
+  noticeOrderREADY: "Order ready",
+  noticeOrderREADYBody: "The kitchen said it is ready. A waiter will bring it.{itemsPart}",
+  noticeOrderREADYOtherBody:
+    "{who}: The kitchen said it is ready. A waiter will bring it.{itemsPart}",
+  noticeOrderSERVED: "Served",
+  noticeOrderSERVEDBody: "The order is at the table. Enjoy.{itemsPart}",
+  noticeOrderSERVEDOtherBody: "{who}: The order is at the table. Enjoy.{itemsPart}",
+  noticeOrderCANCELLED: "Order cancelled",
+  noticeOrderCANCELLEDBody: "The order was cancelled.{itemsPart}",
+  noticeOrderCANCELLEDOtherBody: "{who}: The order was cancelled.{itemsPart}",
+  noticeWaiterCalled: "Waiter called",
+  noticeWaiterCalledBody: "{name}, a waiter is on the way.",
+  noticeBillRequested: "Bill requested",
+  noticeBillRequestedBody: "A waiter will bring the bill.",
+  noticeWaiterComing: "Waiter coming",
+  noticeWaiterComingBody: "A waiter is on the way to {table}.",
+  noticeBillComing: "Bill on the way",
+  noticeBillComingBody: "The bill for {table} is being taken.",
+  noticeOrderUpdated: "Order updated",
+  noticeOrderUpdatedBody: "{items}",
+  noticePasaparola: "Pasaparola",
+  noticePasaparolaBody: "{name} started a {mode} round. 5 seconds.",
+  noticePasaparolaLeft: "Pasaparola",
+  noticePasaparolaLeftBody: "{name} left the game.",
+  noticeMemory: "Memory",
+  noticeMemoryBody: "{name} started Memory.",
+  noticeMemoryPeek: "Memory",
+  noticeMemoryPeekBody: "{name} started Memory. 5 seconds.",
+  noticeMemoryDone: "Memory",
+  noticeMemoryDoneBody: "{name} ended the game.",
+  noticeRather: "Would You Rather",
+  noticeRatherBody: "{name} opened a question.",
+  noticeTenTen: "10/10",
+  noticeTenTenBody: "{name} opened a question.",
+  noticeBestOf: "Best of",
+  noticeBestOfBody: "{name} started a {category} bracket.",
+  pasaparolaRace: "together",
+  pasaparolaClaim: "versus",
+  bestof_yemek: "Food",
+  bestof_meyve: "Fruit",
+  bestof_atistirmalik: "Snacks",
 };
 
 export const GUEST_MESSAGES: Record<Locale, Record<GuestMessage, string>> = {
   tr: guestTr,
   en: guestEn,
 };
+
+export const GUEST_NOTICE_CODES = [
+  "noticeOrderPENDING",
+  "noticeOrderPREPARING",
+  "noticeOrderREADY",
+  "noticeOrderSERVED",
+  "noticeOrderCANCELLED",
+  "noticeWaiterCalled",
+  "noticeBillRequested",
+  "noticeWaiterComing",
+  "noticeBillComing",
+  "noticeOrderUpdated",
+  "noticePasaparola",
+  "noticePasaparolaLeft",
+  "noticeMemory",
+  "noticeMemoryPeek",
+  "noticeMemoryDone",
+  "noticeRather",
+  "noticeTenTen",
+  "noticeBestOf",
+] as const;
+
+export type GuestNoticeCode = (typeof GUEST_NOTICE_CODES)[number];
+
+export const GAME_NOTICE_CODES = new Set<GuestNoticeCode>([
+  "noticePasaparola",
+  "noticePasaparolaLeft",
+  "noticeMemory",
+  "noticeMemoryPeek",
+  "noticeMemoryDone",
+  "noticeRather",
+  "noticeTenTen",
+  "noticeBestOf",
+]);
+
+export function isGuestNoticeCode(
+  value: string | null | undefined,
+): value is GuestNoticeCode {
+  return GUEST_NOTICE_CODES.includes(value as GuestNoticeCode);
+}
+
+export type GuestNoticeVars = Record<string, string | number | boolean>;
+
+export function renderGuestNotice(
+  locale: Locale,
+  code: GuestNoticeCode,
+  vars?: GuestNoticeVars,
+) {
+  const dict = GUEST_MESSAGES[locale];
+  const extra: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(vars ?? {})) {
+    if (key === "other" || value === true || value === false) continue;
+    extra[key] = value;
+  }
+  extra.who = String(extra.who || dict.noticeOrderWho);
+  extra.itemsPart = extra.items ? ` (${extra.items})` : "";
+  if (vars?.mode === "CLAIM") extra.mode = dict.pasaparolaClaim;
+  if (vars?.mode === "RACE") extra.mode = dict.pasaparolaRace;
+  if (typeof vars?.category === "string") {
+    const categoryKey = `bestof_${vars.category}` as GuestMessage;
+    extra.category = dict[categoryKey] ?? String(vars.category);
+  }
+  if (vars?.tableNumber != null) {
+    extra.table = `${dict.tableWord} ${vars.tableNumber}`;
+  }
+
+  const title = interpolate(dict[code], extra);
+  const bodyKey = (
+    vars?.other ? `${code}OtherBody` : `${code}Body`
+  ) as GuestMessage;
+  const body = interpolate(dict[bodyKey] ?? dict[code], extra);
+  return { title, body };
+}

@@ -90,8 +90,8 @@ export async function POST(request: Request) {
     });
     await notifyTableGuests(
       guest.tableSessionId,
-      "10’da 10",
-      `${nicknameOf(guest)} bir soru açtı.`,
+      "noticeTenTen",
+      { name: nicknameOf(guest) },
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));

@@ -177,10 +177,8 @@ export async function POST(request: Request) {
     });
     await notifyTableGuests(
       guest.tableSessionId,
-      "Hafıza",
-      players.length > 1
-        ? `${nicknameOf(guest)} hafıza açtı. 5 saniye.`
-        : `${nicknameOf(guest)} hafıza açtı.`,
+      players.length > 1 ? "noticeMemoryPeek" : "noticeMemory",
+      { name: nicknameOf(guest) },
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));
@@ -200,8 +198,8 @@ export async function POST(request: Request) {
     });
     await notifyTableGuests(
       guest.tableSessionId,
-      "Hafıza",
-      `${nicknameOf(guest)} oyunu bitirdi.`,
+      "noticeMemoryDone",
+      { name: nicknameOf(guest) },
       guest.id,
     );
     return NextResponse.json(await payload(guest.id, guest.tableSessionId));

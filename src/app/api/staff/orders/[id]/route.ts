@@ -162,11 +162,7 @@ export async function PATCH(request: Request, context: Ctx) {
       .map((line) => `${line.quantity}× ${line.menuItem.name}`)
       .join(", ");
     try {
-      await notifyGuest(
-        order.guestId,
-        "Sipariş güncellendi",
-        summary,
-      );
+      await notifyGuest(order.guestId, "noticeOrderUpdated", { items: summary });
     } catch {
       // bildirim olmasa da sipariş kalır
     }

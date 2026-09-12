@@ -194,6 +194,8 @@ model GuestNotification {
   guest     Guest    @relation(fields: [guestId], references: [id], onDelete: Cascade)
   title     String
   body      String
+  code      String?
+  vars      Json?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

@@ -72,11 +72,7 @@ export async function POST() {
 
     const who = guest.nickname?.trim() || "Masa";
     try {
-      await notifyGuest(
-        guest.id,
-        "Garson çağrıldı",
-        `${who}, garson masaya geliyor.`,
-      );
+      await notifyGuest(guest.id, "noticeWaiterCalled", { name: who });
     } catch {
       // bildirim olmasa da çağrı gider
     }

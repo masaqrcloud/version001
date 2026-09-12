@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { notifyGuest } from "@/lib/notify";
-import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -42,10 +41,8 @@ export async function POST(request: Request, context: Ctx) {
       named.map((guest) =>
         notifyGuest(
           guest.id,
-          kind === "bill" ? "Hesabın geliyor" : "Garson geliyor",
-          kind === "bill"
-            ? `${tableLabel(session.table.number)} için hesap alınıyor.`
-            : `${tableLabel(session.table.number)} için garson yolda.`,
+          kind === "bill" ? "noticeBillComing" : "noticeWaiterComing",
+          { tableNumber: session.table.number },
         ),
       ),
     );
