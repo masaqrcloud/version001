@@ -13,19 +13,21 @@ import { findTable } from "@/lib/guest";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const qr = url.searchParams.get("qr")?.trim() ?? "";
-  if (!qr) {
-    return NextResponse.json({ error: "QR eksik" }, { status: 400 });
-  }
+
   if (!isGoogleAuthConfigured()) {
-    return NextResponse.redirect(publicUrl(`/t/${qr}?google=off`, request));
+    return NextResponse.redirect(
+      publicUrl(qr ? `/t/${qr}?google=off` : "/login?google=off", request),
+    );
   }
 
-  const table = await findTable(qr);
-  if (!table) {
-    return NextResponse.redirect(publicUrl("/", request));
+  if (qr) {
+    const table = await findTable(qr);
+    if (!table) {
+      return NextResponse.redirect(publicUrl("/", request));
+    }
   }
 
-  const { state, nonce } = createOAuthState(qr);
+  const { state, nonce } = createOAuthState(qr || null);
   const google = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   google.searchParams.set("client_id", googleClientId());
   google.searchParams.set("redirect_uri", googleCallbackUrl(request));

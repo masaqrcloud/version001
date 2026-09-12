@@ -5,14 +5,17 @@ import { homeForRole } from "@/lib/tenant";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
+import { GoogleJoinButton } from "@/components/google-join-button";
+import { isGoogleAuthConfigured } from "@/lib/customer";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ password?: string }>;
+  searchParams: Promise<{ password?: string; google?: string }>;
 }) {
   const session = await auth();
   const query = await searchParams;
+  const googleAuth = isGoogleAuthConfigured();
 
   return (
     <AppShell
@@ -33,7 +36,8 @@ export default async function LoginPage({
             yaptığınızda kaldığınız yerden devam edersiniz.
           </p>
           <p className="mt-3 text-[var(--muted)]">
-            Misafirler masadaki kod ile menüye ulaşır. Siz e-posta ve şifrenizle
+            Misafirler masadaki kod ile menüye ulaşır. Evden sipariş geçmişine
+            bakmak için Google ile giriş yapabilirler. Siz e-posta ve şifrenizle
             işletme paneline girersiniz.
           </p>
         </div>
@@ -71,6 +75,34 @@ export default async function LoginPage({
               Başvuru
             </Link>
           </p>
+          <div className="mt-8 border-t border-[var(--line)] pt-6">
+            <p className="page-kicker">Misafir</p>
+            <h3 className="mt-2 text-xl">Sipariş geçmişin</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Masada Google ile girdiysen evden de bakabilirsin.
+            </p>
+            {query.google === "error" ? (
+              <p className="mt-3 text-sm text-red-700">
+                Google ile bağlanılamadı, tekrar dene.
+              </p>
+            ) : null}
+            {query.google === "off" || !googleAuth ? (
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Google girişi şu an kapalı.
+              </p>
+            ) : (
+              <GoogleJoinButton
+                className="mt-4"
+                href="/api/guest/auth/google"
+                label="Google ile giriş"
+              />
+            )}
+            <p className="mt-3 text-sm">
+              <Link href="/hesabim" className="text-[var(--accent)]">
+                Siparişlerime git
+              </Link>
+            </p>
+          </div>
           </div>
         </Card>
       </div>

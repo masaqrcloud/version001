@@ -22,7 +22,7 @@ import {
 } from "@/lib/guest";
 
 function fail(request: Request, qr: string | null, reason: string) {
-  const path = qr ? `/t/${qr}?google=${reason}` : `/?google=${reason}`;
+  const path = qr ? `/t/${qr}?google=${reason}` : `/login?google=${reason}`;
   const response = NextResponse.redirect(publicUrl(path, request));
   response.cookies.set(CUSTOMER_OAUTH_COOKIE, "", customerCookieOptions(0));
   return response;
@@ -84,6 +84,17 @@ export async function GET(request: Request) {
     email: profile.email,
     name: profile.name,
   });
+
+  if (!state.qr) {
+    const response = NextResponse.redirect(publicUrl("/hesabim", request));
+    response.cookies.set(
+      CUSTOMER_COOKIE,
+      signedCustomerCookie(customer.id),
+      customerCookieOptions(),
+    );
+    response.cookies.set(CUSTOMER_OAUTH_COOKIE, "", customerCookieOptions(0));
+    return response;
+  }
 
   const joined = await joinTable(state.qr, null, {
     sit: true,

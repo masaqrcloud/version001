@@ -34,7 +34,7 @@ export function GuestHistory({
   qrToken,
   onDeleted,
 }: {
-  qrToken: string;
+  qrToken?: string;
   onDeleted?: () => void;
 }) {
   const { t, dateLocale } = useLocale();
@@ -88,8 +88,12 @@ export function GuestHistory({
           {data.googleAuth ? (
             <GoogleJoinButton
               className="mt-4"
-              href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
-              label={t("joinGoogle")}
+              href={
+                qrToken
+                  ? `/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`
+                  : "/api/guest/auth/google"
+              }
+              label={qrToken ? t("joinGoogle") : t("joinGoogleHome")}
             />
           ) : (
             <p className="mt-3 text-sm text-[var(--muted)]">

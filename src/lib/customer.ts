@@ -186,11 +186,11 @@ export async function attachCustomerToGuest<
   });
 }
 
-export function createOAuthState(qrToken: string) {
+export function createOAuthState(qrToken?: string | null) {
   const nonce = randomBytes(16).toString("hex");
   const payload = Buffer.from(
     JSON.stringify({
-      qr: qrToken,
+      qr: qrToken || undefined,
       n: nonce,
       exp: Date.now() + 10 * 60 * 1000,
     }),
@@ -205,8 +205,8 @@ export function readOAuthState(state: string | undefined) {
     const data = JSON.parse(
       Buffer.from(payload, "base64url").toString("utf8"),
     ) as { qr?: string; n?: string; exp?: number };
-    if (!data.qr || !data.n || !data.exp || data.exp < Date.now()) return null;
-    return { qr: data.qr, nonce: data.n };
+    if (!data.n || !data.exp || data.exp < Date.now()) return null;
+    return { qr: data.qr || null, nonce: data.n };
   } catch {
     return null;
   }

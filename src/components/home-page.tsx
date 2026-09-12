@@ -180,6 +180,9 @@ export function HomePage() {
           <ButtonLink href="/apply" variant="ghost" size="sm">
             Başvuru
           </ButtonLink>
+          <ButtonLink href="/hesabim" variant="ghost" size="sm">
+            Siparişlerim
+          </ButtonLink>
           <ButtonLink href="/login" variant="secondary" size="sm">
             Giriş yap
           </ButtonLink>
@@ -460,6 +463,7 @@ export function HomePage() {
             <a href="#moduller">Modüller</a>
             <a href="#paketler">Paketler</a>
             <a href="/apply">Başvuru</a>
+            <a href="/hesabim">Siparişlerim</a>
             <a href="/login">Giriş</a>
           </div>
         </div>
