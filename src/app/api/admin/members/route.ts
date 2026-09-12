@@ -54,6 +54,7 @@ export async function GET() {
     const items = await prisma.orderItem.findMany({
       where: {
         menuItemId: venue.loyaltyItemId,
+        complimentary: false,
         order: {
           status: { not: "CANCELLED" },
           guest: {
@@ -78,7 +79,10 @@ export async function GET() {
     count: members.length,
     loyaltyEnabled: Boolean(venue?.loyaltyItemId),
     members: members.map((member) => {
-      const punch = punchCard(stamps.get(member.customerId) ?? 0);
+      const punch = punchCard(
+        stamps.get(member.customerId) ?? 0,
+        member.loyaltyRedeemed,
+      );
       return {
         id: member.id,
         name: member.customer.name,

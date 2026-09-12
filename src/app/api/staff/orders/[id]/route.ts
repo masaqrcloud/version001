@@ -8,6 +8,7 @@ import { resolveStaffOrderLines, staffOrderItemSchema } from "@/lib/staff-order-
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
 import { getStaffUser } from "@/lib/tenant";
+import { refundLoyaltyRedemptions } from "@/lib/loyalty";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -232,6 +233,9 @@ export async function PATCH(request: Request, context: Ctx) {
         actorId: user.id,
         items: order.items,
       });
+    }
+    if (targetStatus === "CANCELLED") {
+      await refundLoyaltyRedemptions(tx, order, user.venueId);
     }
 
     const changed = await tx.order.update({

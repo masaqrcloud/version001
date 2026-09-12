@@ -18,7 +18,7 @@ type OrdersResponse = {
     updatedAt: string;
     tableNumber: string;
     guestName: string;
-    items: { id: string; name: string; quantity: number; note: string | null; options: string[] }[];
+    items: { id: string; name: string; quantity: number; note: string | null; complimentary?: boolean; options: string[] }[];
   }[];
 };
 
@@ -206,6 +206,9 @@ export function KitchenBoard() {
               <li key={item.id}>
                 <span className="font-medium">
                   {item.quantity}× {item.name}
+                  {item.complimentary ? (
+                    <span className="ml-1 text-[var(--accent)]">· İkram</span>
+                  ) : null}
                 </span>
                 {item.note ? (
                   <span className="text-[var(--muted)]"> — {item.note}</span>

@@ -6,6 +6,7 @@ import { notifyOrderStatus } from "@/lib/notify";
 import { restoreStockForOrder } from "@/lib/stock";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
+import { refundLoyaltyRedemptions } from "@/lib/loyalty";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -59,6 +60,12 @@ export async function PATCH(request: Request, context: Ctx) {
         items: order.items,
       });
     }
+
+    await refundLoyaltyRedemptions(
+      tx,
+      order,
+      guest.tableSession.table.venueId,
+    );
 
     const changed = await tx.order.update({
       where: { id },

@@ -14,6 +14,7 @@ type LoyaltyVenue = {
   count: number;
   filled: number;
   rewards: number;
+  available?: number;
   complete: boolean;
   threshold: number;
 };
@@ -131,15 +132,19 @@ export function GuestLoyalty({ qrToken }: { qrToken?: string }) {
                   </p>
                 </div>
                 <PunchRing filled={venue.filled} total={venue.threshold} />
-                {venue.complete ? (
-                  <p className="text-center text-sm font-medium text-[var(--accent)]">
-                    {t("loyaltyReady")}
-                  </p>
-                ) : null}
-                {venue.rewards > 0 ? (
-                  <p className="text-center text-sm text-[var(--muted)]">
-                    {t("loyaltyEarned", { n: venue.rewards })}
-                  </p>
+                {(venue.available ?? venue.rewards) > 0 ? (
+                  <div className="loyalty-prize">
+                    <p className="loyalty-prize-kicker">{t("loyaltyGift")}</p>
+                    <p className="mt-1 font-serif text-4xl leading-none">
+                      {t("loyaltyReadyBig")}
+                    </p>
+                    <p className="mt-3 text-sm text-white/90">
+                      {t("loyaltyHowToUse", {
+                        n: venue.available ?? venue.rewards,
+                        item: venue.item.name,
+                      })}
+                    </p>
+                  </div>
                 ) : null}
               </>
             )}

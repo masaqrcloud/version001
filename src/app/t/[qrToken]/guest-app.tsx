@@ -135,7 +135,7 @@ type OrdersResponse = {
     id: string;
     status: OrderStatus;
     createdAt: string;
-    items: { id: string; menuItemId?: string; name: string; price: number; quantity: number; note: string | null; options?: string[] }[];
+    items: { id: string; menuItemId?: string; name: string; price: number; quantity: number; note: string | null; complimentary?: boolean; options?: string[] }[];
   }[];
 };
 
@@ -152,9 +152,17 @@ type BillResponse = {
     quantity: number;
     note: string | null;
     status: OrderStatus;
+    complimentary?: boolean;
     options?: string[];
   }[];
   total: number;
+};
+
+type LoyaltyLive = {
+  linked: boolean;
+  enabled: boolean;
+  available: number;
+  item: { id: string; name: string; imageUrl: string | null } | null;
 };
 
 type Area = "hub" | "menu" | "play" | "history" | "loyalty";
@@ -645,6 +653,7 @@ function GuestAppContent({
   const [joinClosed, setJoinClosed] = useState(false);
   const [closedAt, setClosedAt] = useState<string | null>(null);
   const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [useTreat, setUseTreat] = useState(false);
   const seenAlert = useRef<string | null>(null);
   const noteTimers = useRef<Record<string, number>>({});
   const pendingOrderKey = useRef<string | null>(null);
@@ -856,6 +865,7 @@ function GuestAppContent({
     cart: CartResponse;
     orders: OrdersResponse;
     bill: BillResponse;
+    loyalty?: LoyaltyLive;
     notes: NotesResponse;
   };
 
@@ -915,6 +925,7 @@ function GuestAppContent({
   const orders = live?.orders;
   const bill = live?.bill;
   const notes = live?.notes;
+  const loyalty = live?.loyalty;
   const serverWaiterCooldownUntil = live?.guest?.waiterCooldownUntil
     ? new Date(live.guest.waiterCooldownUntil).getTime()
     : 0;
@@ -966,6 +977,10 @@ function GuestAppContent({
     }
     return map;
   }, [bill]);
+
+  useEffect(() => {
+    if (!loyalty?.available) setUseTreat(false);
+  }, [loyalty?.available]);
 
   function guestHeaders(json = false) {
     return {
@@ -1152,7 +1167,7 @@ function GuestAppContent({
         method: "POST",
         credentials: "include",
         headers: guestHeaders(true),
-        body: JSON.stringify({ idempotencyKey }),
+        body: JSON.stringify({ idempotencyKey, useLoyalty: useTreat }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1162,6 +1177,7 @@ function GuestAppContent({
       }
       pendingOrderKey.current = null;
       setCart({ items: [] });
+      setUseTreat(false);
       setArea("menu");
       setTab("cart");
       setMessage(t("orderSent"));
@@ -1818,6 +1834,45 @@ function GuestAppContent({
       {area === "menu" && tab === "cart" ? (
         <div className="space-y-4 px-4 py-6">
           <SectionLogo src={venueLogo} label={t("tabCart")} />
+          {loyalty?.enabled ? (
+            <Card className="space-y-3 p-4">
+              <p className="page-kicker">{t("loyaltyRights")}</p>
+              {!loyalty.linked ? (
+                <>
+                  <p className="text-sm text-[var(--muted)]">
+                    {t("loyaltyNeedLoginCart")}
+                  </p>
+                  {googleAuth ? (
+                    <GoogleJoinButton
+                      href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
+                      label={t("joinGoogle")}
+                    />
+                  ) : null}
+                </>
+              ) : loyalty.available > 0 && loyalty.item ? (
+                <>
+                  <p className="font-serif text-2xl">
+                    {t("loyaltyRightsCount", { n: loyalty.available })}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {loyalty.item.name} · {t("loyaltyGift")}
+                  </p>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={useTreat}
+                      onChange={(event) => setUseTreat(event.target.checked)}
+                    />
+                    {useTreat ? t("loyaltyUsing") : t("loyaltyUse")}
+                  </label>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  {t("loyaltyRightsNone")}
+                </p>
+              )}
+            </Card>
+          ) : null}
           {!cart?.items.length ? (
             <p className="text-[var(--muted)]">{t("cartEmpty")}</p>
           ) : (
@@ -1906,6 +1961,16 @@ function GuestAppContent({
               </Button>
             </>
           )}
+          {!cart?.items.length && useTreat ? (
+            <Button
+              className="w-full"
+              size="lg"
+              disabled={busy || !openState.isOpen}
+              onClick={() => void submitOrder()}
+            >
+              {t("loyaltyUseNow")}
+            </Button>
+          ) : null}
 
           {orders?.orders.length ? (
             <div className="pt-4">
@@ -1936,6 +2001,7 @@ function GuestAppContent({
                                 .join(", ")}`
                             : ""}
                           {item.note ? ` — ${item.note}` : ""}
+                          {item.complimentary ? ` · ${t("loyaltyGift")}` : ""}
                         </li>
                       ))}
                     </ul>
@@ -2016,8 +2082,13 @@ function GuestAppContent({
                                 .join(", ")}`
                             : ""}
                           {line.note ? ` — ${line.note}` : ""}
+                          {line.complimentary ? ` · ${t("loyaltyGift")}` : ""}
                         </span>
-                        <span>{formatTRY(line.price * line.quantity)}</span>
+                        <span>
+                          {line.complimentary
+                            ? t("loyaltyGift")
+                            : formatTRY(line.price * line.quantity)}
+                        </span>
                       </li>
                     ))
                   )}

@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
 import { getCustomerFromCookie, isGoogleAuthConfigured } from "@/lib/customer";
 import { findTable } from "@/lib/guest";
-import { countLoyaltyQuantity, punchCard } from "@/lib/loyalty";
+import { customerVenueLoyalty, punchCard } from "@/lib/loyalty";
 import { prisma } from "@/lib/db";
 
 function itemName(locale: string, name: string, nameEn: string | null) {
   return locale === "en" && nameEn ? nameEn : name;
+}
+
+function packItem(
+  locale: string,
+  item: { id: string; name: string; nameEn: string | null; imageUrl: string | null } | null,
+) {
+  if (!item) return null;
+  return {
+    id: item.id,
+    name: itemName(locale, item.name, item.nameEn),
+    imageUrl: item.imageUrl,
+  };
 }
 
 export async function GET(request: Request) {
@@ -20,13 +32,13 @@ export async function GET(request: Request) {
     if (!table) {
       return NextResponse.json({ error: "Masa yok" }, { status: 404 });
     }
-    const item = table.venue.loyaltyItemId
-      ? await prisma.menuItem.findUnique({
-          where: { id: table.venue.loyaltyItemId },
-          select: { id: true, name: true, nameEn: true, imageUrl: true },
-        })
-      : null;
     if (!customer) {
+      const item = table.venue.loyaltyItemId
+        ? await prisma.menuItem.findUnique({
+            where: { id: table.venue.loyaltyItemId },
+            select: { id: true, name: true, nameEn: true, imageUrl: true },
+          })
+        : null;
       return NextResponse.json({
         linked: false,
         googleAuth,
@@ -36,21 +48,13 @@ export async function GET(request: Request) {
             venueName: table.venue.name,
             logoUrl: table.venue.logoUrl,
             enabled: Boolean(item),
-            item: item
-              ? {
-                  id: item.id,
-                  name: itemName(locale, item.name, item.nameEn),
-                  imageUrl: item.imageUrl,
-                }
-              : null,
+            item: packItem(locale, item),
             ...punchCard(0),
           },
         ],
       });
     }
-    const count = item
-      ? await countLoyaltyQuantity(customer.id, table.venue.id, item.id)
-      : 0;
+    const loyalty = await customerVenueLoyalty(customer.id, table.venue.id);
     return NextResponse.json({
       linked: true,
       googleAuth,
@@ -59,15 +63,16 @@ export async function GET(request: Request) {
           venueId: table.venue.id,
           venueName: table.venue.name,
           logoUrl: table.venue.logoUrl,
-          enabled: Boolean(item),
-          item: item
-            ? {
-                id: item.id,
-                name: itemName(locale, item.name, item.nameEn),
-                imageUrl: item.imageUrl,
-              }
-            : null,
-          ...punchCard(count),
+          enabled: Boolean(loyalty.item),
+          item: packItem(locale, loyalty.item),
+          count: loyalty.count,
+          redeemed: loyalty.redeemed,
+          earned: loyalty.earned,
+          available: loyalty.available,
+          rewards: loyalty.available,
+          filled: loyalty.filled,
+          complete: loyalty.complete,
+          threshold: loyalty.threshold,
         },
       ],
     });
@@ -79,43 +84,27 @@ export async function GET(request: Request) {
 
   const members = await prisma.venueMember.findMany({
     where: { customerId: customer.id, unlinkedAt: null },
-    include: {
-      venue: {
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-          loyaltyItemId: true,
-        },
-      },
-    },
     orderBy: { joinedAt: "desc" },
   });
 
   const venues = [];
   for (const member of members) {
-    const item = member.venue.loyaltyItemId
-      ? await prisma.menuItem.findUnique({
-          where: { id: member.venue.loyaltyItemId },
-          select: { id: true, name: true, nameEn: true, imageUrl: true },
-        })
-      : null;
-    const count = item
-      ? await countLoyaltyQuantity(customer.id, member.venue.id, item.id)
-      : 0;
+    const loyalty = await customerVenueLoyalty(customer.id, member.venueId);
+    if (!loyalty.venue) continue;
     venues.push({
-      venueId: member.venue.id,
-      venueName: member.venue.name,
-      logoUrl: member.venue.logoUrl,
-      enabled: Boolean(item),
-      item: item
-        ? {
-            id: item.id,
-            name: itemName(locale, item.name, item.nameEn),
-            imageUrl: item.imageUrl,
-          }
-        : null,
-      ...punchCard(count),
+      venueId: loyalty.venue.id,
+      venueName: loyalty.venue.name,
+      logoUrl: loyalty.venue.logoUrl,
+      enabled: Boolean(loyalty.item),
+      item: packItem(locale, loyalty.item),
+      count: loyalty.count,
+      redeemed: loyalty.redeemed,
+      earned: loyalty.earned,
+      available: loyalty.available,
+      rewards: loyalty.available,
+      filled: loyalty.filled,
+      complete: loyalty.complete,
+      threshold: loyalty.threshold,
     });
   }
 

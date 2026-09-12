@@ -741,3 +741,21 @@ img {
   place-items: center;
   color: var(--ink);
 }
+
+.loyalty-prize {
+  border-radius: 1.5rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 1.2rem 1.15rem 1.35rem;
+  text-align: center;
+  box-shadow: 0 16px 32px rgba(229, 75, 50, 0.28);
+}
+
+.loyalty-prize-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}

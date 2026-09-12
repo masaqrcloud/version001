@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { displayGuestName } from "@/lib/media";
+import { customerVenueLoyalty } from "@/lib/loyalty";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -62,10 +63,12 @@ export async function GET() {
       id: item.id,
       guestId: order.guestId,
       guestName: order.guestName || displayGuestName(order.guest.nickname),
+      menuItemId: item.menuItemId,
       name: item.name,
       price: Number(item.price),
       quantity: item.quantity,
       note: item.note,
+      complimentary: item.complimentary,
       options: item.options.map((option) => option.name),
       status: order.status,
     })),
@@ -112,10 +115,12 @@ export async function GET() {
         createdAt: order.createdAt,
         items: order.items.map((item) => ({
           id: item.id,
+          menuItemId: item.menuItemId,
           name: item.name,
           price: Number(item.price),
           quantity: item.quantity,
           note: item.note,
+          complimentary: item.complimentary,
           options: item.options.map((option) => option.name),
         })),
       })),
@@ -130,6 +135,30 @@ export async function GET() {
       lines,
       total: lines.reduce((sum, line) => sum + line.price * line.quantity, 0),
     },
+    loyalty: await (async () => {
+      const venue = guest.tableSession.table.venue;
+      if (!guest.customerId) {
+        return {
+          linked: false,
+          enabled: Boolean(venue.loyaltyItemId),
+          available: 0,
+          item: null as { id: string; name: string; imageUrl: string | null } | null,
+        };
+      }
+      const loyalty = await customerVenueLoyalty(guest.customerId, venue.id);
+      return {
+        linked: true,
+        enabled: Boolean(loyalty.item),
+        available: loyalty.available,
+        item: loyalty.item
+          ? {
+              id: loyalty.item.id,
+              name: loyalty.item.name,
+              imageUrl: loyalty.item.imageUrl,
+            }
+          : null,
+      };
+    })(),
     notes: {
       unread: notifications.filter((item) => !item.read).length,
       notifications: notifications.map((item) => ({

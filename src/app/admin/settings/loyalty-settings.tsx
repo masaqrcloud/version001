@@ -62,8 +62,8 @@ export function LoyaltySettings({
         </p>
         <h2 className="mt-1 font-serif text-2xl">İkram ürünü</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Misafir bu üründen 10 tane alınca bir ikram kazanır. Hediye olarak da
-          aynı ürün verilir; garson karta bakıp ikramı verir.
+          Misafir bu üründen 10 tane alınca bir ikram kazanır. Sepette Müdavim
+          haklarından bedava sipariş eder; mutfakta satır İkram görünür.
         </p>
       </div>
       <div>

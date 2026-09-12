@@ -30,7 +30,7 @@ type Detail = {
     status: OrderStatus;
     createdAt: string;
     guestName: string;
-    items: { id: string; name: string; price: number; quantity: number; note: string | null; options: string[] }[];
+    items: { id: string; name: string; price: number; quantity: number; note: string | null; complimentary?: boolean; options: string[] }[];
   }[];
 };
 
@@ -275,10 +275,15 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                   <li key={item.id} className="flex justify-between gap-3">
                     <span>
                       {item.quantity}× {item.name}
+                      {item.complimentary ? " · İkram" : ""}
                       {item.options.length ? ` · ${item.options.join(", ")}` : ""}
                       {item.note ? ` (${item.note})` : ""}
                     </span>
-                    <span>{formatTRY(item.price * item.quantity)}</span>
+                    <span>
+                      {item.complimentary
+                        ? "İkram"
+                        : formatTRY(item.price * item.quantity)}
+                    </span>
                   </li>
                 ))}
               </ul>

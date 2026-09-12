@@ -42,6 +42,7 @@ export async function GET() {
         name: item.name,
         quantity: item.quantity,
         note: item.note,
+        complimentary: item.complimentary,
         options: item.options.map((option) => option.name),
       })),
     })),

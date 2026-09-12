@@ -7,6 +7,7 @@ import { consumeStockForOrder, groupedTrackedStock } from "@/lib/stock";
 import { z } from "zod";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
+import { customerVenueLoyalty } from "@/lib/loyalty";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -31,6 +32,7 @@ export async function GET() {
         price: Number(item.price),
         quantity: item.quantity,
         note: item.note,
+        complimentary: item.complimentary,
       })),
     })),
   });
@@ -49,7 +51,10 @@ export async function POST(request: Request) {
   }
 
   const body = z
-    .object({ idempotencyKey: z.string().uuid() })
+    .object({
+      idempotencyKey: z.string().uuid(),
+      useLoyalty: z.boolean().optional(),
+    })
     .safeParse(await request.json().catch(() => null));
   if (!body.success) {
     return NextResponse.json(
@@ -79,7 +84,46 @@ export async function POST(request: Request) {
     },
   });
 
-  if (cart.length === 0) {
+  const venueId = guest.tableSession.table.venueId;
+  let gift: {
+    menuItemId: string;
+    name: string;
+    available: boolean;
+    stockTracked: boolean;
+    stockQuantity: number;
+    memberId: string;
+  } | null = null;
+  if (body.data.useLoyalty) {
+    if (!guest.customerId) {
+      return NextResponse.json(
+        { error: "İkram için Google ile bağlan" },
+        { status: 400 },
+      );
+    }
+    const loyalty = await customerVenueLoyalty(guest.customerId, venueId);
+    if (!loyalty.item || !loyalty.member || loyalty.available < 1) {
+      return NextResponse.json(
+        { error: "Kullanılacak müdavim ikramın yok" },
+        { status: 400 },
+      );
+    }
+    if (!loyalty.item.available) {
+      return NextResponse.json(
+        { error: `${loyalty.item.name} artık mevcut değil` },
+        { status: 400 },
+      );
+    }
+    gift = {
+      menuItemId: loyalty.item.id,
+      name: loyalty.item.name,
+      available: loyalty.item.available,
+      stockTracked: loyalty.item.stockTracked,
+      stockQuantity: loyalty.item.stockQuantity,
+      memberId: loyalty.member.id,
+    };
+  }
+
+  if (cart.length === 0 && !gift) {
     return NextResponse.json({ error: "Sepet boş" }, { status: 400 });
   }
 
@@ -90,10 +134,26 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const needed = groupedTrackedStock(cart);
+  const stockLines = [
+    ...cart,
+    ...(gift
+      ? [
+          {
+            menuItemId: gift.menuItemId,
+            quantity: 1,
+            menuItem: {
+              name: gift.name,
+              stockTracked: gift.stockTracked,
+            },
+          },
+        ]
+      : []),
+  ];
+  const needed = groupedTrackedStock(stockLines);
   for (const [menuItemId, need] of needed) {
-    const item = cart.find((entry) => entry.menuItemId === menuItemId);
-    if (item && item.menuItem.stockQuantity < need.quantity) {
+    const cartItem = cart.find((entry) => entry.menuItemId === menuItemId);
+    const onHand = cartItem?.menuItem.stockQuantity ?? gift?.stockQuantity ?? 0;
+    if (onHand < need.quantity) {
       return NextResponse.json(
         { error: `${need.name} için yeterli stok yok` },
         { status: 409 },
@@ -135,40 +195,76 @@ export async function POST(request: Request) {
           idempotencyKey: body.data.idempotencyKey,
           statusEvents: { create: { toStatus: "PENDING" } },
           items: {
-            create: cart.map((item) => ({
-              menuItemId: item.menuItemId,
-              name: item.menuItem.name,
-              price:
-                Number(item.menuItem.price) +
-                item.options.reduce(
-                  (sum, selected) =>
-                    sum + Number(selected.option.priceDelta),
-                  0,
-                ),
-              quantity: item.quantity,
-              note: item.note?.trim() || null,
-              options: {
-                create: item.options.map((selected) => ({
-                  name: selected.option.name,
-                  priceDelta: selected.option.priceDelta,
-                })),
-              },
-            })),
+            create: [
+              ...cart.map((item) => ({
+                menuItemId: item.menuItemId,
+                name: item.menuItem.name,
+                price:
+                  Number(item.menuItem.price) +
+                  item.options.reduce(
+                    (sum, selected) =>
+                      sum + Number(selected.option.priceDelta),
+                    0,
+                  ),
+                quantity: item.quantity,
+                note: item.note?.trim() || null,
+                complimentary: false,
+                options: {
+                  create: item.options.map((selected) => ({
+                    name: selected.option.name,
+                    priceDelta: selected.option.priceDelta,
+                  })),
+                },
+              })),
+              ...(gift
+                ? [
+                    {
+                      menuItemId: gift.menuItemId,
+                      name: gift.name,
+                      price: 0,
+                      quantity: 1,
+                      note: "Müdavim ikramı",
+                      complimentary: true,
+                    },
+                  ]
+                : []),
+            ],
           },
         },
         include: { items: { include: { options: true } } },
       });
 
+      if (gift) {
+        const fresh = await customerVenueLoyalty(
+          guest.customerId!,
+          venueId,
+          tx,
+        );
+        if (!fresh.member || fresh.available < 1) {
+          throw new Error("NO_LOYALTY");
+        }
+        await tx.venueMember.update({
+          where: { id: fresh.member.id },
+          data: { loyaltyRedeemed: { increment: 1 } },
+        });
+      }
+
       await consumeStockForOrder(tx, {
         venueId: guest.tableSession.table.venueId,
         orderId: created.id,
-        items: cart,
+        items: stockLines,
       });
 
       await tx.cartItem.deleteMany({ where: { guestId: guest.id } });
       return created;
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "NO_LOYALTY") {
+      return NextResponse.json(
+        { error: "Kullanılacak müdavim ikramın yok" },
+        { status: 400 },
+      );
+    }
     if (error instanceof Error && error.message.startsWith("OUT_OF_STOCK:")) {
       return NextResponse.json(
         {

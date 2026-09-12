@@ -189,13 +189,14 @@ model Customer {
 }
 
 model VenueMember {
-  id         String    @id @default(cuid())
-  venueId    String
-  venue      Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  customerId String
-  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  joinedAt   DateTime  @default(now())
-  unlinkedAt DateTime?
+  id              String    @id @default(cuid())
+  venueId         String
+  venue           Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  joinedAt        DateTime  @default(now())
+  unlinkedAt      DateTime?
+  loyaltyRedeemed Int       @default(0)
 
   @@unique([venueId, customerId])
   @@index([venueId, unlinkedAt])
@@ -399,11 +400,12 @@ model OrderItem {
   order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItemId String
   menuItem   MenuItem          @relation(fields: [menuItemId], references: [id])
-  name       String
-  price      Decimal
-  quantity   Int
-  note       String?
-  options    OrderItemOption[]
+  name          String
+  price         Decimal
+  quantity      Int
+  note          String?
+  complimentary Boolean          @default(false)
+  options       OrderItemOption[]
 }
 
 model OrderItemOption {

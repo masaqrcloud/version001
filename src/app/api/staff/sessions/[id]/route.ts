@@ -165,6 +165,7 @@ export async function GET(_request: Request, context: Ctx) {
         price: Number(item.price),
         quantity: item.quantity,
         note: item.note,
+        complimentary: item.complimentary,
         options: item.options.map((option) => option.name),
       })),
     })),
