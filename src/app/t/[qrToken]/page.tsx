@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -5,6 +6,7 @@ import { findTable, removeInactiveStaffGuests } from "@/lib/guest";
 import { GuestApp } from "@/app/t/[qrToken]/guest-app";
 import { venueOpenState } from "@/lib/opening-hours";
 import { nutritionFromRow } from "@/lib/nutrition";
+import { backfillVenueEnglish } from "@/lib/translate-menu";
 
 export default async function TablePage({
   params,
@@ -49,6 +51,10 @@ export default async function TablePage({
     await removeInactiveStaffGuests(table.id);
   }
 
+  after(() => {
+    void backfillVenueEnglish(table.venueId);
+  });
+
   return (
     <GuestApp
       qrToken={qrToken}
@@ -70,10 +76,13 @@ export default async function TablePage({
       categories={categories.map((category) => ({
         id: category.id,
         name: category.name,
+        nameEn: category.nameEn,
         items: category.items.map((item) => ({
           id: item.id,
           name: item.name,
+          nameEn: item.nameEn,
           description: item.description,
+          descriptionEn: item.descriptionEn,
           price: Number(item.price),
           imageUrl: item.imageUrl,
           soldOut: item.stockTracked && item.stockQuantity <= 0,
@@ -81,12 +90,14 @@ export default async function TablePage({
           optionGroups: item.optionGroups.map((group) => ({
             id: group.id,
             name: group.name,
+            nameEn: group.nameEn,
             required: group.required,
             minSelections: group.minSelections,
             maxSelections: group.maxSelections,
             options: group.options.map((option) => ({
               id: option.id,
               name: option.name,
+              nameEn: option.nameEn,
               priceDelta: Number(option.priceDelta),
             })),
           })),

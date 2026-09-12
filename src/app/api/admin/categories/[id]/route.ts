@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { translateTrToEn } from "@/lib/translate-menu";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,13 @@ export async function PATCH(request: Request, context: Ctx) {
 
   const category = await prisma.menuCategory.update({
     where: { id },
-    data: body.data,
+    data: {
+      ...body.data,
+      nameEn:
+        body.data.name && body.data.name !== existing.name
+          ? await translateTrToEn(body.data.name)
+          : undefined,
+    },
   });
   return NextResponse.json(category);
 }

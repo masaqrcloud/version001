@@ -203,6 +203,7 @@ model MenuCategory {
   venueId   String
   venue     Venue      @relation(fields: [venueId], references: [id], onDelete: Cascade)
   name      String
+  nameEn    String?
   sortOrder Int        @default(0)
   items     MenuItem[]
 }
@@ -212,7 +213,9 @@ model MenuItem {
   categoryId        String
   category          MenuCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name              String
+  nameEn            String?
   description       String?
+  descriptionEn     String?
   price             Decimal
   imageUrl          String?
   available         Boolean           @default(true)
@@ -256,6 +259,7 @@ model MenuOptionGroup {
   menuItemId    String
   menuItem      MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   name          String
+  nameEn        String?
   required      Boolean      @default(false)
   minSelections Int          @default(0)
   maxSelections Int          @default(1)
@@ -270,6 +274,7 @@ model MenuOption {
   groupId         String
   group           MenuOptionGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   name            String
+  nameEn          String?
   priceDelta      Decimal          @default(0)
   available       Boolean          @default(true)
   sortOrder       Int              @default(0)

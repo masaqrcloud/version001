@@ -22,11 +22,14 @@ import {
 import { isAndroidDevice, openAndroidWifiConnect } from "@/lib/wifi";
 import { LanguageSwitch } from "@/components/language-switch";
 import { LocaleProvider, useLocale } from "@/components/locale-provider";
+import { pickLocalized, type Locale } from "@/lib/i18n";
 
 type MenuItem = {
   id: string;
   name: string;
+  nameEn?: string | null;
   description: string | null;
+  descriptionEn?: string | null;
   price: number;
   imageUrl: string | null;
   soldOut: boolean;
@@ -38,18 +41,71 @@ type MenuItem = {
   optionGroups: {
     id: string;
     name: string;
+    nameEn?: string | null;
     required: boolean;
     minSelections: number;
     maxSelections: number;
-    options: { id: string; name: string; priceDelta: number }[];
+    options: { id: string; name: string; nameEn?: string | null; priceDelta: number }[];
   }[];
 };
 
 type Category = {
   id: string;
   name: string;
+  nameEn?: string | null;
   items: MenuItem[];
 };
+
+type EnglishOverlay = Record<
+  string,
+  { nameEn?: string | null; descriptionEn?: string | null }
+>;
+
+function localizeItem(item: MenuItem, locale: Locale, overlay: EnglishOverlay) {
+  const extra = overlay[item.id];
+  return {
+    ...item,
+    name: pickLocalized(locale, item.name, extra?.nameEn ?? item.nameEn),
+    description:
+      pickLocalized(
+        locale,
+        item.description,
+        extra?.descriptionEn ?? item.descriptionEn,
+      ) || null,
+    optionGroups: item.optionGroups.map((group) => ({
+      ...group,
+      name: pickLocalized(
+        locale,
+        group.name,
+        overlay[group.id]?.nameEn ?? group.nameEn,
+      ),
+      options: group.options.map((option) => ({
+        ...option,
+        name: pickLocalized(
+          locale,
+          option.name,
+          overlay[option.id]?.nameEn ?? option.nameEn,
+        ),
+      })),
+    })),
+  };
+}
+
+function localizeCategory(
+  category: Category,
+  locale: Locale,
+  overlay: EnglishOverlay,
+) {
+  return {
+    ...category,
+    name: pickLocalized(
+      locale,
+      category.name,
+      overlay[category.id]?.nameEn ?? category.nameEn,
+    ),
+    items: category.items.map((item) => localizeItem(item, locale, overlay)),
+  };
+}
 
 type CartResponse = {
   items: {
@@ -61,7 +117,7 @@ type CartResponse = {
     note: string | null;
     imageUrl: string | null;
     available: boolean;
-    options: { id: string; name: string; priceDelta: number }[];
+    options: { id: string; name: string; nameEn?: string | null; priceDelta: number }[];
   }[];
 };
 
@@ -70,7 +126,7 @@ type OrdersResponse = {
     id: string;
     status: OrderStatus;
     createdAt: string;
-    items: { id: string; name: string; price: number; quantity: number; note: string | null; options?: string[] }[];
+    items: { id: string; menuItemId?: string; name: string; price: number; quantity: number; note: string | null; options?: string[] }[];
   }[];
 };
 
@@ -79,6 +135,7 @@ type BillResponse = {
   guests: { id: string; nickname: string; isMe: boolean }[];
   lines: {
     id: string;
+    menuItemId?: string;
     guestId: string;
     guestName: string;
     name: string;
@@ -334,7 +391,7 @@ function GuestAppContent({
   openState,
   staffPreview = false,
 }: GuestAppProps) {
-  const { t, dir, dateLocale } = useLocale();
+  const { t, dir, dateLocale, locale } = useLocale();
   const hoursLabel = openState.hoursUnset
     ? t("hoursUnset")
     : openState.closedToday
@@ -380,24 +437,111 @@ function GuestAppContent({
   const [hideAllergens, setHideAllergens] = useState<AllergenId[]>([]);
   const [hideAlcohol, setHideAlcohol] = useState(false);
   const [hidePork, setHidePork] = useState(false);
+  const [enOverlay, setEnOverlay] = useState<EnglishOverlay>({});
+  const fetchedEn = useRef(false);
   const visibleCategories = useMemo(
     () =>
       categories
-        .map((category) => ({
-          ...category,
-          items: category.items.filter(
-            (item) =>
-              !itemHiddenByFilter(item, hideAllergens, hideAlcohol, hidePork),
+        .map((category) =>
+          localizeCategory(
+            {
+              ...category,
+              items: category.items.filter(
+                (item) =>
+                  !itemHiddenByFilter(item, hideAllergens, hideAlcohol, hidePork),
+              ),
+            },
+            locale,
+            enOverlay,
           ),
-        }))
+        )
         .filter((category) => category.items.length > 0),
-    [categories, hideAllergens, hideAlcohol, hidePork],
+    [categories, hideAllergens, hideAlcohol, hidePork, locale, enOverlay],
+  );
+  const menuNames = useMemo(() => {
+    const names = new Map<string, string>();
+    const optionNames = new Map<string, string>();
+    for (const category of categories) {
+      const localized = localizeCategory(category, locale, enOverlay);
+      category.items.forEach((item, itemIndex) => {
+        const localizedItem = localized.items[itemIndex];
+        names.set(item.id, localizedItem.name);
+        item.optionGroups.forEach((group, groupIndex) => {
+          const localizedGroup = localizedItem.optionGroups[groupIndex];
+          optionNames.set(group.id, localizedGroup.name);
+          optionNames.set(group.name, localizedGroup.name);
+          group.options.forEach((option, optionIndex) => {
+            const localizedOption = localizedGroup.options[optionIndex];
+            optionNames.set(option.id, localizedOption.name);
+            optionNames.set(option.name, localizedOption.name);
+          });
+        });
+      });
+    }
+    return { names, optionNames };
+  }, [categories, locale, enOverlay]);
+  const localizedStaffCategories = useMemo(
+    () =>
+      categories.map((category) =>
+        localizeCategory(category, locale, enOverlay),
+      ),
+    [categories, locale, enOverlay],
   );
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (locale !== "en" || fetchedEn.current) return;
+    const missing = categories.some(
+      (category) =>
+        !category.nameEn ||
+        category.items.some(
+          (item) =>
+            !item.nameEn ||
+            (item.description && !item.descriptionEn) ||
+            item.optionGroups.some(
+              (group) =>
+                !group.nameEn ||
+                group.options.some((option) => !option.nameEn),
+            ),
+        ),
+    );
+    if (!missing) return;
+    fetchedEn.current = true;
+    let cancelled = false;
+    fetch("/api/guest/menu-en", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qrToken }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { categories?: { id: string; nameEn?: string | null }[]; items?: { id: string; nameEn?: string | null; descriptionEn?: string | null }[]; options?: { id: string; nameEn?: string | null }[] } | null) => {
+        if (cancelled || !data) return;
+        const next: EnglishOverlay = {};
+        for (const category of data.categories ?? []) {
+          next[category.id] = { nameEn: category.nameEn };
+        }
+        for (const item of data.items ?? []) {
+          next[item.id] = {
+            nameEn: item.nameEn,
+            descriptionEn: item.descriptionEn,
+          };
+        }
+        for (const option of data.options ?? []) {
+          next[option.id] = { nameEn: option.nameEn };
+        }
+        setEnOverlay(next);
+      })
+      .catch(() => {
+        fetchedEn.current = false;
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, qrToken, categories]);
 
   useEffect(() => {
     if (staffPreview) {
@@ -507,6 +651,7 @@ function GuestAppContent({
     feedbackSubmitted?: boolean;
     lines?: {
       id: string;
+      menuItemId?: string;
       name: string;
       quantity: number;
       price: number;
@@ -968,7 +1113,7 @@ function GuestAppContent({
           wifiPassword={wifiPassword}
         />
         <div className="space-y-8 px-4 py-6">
-          {categories.map((category) => (
+          {localizedStaffCategories.map((category) => (
             <section key={category.id}>
               <h2 className="text-2xl">{category.name}</h2>
               <div className="mt-3 space-y-3">
@@ -1023,8 +1168,13 @@ function GuestAppContent({
             {(sessionStatus?.lines ?? []).map((line) => (
               <li key={line.id} className="flex justify-between gap-3">
                 <span>
-                  {line.quantity}× {line.name}
-                  {line.options.length ? ` · ${line.options.join(", ")}` : ""}
+                  {line.quantity}×{" "}
+                  {menuNames.names.get(line.menuItemId ?? "") ?? line.name}
+                  {line.options.length
+                    ? ` · ${line.options
+                        .map((name) => menuNames.optionNames.get(name) ?? name)
+                        .join(", ")}`
+                    : ""}
                 </span>
                 <span>{formatTRY(line.price * line.quantity)}</span>
               </li>
@@ -1419,17 +1569,25 @@ function GuestAppContent({
                         </div>
                       ) : (
                         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-xs text-[var(--muted)]">
-                          {item.name.slice(0, 1)}
+                          {(menuNames.names.get(item.menuItemId) ?? item.name).slice(0, 1)}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-medium">{item.name}</p>
+                        <p className="font-medium">
+                          {menuNames.names.get(item.menuItemId) ?? item.name}
+                        </p>
                         <p className="text-sm text-[var(--muted)]">
                           {formatTRY(item.price)}
                         </p>
                         {item.options.length ? (
                           <p className="mt-1 text-xs text-[var(--muted)]">
-                            {item.options.map((option) => option.name).join(" · ")}
+                            {item.options
+                              .map(
+                                (option) =>
+                                  menuNames.optionNames.get(option.id) ??
+                                  pickLocalized(locale, option.name, option.nameEn),
+                              )
+                              .join(" · ")}
                           </p>
                         ) : null}
                         {!item.available ? (
@@ -1507,9 +1665,12 @@ function GuestAppContent({
                     <ul className="mt-2 text-sm">
                       {order.items.map((item) => (
                         <li key={item.id}>
-                          {item.quantity}× {item.name}
+                          {item.quantity}×{" "}
+                          {menuNames.names.get(item.menuItemId ?? "") ?? item.name}
                           {item.options?.length
-                            ? ` · ${item.options.join(", ")}`
+                            ? ` · ${item.options
+                                .map((name) => menuNames.optionNames.get(name) ?? name)
+                                .join(", ")}`
                             : ""}
                           {item.note ? ` — ${item.note}` : ""}
                         </li>
@@ -1581,9 +1742,12 @@ function GuestAppContent({
                     lines.map((line) => (
                       <li key={line.id} className="flex justify-between gap-2">
                         <span>
-                          {line.quantity}× {line.name}
+                          {line.quantity}×{" "}
+                          {menuNames.names.get(line.menuItemId ?? "") ?? line.name}
                           {line.options?.length
-                            ? ` · ${line.options.join(", ")}`
+                            ? ` · ${line.options
+                                .map((name) => menuNames.optionNames.get(name) ?? name)
+                                .join(", ")}`
                             : ""}
                           {line.note ? ` — ${line.note}` : ""}
                         </span>

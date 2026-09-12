@@ -5,6 +5,10 @@ import { getStaffUser } from "@/lib/tenant";
 import { isPublicImageUrl } from "@/lib/media";
 import { menuOptionGroupInputSchema } from "@/lib/menu-option-schema";
 import { nutritionFieldsSchema } from "@/lib/nutrition";
+import {
+  englishForMenuFields,
+  englishForOptionGroups,
+} from "@/lib/translate-menu";
 
 export async function POST(request: Request) {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -46,11 +50,21 @@ export async function POST(request: Request) {
     orderBy: { sortOrder: "desc" },
   });
 
+  const [english, optionEnglish] = await Promise.all([
+    englishForMenuFields({
+      name: body.data.name,
+      description: body.data.description ?? null,
+    }),
+    englishForOptionGroups(body.data.optionGroups),
+  ]);
+
   const item = await prisma.menuItem.create({
     data: {
       categoryId: category.id,
       name: body.data.name,
+      nameEn: english.nameEn,
       description: body.data.description,
+      descriptionEn: english.descriptionEn,
       price: body.data.price,
       imageUrl:
         body.data.imageUrl && isPublicImageUrl(body.data.imageUrl)
@@ -70,6 +84,7 @@ export async function POST(request: Request) {
         ? {
             create: body.data.optionGroups.map((group, groupIndex) => ({
               name: group.name,
+              nameEn: optionEnglish[groupIndex]?.nameEn,
               required: group.required ?? group.minSelections > 0,
               minSelections: group.minSelections,
               maxSelections: group.maxSelections,
@@ -77,6 +92,7 @@ export async function POST(request: Request) {
               options: {
                 create: group.options.map((option, optionIndex) => ({
                   name: option.name,
+                  nameEn: optionEnglish[groupIndex]?.options[optionIndex]?.nameEn,
                   priceDelta: option.priceDelta,
                   available: option.available ?? true,
                   sortOrder: optionIndex,

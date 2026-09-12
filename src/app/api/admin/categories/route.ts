@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { parseAllergens } from "@/lib/nutrition";
+import { translateTrToEn } from "@/lib/translate-menu";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     data: {
       venueId: user.venueId,
       name: body.data.name,
+      nameEn: await translateTrToEn(body.data.name),
       sortOrder: body.data.sortOrder ?? (last?.sortOrder ?? 0) + 1,
     },
   });

@@ -5,6 +5,10 @@ import { getStaffUser } from "@/lib/tenant";
 import { isPublicImageUrl } from "@/lib/media";
 import { menuOptionGroupInputSchema } from "@/lib/menu-option-schema";
 import { nutritionFieldsSchema } from "@/lib/nutrition";
+import {
+  englishForMenuFields,
+  englishForOptionGroups,
+} from "@/lib/translate-menu";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -54,6 +58,13 @@ export async function PATCH(request: Request, context: Ctx) {
   }
 
   const { optionGroups, ...itemData } = body.data;
+  const [english, optionEnglish] = await Promise.all([
+    englishForMenuFields(
+      { name: body.data.name, description: body.data.description },
+      existing,
+    ),
+    englishForOptionGroups(optionGroups),
+  ]);
   const item = await prisma.$transaction(async (tx) => {
     if (optionGroups !== undefined) {
       await tx.cartItem.deleteMany({ where: { menuItemId: id } });
@@ -64,6 +75,8 @@ export async function PATCH(request: Request, context: Ctx) {
       where: { id },
       data: {
         ...itemData,
+        nameEn: english.nameEn,
+        descriptionEn: english.descriptionEn,
         imageUrl:
           body.data.imageUrl === "" || body.data.imageUrl === null
             ? null
@@ -76,6 +89,7 @@ export async function PATCH(request: Request, context: Ctx) {
             : {
                 create: optionGroups.map((group, groupIndex) => ({
                   name: group.name,
+                  nameEn: optionEnglish[groupIndex]?.nameEn,
                   required: group.required ?? group.minSelections > 0,
                   minSelections: group.minSelections,
                   maxSelections: group.maxSelections,
@@ -83,6 +97,7 @@ export async function PATCH(request: Request, context: Ctx) {
                   options: {
                     create: group.options.map((option, optionIndex) => ({
                       name: option.name,
+                      nameEn: optionEnglish[groupIndex]?.options[optionIndex]?.nameEn,
                       priceDelta: option.priceDelta,
                       available: option.available ?? true,
                       sortOrder: optionIndex,

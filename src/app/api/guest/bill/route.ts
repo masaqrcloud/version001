@@ -31,6 +31,7 @@ export async function GET() {
   const lines = orders.flatMap((order) =>
     order.items.map((item) => ({
       id: item.id,
+      menuItemId: item.menuItemId,
       guestId: order.guestId,
       guestName: order.guest.nickname || "Misafir",
       name: item.name,

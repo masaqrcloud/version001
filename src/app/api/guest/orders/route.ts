@@ -26,6 +26,7 @@ export async function GET() {
       createdAt: order.createdAt,
       items: order.items.map((item) => ({
         id: item.id,
+        menuItemId: item.menuItemId,
         name: item.name,
         price: Number(item.price),
         quantity: item.quantity,

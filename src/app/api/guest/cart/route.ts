@@ -34,6 +34,7 @@ export async function GET() {
       options: item.options.map((selected) => ({
         id: selected.option.id,
         name: selected.option.name,
+        nameEn: selected.option.nameEn,
         priceDelta: Number(selected.option.priceDelta),
       })),
       available:

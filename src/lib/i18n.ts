@@ -16,6 +16,18 @@ export function isLocale(value: string | null | undefined): value is Locale {
   return LOCALES.includes(value as Locale);
 }
 
+export function pickLocalized(
+  locale: Locale,
+  tr: string | null | undefined,
+  en: string | null | undefined,
+) {
+  if (locale === "en") {
+    const value = en?.trim();
+    if (value) return value;
+  }
+  return (tr ?? "").trim();
+}
+
 export function interpolate(
   template: string,
   vars?: Record<string, string | number>,
