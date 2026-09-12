@@ -240,26 +240,36 @@ function GuestWifiCard({
       onClick={copyAndConnect}
       className={`block w-full text-left ${className}`}
     >
-      <Card className="border-sky-200 bg-sky-50/80 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
-          {t("wifiTitle")}
-        </p>
-        <p className="mt-1 truncate font-medium">{wifiName}</p>
-        {wifiPassword ? (
-          <p className="mt-1 break-all text-sm text-[var(--muted)]">
-            {t("wifiPassword")}{" "}
-            <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
-            {copied ? (
-              <span className="ml-2 whitespace-nowrap text-xs font-semibold text-sky-700">
-                {t("wifiCopied")}
-              </span>
-            ) : null}
-          </p>
-        ) : (
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {copied ? t("wifiCopied") : t("wifiOpen")}
-          </p>
-        )}
+      <Card className="wifi-card overflow-hidden p-4">
+        <div className="flex items-start gap-3">
+          <span className="wifi-card-icon" aria-hidden>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M5 10.5c4.2-4 9.8-4 14 0" strokeLinecap="round" />
+              <path d="M7.8 13.6c2.6-2.5 5.8-2.5 8.4 0" strokeLinecap="round" />
+              <path d="M10.6 16.6c1.1-1 2.7-1 3.8 0" strokeLinecap="round" />
+              <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="page-kicker">{t("wifiTitle")}</p>
+            <p className="mt-1 truncate font-medium">{wifiName}</p>
+            {wifiPassword ? (
+              <p className="mt-1 break-all text-sm text-[var(--muted)]">
+                {t("wifiPassword")}{" "}
+                <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
+                {copied ? (
+                  <span className="ml-2 whitespace-nowrap text-xs font-semibold text-[var(--accent)]">
+                    {t("wifiCopied")}
+                  </span>
+                ) : null}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {copied ? t("wifiCopied") : t("wifiOpen")}
+              </p>
+            )}
+          </div>
+        </div>
       </Card>
     </button>
   );
@@ -324,20 +334,27 @@ function GuestBrand({
 function HubBubble({
   title,
   hint,
-  icon,
+  image,
   onClick,
 }: {
   title: string;
   hint: string;
-  icon: ReactNode;
+  image: string;
   onClick: () => void;
 }) {
   return (
     <button type="button" className="hub-bubble" onClick={onClick}>
-      <span className="hub-bubble-icon">{icon}</span>
-      <span className="font-serif text-3xl leading-none">{title}</span>
-      <span className="px-3 text-center text-xs leading-snug text-[var(--muted)]">
-        {hint}
+      <span className="hub-bubble-photo">
+        <img src={image} alt="" />
+      </span>
+      <span className="hub-bubble-fade" />
+      <span className="hub-bubble-copy">
+        <span className="font-serif text-3xl leading-none text-[var(--ink)]">
+          {title}
+        </span>
+        <span className="mt-1 text-center text-xs leading-snug text-[var(--muted)]">
+          {hint}
+        </span>
       </span>
     </button>
   );
@@ -350,6 +367,7 @@ function GuestWelcomeHub({
   venueCover,
   tableNumber,
   guestName,
+  guests,
   hoursLabel,
   wifiName,
   wifiPassword,
@@ -362,6 +380,7 @@ function GuestWelcomeHub({
   venueCover?: string | null;
   tableNumber: string;
   guestName: string;
+  guests?: { nickname: string; isMe: boolean }[];
   hoursLabel: string;
   wifiName?: string | null;
   wifiPassword?: string | null;
@@ -369,6 +388,15 @@ function GuestWelcomeHub({
   onPlay: () => void;
 }) {
   const { t, dir } = useLocale();
+  const tableGuests = guests ?? [];
+  const guestNames =
+    tableGuests.length > 1
+      ? tableGuests
+          .map((guest) =>
+            guest.isMe ? `${guest.nickname}${t("youParen")}` : guest.nickname,
+          )
+          .join(" · ")
+      : "";
   return (
     <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col">
       <div className="relative">
@@ -415,30 +443,24 @@ function GuestWelcomeHub({
       <div className="flex flex-1 flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
         <p className="text-sm text-[var(--muted)]">{t("hubWelcome")}</p>
         <p className="font-serif text-3xl">{t("hello", { name: guestName })}</p>
+        {guestNames ? (
+          <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+            {t("hubGuests", { names: guestNames })}
+          </p>
+        ) : null}
         <p className="mt-1 text-sm text-[var(--muted)]">{t("hubPick")}</p>
         <div className="mt-6 grid grid-cols-2 gap-4">
           <HubBubble
             title={t("tabMenu")}
             hint={t("hubMenuHint")}
+            image="/guest/hub-menu.png"
             onClick={onMenu}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" />
-              </svg>
-            }
           />
           <HubBubble
             title={t("hubPlay")}
             hint={t("hubPlayHint")}
+            image="/guest/hub-play.png"
             onClick={onPlay}
-            icon={
-              <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect x="3" y="8" width="18" height="11" rx="4" />
-                <path d="M8 13v3M6.5 14.5h3" strokeLinecap="round" />
-                <circle cx="15.5" cy="13" r="0.8" fill="currentColor" />
-                <circle cx="17.5" cy="15.2" r="0.8" fill="currentColor" />
-              </svg>
-            }
           />
         </div>
         <p className="mt-6 rounded-2xl bg-black/5 px-4 py-3 text-sm text-[var(--muted)]">
@@ -1444,6 +1466,7 @@ function GuestAppContent({
         venueCover={venueCover}
         tableNumber={tableNumber}
         guestName={shownName}
+        guests={bill?.guests}
         hoursLabel={hoursLabel}
         wifiName={wifiName}
         wifiPassword={wifiPassword}

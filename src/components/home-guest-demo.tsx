@@ -151,13 +151,13 @@ export function HomeGuestDemo() {
               </p>
               <button
                 type="button"
-                className="mt-2 w-full rounded-xl bg-sky-50 px-3 py-2 text-left text-[11px]"
+                className="wifi-card mt-2 w-full rounded-xl px-3 py-2 text-left text-[11px]"
                 onClick={() => {
                   setWifiCopied(true);
                   window.setTimeout(() => setWifiCopied(false), 1600);
                 }}
               >
-                <p className="font-semibold text-sky-800">Misafir Wi‑Fi</p>
+                <p className="page-kicker">Misafir Wi‑Fi</p>
                 <p className="text-[var(--ink)]">
                   Sahil_Guest · {wifiCopied ? "Kopyalandı" : "sifre123"}
                 </p>

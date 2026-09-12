@@ -105,27 +105,42 @@ export function GuestGames({
         </p>
       </div>
       <button type="button" className="w-full text-left" onClick={() => setGame("pasaparola")}>
-        <Card className="p-5">
-          <p className="font-serif text-2xl">{t("gamePasaparola")}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {t("gamePasaparolaHint")}
-          </p>
+        <Card className="game-pick">
+          <div className="photo-box game-pick-photo w-full">
+            <img src="/guest/game-pasaparola.png" alt="" />
+          </div>
+          <div className="game-pick-copy">
+            <p className="font-serif text-2xl">{t("gamePasaparola")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {t("gamePasaparolaHint")}
+            </p>
+          </div>
         </Card>
       </button>
       <button type="button" className="w-full text-left" onClick={() => setGame("rather")}>
-        <Card className="p-5">
-          <p className="font-serif text-2xl">{t("gameRather")}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {t("gameRatherHint")}
-          </p>
+        <Card className="game-pick">
+          <div className="photo-box game-pick-photo w-full">
+            <img src="/guest/game-rather.png" alt="" />
+          </div>
+          <div className="game-pick-copy">
+            <p className="font-serif text-2xl">{t("gameRather")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {t("gameRatherHint")}
+            </p>
+          </div>
         </Card>
       </button>
       <button type="button" className="w-full text-left" onClick={() => setGame("memory")}>
-        <Card className="p-5">
-          <p className="font-serif text-2xl">{t("gameMemory")}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            {t("gameMemoryHint")}
-          </p>
+        <Card className="game-pick">
+          <div className="photo-box game-pick-photo w-full">
+            <img src="/guest/game-memory.png" alt="" />
+          </div>
+          <div className="game-pick-copy">
+            <p className="font-serif text-2xl">{t("gameMemory")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {t("gameMemoryHint")}
+            </p>
+          </div>
         </Card>
       </button>
     </div>
