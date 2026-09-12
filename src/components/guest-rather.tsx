@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GuestBestOf } from "@/components/guest-bestof";
 import { GuestTenTen } from "@/components/guest-tenten";
+import { useLocale } from "@/components/locale-provider";
 import { usePoll } from "@/lib/poll";
 
 type RatherState = {
@@ -32,24 +33,25 @@ export function GuestRather({
   guestToken: string;
   guestHeaders: (json?: boolean) => Record<string, string>;
 }) {
+  const { t } = useLocale();
   const [tab, setTab] = useState<"rather" | "tenten" | "bestof">("rather");
 
   return (
     <div className="space-y-4">
       <div>
         <p className="page-kicker">Masa oyunu</p>
-        <h2 className="mt-1 font-serif text-3xl">Cevap Ver</h2>
+        <h2 className="mt-1 font-serif text-3xl">{t("ratherTitle")}</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Aynı soru masaya düşer. İki seçenek, 10’da 10 veya en iyisi.
+          {t("ratherIntro")}
         </p>
       </div>
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
         {(
           [
-            ["rather", "Cevap Ver"],
-            ["tenten", "10’da 10"],
-            ["bestof", "En İyisi"],
+            ["rather", t("tabRather")],
+            ["tenten", t("tabTenTen")],
+            ["bestof", t("tabBestOf")],
           ] as const
         ).map(([id, label]) => (
           <button

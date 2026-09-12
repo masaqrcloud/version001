@@ -1,9 +1,14 @@
+"use client";
+
 import {
   allergenLabel,
   animalSourceLabel,
   formatPortionCalories,
+  type AllergenId,
   type NutritionInfo,
 } from "@/lib/nutrition";
+import { useLocaleOptional } from "@/components/locale-provider";
+import type { GuestMessage } from "@/lib/i18n-guest";
 
 export function NutritionLabels({
   item,
@@ -12,25 +17,49 @@ export function NutritionLabels({
   item: NutritionInfo;
   compact?: boolean;
 }) {
-  const source = animalSourceLabel(item.animalSource);
+  const loc = useLocaleOptional();
+  const sourceId = item.animalSource;
+  const source = loc
+    ? sourceId
+      ? loc.t(`meat_${sourceId}` as GuestMessage)
+      : null
+    : animalSourceLabel(sourceId);
   const tags = [
     ...item.allergens.map((id) => ({
       key: id,
-      text: allergenLabel(id),
+      text: loc
+        ? loc.t(`allergen_${id}` as GuestMessage)
+        : allergenLabel(id as AllergenId),
       tone: "allergen" as const,
     })),
-    ...(source
-      ? [{ key: "meat", text: source, tone: "meat" as const }]
-      : []),
+    ...(source ? [{ key: "meat", text: source, tone: "meat" as const }] : []),
     ...(item.containsAlcohol
-      ? [{ key: "alcohol", text: "Alkol", tone: "warn" as const }]
+      ? [
+          {
+            key: "alcohol",
+            text: loc ? loc.t("alcohol") : "Alkol",
+            tone: "warn" as const,
+          },
+        ]
       : []),
     ...(item.containsPork
-      ? [{ key: "pork", text: "Domuz türevi", tone: "warn" as const }]
+      ? [
+          {
+            key: "pork",
+            text: loc ? loc.t("pork") : "Domuz türevi",
+            tone: "warn" as const,
+          },
+        ]
       : []),
   ];
 
   if (!tags.length && item.calories == null) return null;
+
+  const caloriesText = loc
+    ? item.calories != null
+      ? loc.t("kcalPortion", { n: item.calories })
+      : null
+    : formatPortionCalories(item.calories);
 
   return (
     <div className={compact ? "mt-1 space-y-1" : "mt-2 space-y-1.5"}>
@@ -52,10 +81,8 @@ export function NutritionLabels({
           ))}
         </div>
       ) : null}
-      {!compact && formatPortionCalories(item.calories) ? (
-        <p className="text-xs text-[var(--muted)]">
-          {formatPortionCalories(item.calories)}
-        </p>
+      {!compact && caloriesText ? (
+        <p className="text-xs text-[var(--muted)]">{caloriesText}</p>
       ) : null}
     </div>
   );
@@ -68,12 +95,13 @@ export function CalorieBesidePrice({
   price: string;
   calories: number | null;
 }) {
+  const loc = useLocaleOptional();
   return (
     <p className="mt-2 text-sm">
       {price}
       {calories != null ? (
         <span className="ml-2 text-[var(--muted)]">
-          {calories} kcal / porsiyon
+          {loc ? loc.t("kcalPortion", { n: calories }) : `${calories} kcal / porsiyon`}
         </span>
       ) : null}
     </p>

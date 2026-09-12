@@ -1,6 +1,10 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { orderStatusLabel } from "@/lib/labels";
 import type { OrderStatus } from "@prisma/client";
+import { useLocaleOptional } from "@/components/locale-provider";
+import type { GuestMessage } from "@/lib/i18n-guest";
 
 export function Badge({
   className,
@@ -30,5 +34,9 @@ const orderTone: Record<OrderStatus, string> = {
 };
 
 export function OrderBadge({ status }: { status: OrderStatus }) {
-  return <Badge className={orderTone[status]}>{orderStatusLabel[status]}</Badge>;
+  const loc = useLocaleOptional();
+  const label = loc
+    ? loc.t(`order${status}` as GuestMessage)
+    : orderStatusLabel[status];
+  return <Badge className={orderTone[status]}>{label}</Badge>;
 }

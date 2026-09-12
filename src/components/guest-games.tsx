@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { GuestPasaparola } from "@/components/guest-pasaparola";
 import { GuestRather } from "@/components/guest-rather";
 import { GuestMemory } from "@/components/guest-memory";
+import { useLocale } from "@/components/locale-provider";
 
 type GameId = "hub" | "pasaparola" | "rather" | "memory";
 
@@ -19,6 +20,7 @@ export function GuestGames({
   onRoundLive?: () => void;
   onImmersiveChange?: (on: boolean) => void;
 }) {
+  const { t } = useLocale();
   const [game, setGame] = useState<GameId>("hub");
   const [immersive, setImmersive] = useState(false);
 
@@ -34,7 +36,7 @@ export function GuestGames({
               setGame("hub");
             }}
           >
-            ← Oyunlar
+            {t("backGames")}
           </button>
         )}
         <GuestPasaparola
@@ -58,7 +60,7 @@ export function GuestGames({
           className="text-sm text-[var(--muted)]"
           onClick={() => setGame("hub")}
         >
-          ← Oyunlar
+          {t("backGames")}
         </button>
         <GuestRather guestToken={guestToken} guestHeaders={guestHeaders} />
       </div>
@@ -77,7 +79,7 @@ export function GuestGames({
               setGame("hub");
             }}
           >
-            ← Oyunlar
+            {t("backGames")}
           </button>
         )}
         <GuestMemory
@@ -96,33 +98,33 @@ export function GuestGames({
   return (
     <div className="space-y-4">
       <div>
-        <p className="page-kicker">Masa oyunları</p>
-        <h2 className="mt-1 font-serif text-3xl">Oyna</h2>
+        <p className="page-kicker">{t("playKicker")}</p>
+        <h2 className="mt-1 font-serif text-3xl">{t("playTitle")}</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Aynı masadaki herkes aynı turu görür.
+          {t("playIntro")}
         </p>
       </div>
       <button type="button" className="w-full text-left" onClick={() => setGame("pasaparola")}>
         <Card className="p-5">
-          <p className="font-serif text-2xl">Pasaparola</p>
+          <p className="font-serif text-2xl">{t("gamePasaparola")}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Harf harf kelime. Hep beraber veya kapışma.
+            {t("gamePasaparolaHint")}
           </p>
         </Card>
       </button>
       <button type="button" className="w-full text-left" onClick={() => setGame("rather")}>
         <Card className="p-5">
-          <p className="font-serif text-2xl">Cevap Ver</p>
+          <p className="font-serif text-2xl">{t("gameRather")}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Aynı soru masaya düşer. İki seçenek, 10’da 10 veya en iyisi kapışması.
+            {t("gameRatherHint")}
           </p>
         </Card>
       </button>
       <button type="button" className="w-full text-left" onClick={() => setGame("memory")}>
         <Card className="p-5">
-          <p className="font-serif text-2xl">Hafıza</p>
+          <p className="font-serif text-2xl">{t("gameMemory")}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            6×4 kart, 12 çift. Birden fazla kişi varsa sıra sıra; bilemeyince geçer.
+            {t("gameMemoryHint")}
           </p>
         </Card>
       </button>

@@ -20,6 +20,8 @@ import {
   type AllergenId,
 } from "@/lib/nutrition";
 import { isAndroidDevice, openAndroidWifiConnect } from "@/lib/wifi";
+import { LanguageSwitch } from "@/components/language-switch";
+import { LocaleProvider, useLocale } from "@/components/locale-provider";
 
 type MenuItem = {
   id: string;
@@ -123,6 +125,7 @@ function GuestWifiCard({
   wifiPassword?: string | null;
   className?: string;
 }) {
+  const { t } = useLocale();
   const [copied, setCopied] = useState(false);
 
   if (!wifiName) return null;
@@ -150,22 +153,22 @@ function GuestWifiCard({
     >
       <Card className="border-sky-200 bg-sky-50/80 p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700">
-          Misafir Wi‑Fi
+          {t("wifiTitle")}
         </p>
         <p className="mt-1 truncate font-medium">{wifiName}</p>
         {wifiPassword ? (
           <p className="mt-1 break-all text-sm text-[var(--muted)]">
-            Şifre:{" "}
+            {t("wifiPassword")}{" "}
             <span className="font-medium text-[var(--ink)]">{wifiPassword}</span>
             {copied ? (
               <span className="ml-2 whitespace-nowrap text-xs font-semibold text-sky-700">
-                Kopyalandı
+                {t("wifiCopied")}
               </span>
             ) : null}
           </p>
         ) : (
           <p className="mt-1 text-xs text-[var(--muted)]">
-            {copied ? "Kopyalandı" : "Şifresiz ağ"}
+            {copied ? t("wifiCopied") : t("wifiOpen")}
           </p>
         )}
       </Card>
@@ -190,6 +193,7 @@ function GuestBrand({
   compact?: boolean;
   children?: ReactNode;
 }) {
+  const { t } = useLocale();
   return (
     <div>
       {venueCover ? (
@@ -219,7 +223,7 @@ function GuestBrand({
             {venueTagline ? (
               <p className="text-sm text-[var(--muted)]">{venueTagline}</p>
             ) : null}
-            <h1 className="text-3xl">{tableLabel(tableNumber)}</h1>
+            <h1 className="text-3xl">{tableLabel(tableNumber, t("tableWord"))}</h1>
           </div>
         </div>
         {children}
@@ -256,6 +260,7 @@ function MenuDish({
   action?: ReactNode;
   highlight?: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <Card
       className={`flex items-start gap-3 overflow-hidden p-3 ${highlight ? "dish-added" : ""}`}
@@ -280,7 +285,7 @@ function MenuDish({
         />
         <NutritionLabels item={item} compact />
         {item.soldOut ? (
-          <p className="mt-1 text-xs font-semibold text-red-700">Tükendi</p>
+          <p className="mt-1 text-xs font-semibold text-red-700">{t("soldOut")}</p>
         ) : null}
       </div>
       {action}
@@ -288,7 +293,35 @@ function MenuDish({
   );
 }
 
-export function GuestApp({
+type GuestAppProps = {
+  qrToken: string;
+  venueName: string;
+  venueTagline?: string | null;
+  venueLogo?: string | null;
+  venueCover?: string | null;
+  wifiName?: string | null;
+  wifiPassword?: string | null;
+  tableNumber: string;
+  categories: Category[];
+  openState: {
+    isOpen: boolean;
+    hoursUnset?: boolean;
+    closedToday?: boolean;
+    closesAt?: string | null;
+    opensAt?: string | null;
+  };
+  staffPreview?: boolean;
+};
+
+export function GuestApp(props: GuestAppProps) {
+  return (
+    <LocaleProvider>
+      <GuestAppContent {...props} />
+    </LocaleProvider>
+  );
+}
+
+function GuestAppContent({
   qrToken,
   venueName,
   venueTagline,
@@ -300,19 +333,15 @@ export function GuestApp({
   categories,
   openState,
   staffPreview = false,
-}: {
-  qrToken: string;
-  venueName: string;
-  venueTagline?: string | null;
-  venueLogo?: string | null;
-  venueCover?: string | null;
-  wifiName?: string | null;
-  wifiPassword?: string | null;
-  tableNumber: string;
-  categories: Category[];
-  openState: { isOpen: boolean; label: string };
-  staffPreview?: boolean;
-}) {
+}: GuestAppProps) {
+  const { t, dir, dateLocale } = useLocale();
+  const hoursLabel = openState.hoursUnset
+    ? t("hoursUnset")
+    : openState.closedToday
+      ? t("closedToday")
+      : openState.isOpen
+        ? t("openUntil", { time: openState.closesAt ?? "" })
+        : t("closedUntil", { time: openState.opensAt ?? "" });
   const [tab, setTab] = useState<Tab>("menu");
   const [gameImmersive, setGameImmersive] = useState(false);
   const [guestId, setGuestId] = useState("");
@@ -406,7 +435,7 @@ export function GuestApp({
           return;
         }
         if (!res.ok) {
-          setNameError(data.error ?? "Masaya bağlanılamadı");
+          setNameError(data.error ?? t("joinFail"));
           return;
         }
         if (data.closed) {
@@ -442,7 +471,7 @@ export function GuestApp({
         setReady(true);
       } catch {
         if (!cancelled) {
-          setNameError("Bağlantı yok. Telefonun aynı WiFi’de olduğundan emin ol.");
+          setNameError(t("offlineWifi"));
         }
       }
     }
@@ -583,7 +612,7 @@ export function GuestApp({
     window.requestAnimationFrame(() => setFlash(true));
     setAddedId(menuItemId);
     setCartPulse(true);
-    setMessage("Sepete eklendi");
+    setMessage(t("addedToCart"));
     window.setTimeout(() => setCartPulse(false), 1400);
     window.setTimeout(() => setFlash(false), 700);
     window.setTimeout(() => setAddedId(null), 900);
@@ -597,7 +626,7 @@ export function GuestApp({
     setBusy(false);
     if (!res.ok) {
       const json = await res.json();
-      setMessage(json.error ?? "Eklenemedi");
+      setMessage(json.error ?? t("addFailed"));
       return;
     }
     const refreshed = await fetch("/api/guest/cart", {
@@ -652,8 +681,8 @@ export function GuestApp({
     setReceiptBusy(false);
     setMessage(
       response.ok
-        ? "E-posta adresin kaydedildi. Hesap kapanınca dijital adisyon gönderilecek."
-        : data.error ?? "E-posta tercihi kaydedilemedi.",
+        ? t("receiptSaved")
+        : data.error ?? t("receiptFail"),
     );
   }
 
@@ -710,10 +739,10 @@ export function GuestApp({
       setLocalWaiterCooldownUntil(new Date(data.cooldownUntil).getTime());
     }
     if (!res.ok) {
-      setMessage(data.error ?? "Garson çağrılamadı");
+      setMessage(data.error ?? t("waiterFail"));
       return;
     }
-    setMessage(data.message ?? "Garson çağrıldı.");
+    setMessage(data.message ?? t("waiterOk"));
   }
 
   async function requestBill() {
@@ -730,10 +759,10 @@ export function GuestApp({
       setLocalBillCooldownUntil(new Date(data.cooldownUntil).getTime());
     }
     if (!res.ok) {
-      setMessage(data.error ?? "Hesap istenemedi");
+      setMessage(data.error ?? t("billFail"));
       return;
     }
-    setMessage(data.message ?? "Hesap isteğin iletildi.");
+    setMessage(data.message ?? t("billOk"));
   }
 
   async function submitOrder() {
@@ -761,17 +790,15 @@ export function GuestApp({
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         pendingOrderKey.current = null;
-        setMessage(json.error ?? "Sipariş gönderilemedi");
+        setMessage(json.error ?? t("orderFail"));
         return;
       }
       pendingOrderKey.current = null;
       setCart({ items: [] });
       setTab("cart");
-      setMessage("Siparişin mutfağa iletildi. Hazırlanmadan iptal edebilirsin.");
+      setMessage(t("orderSent"));
     } catch {
-      setMessage(
-        "Bağlantı kesildi. Tekrar deneyebilirsin; sipariş iki kez oluşmaz.",
-      );
+      setMessage(t("orderOffline"));
     } finally {
       setBusy(false);
     }
@@ -791,10 +818,10 @@ export function GuestApp({
     setCancelOrderId(null);
     setBusy(false);
     if (!response.ok) {
-      setMessage(json.error ?? "Sipariş iptal edilemedi.");
+      setMessage(json.error ?? t("cancelFail"));
       return;
     }
-    setMessage("Siparişin iptal edildi. Stok geri alındı.");
+    setMessage(t("orderCancelled"));
     const refreshed = await fetch("/api/guest/live", {
       cache: "no-store",
       credentials: "include",
@@ -841,7 +868,7 @@ export function GuestApp({
   async function saveName() {
     const trimmed = name.trim();
     if (trimmed.length < 2) {
-      setNameError("En az 2 karakter yaz");
+      setNameError(t("nameMin"));
       return;
     }
     setBusy(true);
@@ -849,7 +876,7 @@ export function GuestApp({
     try {
       const token = guestToken || (await sitDown(trimmed));
       if (!token) {
-        setNameError("Hesap kapatıldı. Evden tekrar sipariş verilemez.");
+        setNameError(t("sessionClosed"));
         return;
       }
       const res = await fetch("/api/guest/profile", {
@@ -863,14 +890,14 @@ export function GuestApp({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setNameError(data.error ?? "İsim kaydedilemedi, tekrar dene");
+        setNameError(data.error ?? t("nameSaveFail"));
         return;
       }
       setName(trimmed);
       setNamed(true);
       void askAlertPermission();
     } catch {
-      setNameError("Kayıt gidemedi. Aynı WiFi’de olup sayfayı yenile.");
+      setNameError(t("nameSaveOffline"));
     } finally {
       setBusy(false);
     }
@@ -900,13 +927,6 @@ export function GuestApp({
   }, [notes]);
 
   const unread = notes?.unread ?? 0;
-  const tabs = [
-    ["menu", "Menü"],
-    ["cart", cartCount ? `Sepet (${cartCount})` : "Sepet"],
-    ["bill", "Hesap"],
-    ["games", "Oyunlar"],
-    ["alerts", unread ? `Bildirim (${unread})` : "Bildirim"],
-  ] as const;
 
   async function openAlerts() {
     setTab("alerts");
@@ -918,11 +938,18 @@ export function GuestApp({
     });
   }
 
-  const shownName = name.trim() || "Misafir";
+  const shownName = name.trim() || t("guestDefault");
+  const tabs = [
+    ["menu", t("tabMenu")],
+    ["cart", cartCount ? t("tabCartN", { n: cartCount }) : t("tabCart")],
+    ["bill", t("tabBill")],
+    ["games", t("tabGames")],
+    ["alerts", unread ? t("tabAlertsN", { n: unread }) : t("tabAlerts")],
+  ] as const;
 
   if (staffPreview) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+      <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
         <GuestBrand
           venueName={venueName}
           venueTagline={venueTagline}
@@ -930,8 +957,9 @@ export function GuestApp({
           venueCover={venueCover}
           tableNumber={tableNumber}
         >
+          <LanguageSwitch className="mt-3" />
           <p className="mt-2 rounded-xl bg-black/5 px-3 py-2 text-sm">
-            Personel önizleme. Masada aktif görünmezsin, sipariş veremezsin.
+            {t("staffPreview")}
           </p>
         </GuestBrand>
         <GuestWifiCard
@@ -957,9 +985,10 @@ export function GuestApp({
 
   if (!ready) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col justify-center px-5">
+      <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col justify-center px-5">
+        <LanguageSwitch className="mb-6" />
         <p className="text-[var(--muted)]">
-          {nameError ?? "Masaya bağlanılıyor…"}
+          {nameError ?? t("connecting")}
         </p>
       </div>
     );
@@ -967,17 +996,21 @@ export function GuestApp({
 
   if (joinClosed || sessionStatus?.closed) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col px-4 py-8">
+      <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col px-4 py-8">
+        <LanguageSwitch className="mb-4 justify-center" />
         <div className="text-center">
           <p className="page-kicker">{sessionStatus?.venueName ?? venueName}</p>
-          <h1 className="mt-2 font-serif text-4xl">Teşekkür ederiz</h1>
+          <h1 className="mt-2 font-serif text-4xl">{t("thanks")}</h1>
           <p className="mt-2 text-[var(--muted)]">
-            {tableLabel(sessionStatus?.tableNumber ?? tableNumber)} hesabı
-            kapatıldı.
+            {t("billClosed", {
+              table: tableLabel(
+                sessionStatus?.tableNumber ?? tableNumber,
+                t("tableWord"),
+              ),
+            })}
           </p>
           <p className="mt-4 text-sm text-[var(--muted)]">
-            Yeni sipariş için masadaki QR’yi tekrar okut. Sayfayı yenilemek
-            hesabı açmaz.
+            {t("rescanHint")}
           </p>
         </div>
         {nameError ? (
@@ -985,7 +1018,7 @@ export function GuestApp({
         ) : null}
         {(sessionStatus?.lines?.length ?? 0) > 0 ? (
         <Card className="mt-6 p-5">
-          <h2 className="font-serif text-2xl">Adisyon özeti</h2>
+          <h2 className="font-serif text-2xl">{t("billSummary")}</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {(sessionStatus?.lines ?? []).map((line) => (
               <li key={line.id} className="flex justify-between gap-3">
@@ -998,11 +1031,11 @@ export function GuestApp({
             ))}
           </ul>
           <p className="mt-4 border-t border-[var(--line)] pt-3 text-right font-medium">
-            Toplam: {formatTRY(sessionStatus?.total ?? 0)}
+            {t("total", { amount: formatTRY(sessionStatus?.total ?? 0) })}
           </p>
           {sessionStatus?.receiptSent ? (
             <p className="mt-2 text-xs text-[var(--muted)]">
-              Dijital adisyon e-posta adresine gönderildi.
+              {t("receiptSent")}
             </p>
           ) : null}
         </Card>
@@ -1015,7 +1048,7 @@ export function GuestApp({
           </Card>
         ) : guestToken ? (
           <p className="mt-4 text-center text-sm text-[var(--muted)]">
-            Değerlendirmen için teşekkürler.
+            {t("feedbackThanks")}
           </p>
         ) : null}
       </div>
@@ -1024,24 +1057,25 @@ export function GuestApp({
 
   if (!named) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+      <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
         <GuestBrand
           venueName={venueName}
           venueTagline={venueTagline}
           venueLogo={venueLogo}
           venueCover={venueCover}
           tableNumber={tableNumber}
-        />
+        >
+          <LanguageSwitch className="mt-3" />
+        </GuestBrand>
         <GuestWifiCard
           className="mx-4 mt-1"
           wifiName={wifiName}
           wifiPassword={wifiPassword}
         />
         <div className="flex flex-1 flex-col justify-center px-5">
-          <h2 className="text-3xl">Masaya katıl</h2>
+          <h2 className="text-3xl">{t("joinTitle")}</h2>
           <p className="mt-2 text-[var(--muted)]">
-            Adını yazıp katılınca masa dolu olur. Sadece QR’yi açmak veya
-            sayfayı yenilemek hesabı açmaz.
+            {t("joinBody")}
           </p>
           <form
             className="mt-8 space-y-4"
@@ -1054,13 +1088,13 @@ export function GuestApp({
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Adın (ör. Emirhan)"
+              placeholder={t("namePlaceholder")}
               maxLength={40}
               enterKeyHint="done"
             />
             {nameError ? <p className="text-sm text-red-700">{nameError}</p> : null}
             <Button type="submit" className="w-full" size="lg" disabled={busy}>
-              {busy ? "Kaydediliyor…" : "Adımla katıl"}
+              {busy ? t("saving") : t("joinNamed")}
             </Button>
           </form>
           <button
@@ -1074,16 +1108,14 @@ export function GuestApp({
                 const token = await sitDown();
                 setBusy(false);
                 if (!token) {
-                  setNameError(
-                    "Hesap kapatıldı. Evden tekrar sipariş verilemez.",
-                  );
+                  setNameError(t("sessionClosed"));
                   return;
                 }
                 setNamed(true);
               })();
             }}
           >
-            İsimsiz devam et
+            {t("continueAnon")}
           </button>
         </div>
       </div>
@@ -1091,18 +1123,18 @@ export function GuestApp({
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
+    <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col pb-[env(safe-area-inset-bottom)]">
       {configuringItem ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-3 sm:items-center">
           <Card className="max-h-[85dvh] w-full max-w-lg overflow-y-auto p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="page-kicker">Ürünü hazırla</p>
+                <p className="page-kicker">{t("prepareItem")}</p>
                 <h2 className="font-serif text-2xl">{configuringItem.name}</h2>
                 <NutritionLabels item={configuringItem} />
                 {configuringItem.calories != null ? (
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    {configuringItem.calories} kcal / porsiyon
+                    {t("kcalPortion", { n: configuringItem.calories })}
                   </p>
                 ) : null}
               </div>
@@ -1111,7 +1143,7 @@ export function GuestApp({
                 variant="ghost"
                 onClick={() => setConfiguringItem(null)}
               >
-                Kapat
+                {t("close")}
               </Button>
             </div>
             <div className="mt-5 space-y-5">
@@ -1124,8 +1156,7 @@ export function GuestApp({
                     <legend className="font-medium">
                       {group.name}
                       <span className="ml-2 text-xs font-normal text-[var(--muted)]">
-                        {minimum > 0 ? "Zorunlu" : "İsteğe bağlı"} · en fazla{" "}
-                        {group.maxSelections}
+                        {minimum > 0 ? t("required") : t("optional")} · {t("maxN", { n: group.maxSelections })}
                       </span>
                     </legend>
                     <div className="mt-2 space-y-2">
@@ -1169,7 +1200,7 @@ export function GuestApp({
                 await addToCart(item.id, selectedOptionIds);
               }}
             >
-              Sepete ekle ·{" "}
+              {t("addToCart")} ·{" "}
               {formatTRY(
                 configuringItem.price +
                   configuringItem.optionGroups
@@ -1196,11 +1227,12 @@ export function GuestApp({
         >
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-xs text-[var(--muted)]">
-              {bill?.guests.length ?? 1} kişi masada
+              {t("guestsAtTable", { n: bill?.guests.length ?? 1 })}
             </p>
+            <LanguageSwitch />
           </div>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="text-sm text-[var(--muted)]">Merhaba, {shownName}</p>
+            <p className="text-sm text-[var(--muted)]">{t("hello", { name: shownName })}</p>
             <Button
               size="sm"
               variant="outline"
@@ -1208,10 +1240,10 @@ export function GuestApp({
               onClick={() => setWaiterConfirmOpen(true)}
             >
               {calling
-                ? "Çağrılıyor…"
+                ? t("calling")
                 : waiterCooldownSeconds > 0
-                  ? `Tekrar çağır ${waiterCooldownLabel}`
-                  : "Garson çağır"}
+                  ? t("callAgain", { time: waiterCooldownLabel })
+                  : t("callWaiter")}
             </Button>
           </div>
           {!name.trim() ? (
@@ -1225,11 +1257,11 @@ export function GuestApp({
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Adın (isteğe bağlı)"
+                placeholder={t("nameOptional")}
                 maxLength={40}
               />
               <Button type="submit" size="sm" disabled={busy || name.trim().length < 2}>
-                Kaydet
+                {t("save")}
               </Button>
             </form>
           ) : null}
@@ -1237,7 +1269,10 @@ export function GuestApp({
         </GuestBrand>
         ) : (
           <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <p className="pb-2 font-serif text-xl">Oyunlar</p>
+            <div className="flex items-center justify-between gap-2 pb-2">
+              <p className="font-serif text-xl">{t("tabGames")}</p>
+              <LanguageSwitch />
+            </div>
           </div>
         )}
         <div className="px-4 pb-3">
@@ -1280,7 +1315,7 @@ export function GuestApp({
         </div>
         {tab !== "games" && bill?.guests.length ? (
           <p className="mt-2 text-xs text-[var(--muted)]">
-            {bill.guests.map((g) => (g.isMe ? `${g.nickname} (sen)` : g.nickname)).join(" · ")}
+            {bill.guests.map((g) => (g.isMe ? `${g.nickname}${t("youParen")}` : g.nickname)).join(" · ")}
           </p>
         ) : null}
         </div>
@@ -1295,7 +1330,7 @@ export function GuestApp({
             : "bg-red-50 text-red-800"
         }`}
       >
-        {openState.label}
+        {hoursLabel}
       </p>
 
       <GuestWifiCard
@@ -1323,13 +1358,11 @@ export function GuestApp({
             }}
           />
           <p className="text-xs text-[var(--muted)]">
-            Alerjen, alkol, domuz türevi ve kalori bilgisi Tarım ve Orman
-            Bakanlığı toplu tüketim yerleri düzenlemesine göre gösterilir.
-            Cihazı olmayan misafirler garsona sorabilir.
+            {t("allergenLegal")}
           </p>
           {!visibleCategories.length ? (
             <p className="text-sm text-[var(--muted)]">
-              Seçtiğin filtrelere uyan ürün yok. Filtreyi gevşet.
+              {t("noFilterMatch")}
             </p>
           ) : null}
           {visibleCategories.map((category) => (
@@ -1358,7 +1391,7 @@ export function GuestApp({
                           }
                         }}
                       >
-                        {item.soldOut ? "Tükendi" : "Ekle"}
+                        {item.soldOut ? t("soldOut") : t("add")}
                       </Button>
                     }
                   />
@@ -1371,9 +1404,9 @@ export function GuestApp({
 
       {tab === "cart" ? (
         <div className="space-y-4 px-4 py-6">
-          <SectionLogo src={venueLogo} label="Sepet" />
+          <SectionLogo src={venueLogo} label={t("tabCart")} />
           {!cart?.items.length ? (
-            <p className="text-[var(--muted)]">Sepetin boş. Menüden ürün ekle.</p>
+            <p className="text-[var(--muted)]">{t("cartEmpty")}</p>
           ) : (
             <>
               {cart.items.map((item) => (
@@ -1401,7 +1434,7 @@ export function GuestApp({
                         ) : null}
                         {!item.available ? (
                           <p className="mt-1 text-xs font-semibold text-red-700">
-                            Bu ürün artık mevcut değil
+                            {t("unavailable")}
                           </p>
                         ) : null}
                       </div>
@@ -1429,13 +1462,13 @@ export function GuestApp({
                     className="mt-3"
                     value={noteDrafts[item.id] ?? item.note ?? ""}
                     maxLength={140}
-                    placeholder="Not: sütsüz, az şeker, alerji…"
+                    placeholder={t("notePlaceholder")}
                     onChange={(e) => setNoteDraft(item.id, e.target.value)}
                   />
                 </Card>
               ))}
               <div className="flex items-center justify-between pt-2">
-                <p className="text-[var(--muted)]">Senin sepetin</p>
+                <p className="text-[var(--muted)]">{t("cartYours")}</p>
                 <p className="text-lg font-medium">{formatTRY(cartTotal)}</p>
               </div>
               <Button
@@ -1448,16 +1481,16 @@ export function GuestApp({
                 }
                 onClick={() => void submitOrder()}
               >
-                Sipariş ver
+                {t("placeOrder")}
               </Button>
             </>
           )}
 
           {orders?.orders.length ? (
             <div className="pt-4">
-              <h2 className="text-xl">Gönderdiğin siparişler</h2>
+              <h2 className="text-xl">{t("sentOrders")}</h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
-                Mutfak henüz hazırlamaya başlamadıysa iptal edebilirsin.
+                {t("cancelIfPending")}
               </p>
               <div className="mt-3 space-y-3">
                 {orders.orders.map((order) => (
@@ -1465,7 +1498,7 @@ export function GuestApp({
                     <div className="flex items-center justify-between">
                       <OrderBadge status={order.status} />
                       <p className="text-xs text-[var(--muted)]">
-                        {new Date(order.createdAt).toLocaleTimeString("tr-TR", {
+                        {new Date(order.createdAt).toLocaleTimeString(dateLocale, {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -1490,13 +1523,13 @@ export function GuestApp({
                         disabled={busy}
                         onClick={() => setCancelOrderId(order.id)}
                       >
-                        Siparişi iptal et
+                        {t("cancelOrder")}
                       </Button>
                     ) : order.status === "CANCELLED" ? (
-                      <p className="mt-2 text-xs text-red-700">İptal edildi</p>
+                      <p className="mt-2 text-xs text-red-700">{t("cancelled")}</p>
                     ) : (
                       <p className="mt-2 text-xs text-[var(--muted)]">
-                        Mutfak aldı. İptal için garsonu çağır.
+                        {t("kitchenHasIt")}
                       </p>
                     )}
                   </Card>
@@ -1509,15 +1542,15 @@ export function GuestApp({
 
       {tab === "bill" ? (
         <div className="space-y-4 px-4 py-6">
-          <SectionLogo src={venueLogo} label="Hesap" />
+          <SectionLogo src={venueLogo} label={t("tabBill")} />
           <p className="text-sm text-[var(--muted)]">
-            Masadaki herkesin gönderdiği siparişler. Sepette bekleyenler burada yok.
+            {t("billIntro")}
           </p>
           {orders?.orders.some((order) => order.status === "PENDING") ? (
             <Card className="border-amber-200 bg-amber-50/80 p-4">
-              <p className="text-sm font-medium">Bekleyen siparişin var.</p>
+              <p className="text-sm font-medium">{t("pendingOrder")}</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                Mutfak başlamadıysa Sepet sekmesinden iptal edebilirsin.
+                {t("pendingHint")}
               </p>
               <Button
                 className="mt-3"
@@ -1525,7 +1558,7 @@ export function GuestApp({
                 variant="outline"
                 onClick={() => setTab("cart")}
               >
-                Siparişlerime git
+                {t("goToOrders")}
               </Button>
             </Card>
           ) : null}
@@ -1537,13 +1570,13 @@ export function GuestApp({
                 <div className="flex items-center justify-between">
                   <p className="font-medium">
                     {guest.nickname}
-                    {guest.id === guestId ? " (sen)" : ""}
+                    {guest.id === guestId ? t("youParen") : ""}
                   </p>
                   <p className="text-sm">{formatTRY(sub)}</p>
                 </div>
                 <ul className="mt-2 space-y-1 text-sm text-[var(--muted)]">
                   {lines.length === 0 ? (
-                    <li>Henüz sipariş yok</li>
+                    <li>{t("noOrdersYet")}</li>
                   ) : (
                     lines.map((line) => (
                       <li key={line.id} className="flex justify-between gap-2">
@@ -1563,7 +1596,7 @@ export function GuestApp({
             );
           })}
           <div className="flex items-center justify-between border-t border-[var(--line)] pt-4">
-            <p>Masa hesabı</p>
+            <p>{t("tableBill")}</p>
             <p className="text-xl font-medium">{formatTRY(bill?.total ?? 0)}</p>
           </div>
           <Button
@@ -1573,22 +1606,21 @@ export function GuestApp({
             onClick={() => setBillConfirmOpen(true)}
           >
             {calling
-              ? "İletiliyor…"
+              ? t("requesting")
               : billCooldownSeconds > 0
-                ? "Hesap istendi"
-                : "Hesabı istiyorum"}
+                ? t("billRequested")
+                : t("wantBill")}
           </Button>
           <Card className="space-y-3 p-4">
             <div>
-              <p className="font-medium">Dijital adisyon</p>
+              <p className="font-medium">{t("digitalReceipt")}</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
-                Hesap kapandığında kesinleşen masa adisyonunu e-posta ile al.
-                Mali fiş veya fatura yerine geçmez.
+                {t("digitalReceiptHint")}
               </p>
             </div>
             <Input
               type="email"
-              placeholder="E-posta adresin"
+              placeholder={t("emailPlaceholder")}
               value={receiptEmail}
               onChange={(event) => setReceiptEmail(event.target.value)}
             />
@@ -1598,52 +1630,40 @@ export function GuestApp({
               disabled={receiptBusy || !receiptEmail}
               onClick={() => void emailReceipt()}
             >
-              {receiptBusy ? "Kaydediliyor…" : "Hesap kapanınca gönder"}
+              {receiptBusy ? t("saving") : t("sendWhenClosed")}
             </Button>
           </Card>
         </div>
       ) : null}
 
       <Popup
-        title="Siparişi iptal etmek istiyor musun?"
-        message={
-          cancelOrderId
-            ? "Mutfak henüz başlamadıysa sipariş düşer ve stok geri gelir. Onaylarsan mutfak da haberdar olur."
-            : null
-        }
-        confirmLabel="Evet, iptal et"
-        cancelLabel="Vazgeç"
+        title={t("cancelTitle")}
+        message={cancelOrderId ? t("cancelBody") : null}
+        confirmLabel={t("yesCancel")}
+        cancelLabel={t("dismiss")}
         busy={busy}
         onConfirm={() => void cancelOwnOrder()}
         onClose={() => setCancelOrderId(null)}
       />
       <Popup
-        title={alertPopup?.title ?? "Bildirim"}
+        title={alertPopup?.title ?? t("notification")}
         message={alertPopup?.body ?? null}
         onClose={() => setAlertPopup(null)}
       />
       <Popup
-        title="Garsonu çağırmak istiyor musun?"
-        message={
-          waiterConfirmOpen
-            ? "Bu çağrı doğrudan garson ekibine iletilecek. Yanlışlıkla bastıysan Vazgeç'i seçebilirsin. Onaylarsan 10 dakika boyunca tekrar çağrı gönderemezsin."
-            : null
-        }
-        confirmLabel="Evet, garsonu çağır"
-        cancelLabel="Vazgeç"
+        title={t("waiterTitle")}
+        message={waiterConfirmOpen ? t("waiterBody") : null}
+        confirmLabel={t("yesWaiter")}
+        cancelLabel={t("dismiss")}
         busy={calling}
         onConfirm={() => void callWaiter()}
         onClose={() => setWaiterConfirmOpen(false)}
       />
       <Popup
-        title="Hesabı istiyor musun?"
-        message={
-          billConfirmOpen
-            ? "Garson hesabınla masaya gelir. Bu, garson çağırmaktan ayrı bir istektir."
-            : null
-        }
-        confirmLabel="Evet, hesabı istiyorum"
-        cancelLabel="Vazgeç"
+        title={t("billAskTitle")}
+        message={billConfirmOpen ? t("billAskBody") : null}
+        confirmLabel={t("yesBill")}
+        cancelLabel={t("dismiss")}
         busy={calling}
         onConfirm={() => void requestBill()}
         onClose={() => setBillConfirmOpen(false)}
@@ -1668,9 +1688,9 @@ export function GuestApp({
 
       {tab === "alerts" ? (
         <div className="space-y-3 px-4 py-6">
-          <SectionLogo src={venueLogo} label="Bildirim" />
+          <SectionLogo src={venueLogo} label={t("tabAlerts")} />
           {!notes?.notifications.length ? (
-            <p className="text-[var(--muted)]">Henüz bildirimin yok.</p>
+            <p className="text-[var(--muted)]">{t("noAlerts")}</p>
           ) : (
             notes.notifications.map((item) => (
               <Card
@@ -1680,7 +1700,7 @@ export function GuestApp({
                 <p className="font-medium">{item.title}</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">{item.body}</p>
                 <p className="mt-2 text-xs text-[var(--muted)]">
-                  {new Date(item.createdAt).toLocaleTimeString("tr-TR", {
+                  {new Date(item.createdAt).toLocaleTimeString(dateLocale, {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

@@ -60,7 +60,13 @@ export default async function TablePage({
       wifiPassword={table.venue.wifiPassword}
       tableNumber={table.number}
       staffPreview={staffPreview}
-      openState={{ isOpen: openState.isOpen, label: openState.label }}
+      openState={{
+        isOpen: openState.isOpen,
+        hoursUnset: !table.venue.openingHours,
+        closedToday: Boolean(openState.today?.closed),
+        closesAt: openState.today?.close ?? null,
+        opensAt: openState.today?.open ?? null,
+      }}
       categories={categories.map((category) => ({
         id: category.id,
         name: category.name,
