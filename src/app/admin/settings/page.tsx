@@ -3,6 +3,7 @@ import { getStaffUser } from "@/lib/tenant";
 import { SettingsForm } from "@/app/admin/settings/settings-form";
 import { LoyaltySettings } from "@/app/admin/settings/loyalty-settings";
 import { VenuesManager } from "@/app/admin/settings/venues-manager";
+import { ReportSettings } from "@/app/admin/settings/report-settings";
 import { PageIntro } from "@/components/page-intro";
 
 export default async function AdminSettingsPage() {
@@ -11,6 +12,13 @@ export default async function AdminSettingsPage() {
   const venue = staff.venueId
     ? await prisma.venue.findUnique({ where: { id: staff.venueId } })
     : null;
+  const reportFallback = venue
+    ? await prisma.user.findMany({
+        where: { venueId: venue.id, role: { in: ["OWNER", "ADMIN"] } },
+        select: { email: true },
+      })
+    : [];
+  const fallbackEmails = reportFallback.map((member) => member.email);
 
   if (staff.isPlatform) {
     return (
@@ -36,6 +44,11 @@ export default async function AdminSettingsPage() {
               longitude={venue.longitude}
             />
             <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
+            <ReportSettings
+              reportEmail={venue.reportEmail}
+              reportMail={venue.reportMail}
+              fallbackEmails={fallbackEmails}
+            />
           </div>
         ) : null}
       </div>
@@ -64,6 +77,11 @@ export default async function AdminSettingsPage() {
           longitude={venue.longitude}
         />
         <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
+        <ReportSettings
+          reportEmail={venue.reportEmail}
+          reportMail={venue.reportMail}
+          fallbackEmails={fallbackEmails}
+        />
         </>
       ) : (
         <p className="mt-8 text-[var(--muted)]">Mekan bulunamadı.</p>

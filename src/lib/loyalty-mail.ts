@@ -38,6 +38,7 @@ export async function notifyLoyaltyReward(customerId: string, venueId: string) {
       venueName: loyalty.venue.name,
       itemName: loyalty.item.name,
       available: loyalty.available,
+      threshold: loyalty.threshold,
     });
     if (!sent) throw new Error("MAIL_SKIPPED");
     return true;

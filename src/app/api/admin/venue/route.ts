@@ -47,6 +47,11 @@ export async function PATCH(request: Request) {
       latitude: z.number().min(-90).max(90).nullable().optional(),
       longitude: z.number().min(-180).max(180).nullable().optional(),
       loyaltyItemId: z.string().trim().nullable().optional(),
+      reportEmail: z
+        .union([z.string().trim().email(), z.literal("")])
+        .nullable()
+        .optional(),
+      reportMail: z.boolean().optional(),
     })
     .safeParse(await request.json());
 
@@ -70,6 +75,8 @@ export async function PATCH(request: Request) {
     latitude?: number | null;
     longitude?: number | null;
     loyaltyItemId?: string | null;
+    reportEmail?: string | null;
+    reportMail?: boolean;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -129,6 +136,12 @@ export async function PATCH(request: Request) {
     } else {
       data.loyaltyItemId = null;
     }
+  }
+  if (body.data.reportEmail !== undefined) {
+    data.reportEmail = body.data.reportEmail?.trim() || null;
+  }
+  if (body.data.reportMail !== undefined) {
+    data.reportMail = body.data.reportMail;
   }
 
   try {

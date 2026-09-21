@@ -1,0 +1,12 @@
+[Unit]
+Description=Send MasaQR weekly venue report every Monday
+
+[Timer]
+# 06:00 UTC = 09:00 Europe/Istanbul, pazartesi sabahi.
+OnCalendar=Mon *-*-* 06:00:00 UTC
+Persistent=false
+RandomizedDelaySec=5m
+Unit=masaqr-week-summary.service
+
+[Install]
+WantedBy=timers.target

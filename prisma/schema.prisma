@@ -93,6 +93,8 @@ model Venue {
   longitude     Float?
   loyaltyItemId String?
   loyaltyItem   MenuItem? @relation("VenueLoyaltyItem", fields: [loyaltyItemId], references: [id], onDelete: SetNull)
+  reportEmail   String?
+  reportMail    Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

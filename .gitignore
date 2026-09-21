@@ -58,3 +58,6 @@ next-env.d.ts
 # uploaded venue/menu photos
 /public/uploads/**
 !/public/uploads/.gitkeep
+
+# scripts/mail-preview.ts çıktısı
+/mail-preview

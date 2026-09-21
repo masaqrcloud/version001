@@ -1,4 +1,13 @@
-import { brandedEmail, escapeHtml, sendTransactionalEmail } from "@/lib/mail";
+import { sendTransactionalEmail } from "@/lib/mail";
+import {
+  escapeHtml,
+  mailButton,
+  mailCallout,
+  mailDocument,
+  mailLineTable,
+  mailMoney as money,
+  mailParagraph,
+} from "@/lib/mail-ui";
 import { signedGuestCookie } from "@/lib/guest";
 import { tableLabel } from "@/lib/table-label";
 
@@ -25,15 +34,6 @@ export function sendDigitalReceiptMail({
     (sum, line) => sum + line.price * line.quantity,
     0,
   );
-  const rows = lines
-    .map(
-      (line) => `
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #ead9ca">${line.quantity}× ${escapeHtml(line.name)}</td>
-          <td style="padding:8px 0;border-bottom:1px solid #ead9ca;text-align:right">${(line.price * line.quantity).toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</td>
-        </tr>`,
-    )
-    .join("");
   const baseUrl = (
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.AUTH_URL ??
@@ -43,17 +43,33 @@ export function sendDigitalReceiptMail({
     signedGuestCookie(guestToken),
   )}`;
 
+  const content = [
+    mailParagraph(
+      `<strong>${escapeHtml(venueName)}</strong> · ${escapeHtml(tableLabel(tableNumber))}`,
+    ),
+    mailLineTable(
+      lines.map((line) => ({
+        label: `${line.quantity}× ${line.name}`,
+        amount: money(line.price * line.quantity),
+      })),
+      { label: "Toplam", amount: money(total) },
+    ),
+    mailButton("Deneyimini değerlendir", feedbackUrl),
+    mailCallout(
+      "neutral",
+      "Bu belge bilgilendirme amaçlı dijital adisyondur; mali fiş veya fatura yerine geçmez.",
+    ),
+  ].join("");
+
   return sendTransactionalEmail({
     to: email,
     subject: `${venueName} dijital adisyonun`,
-    text: `${venueName}, ${tableLabel(tableNumber)}, toplam ${total.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}`,
-    html: brandedEmail(
-      "Dijital adisyonun",
-      `<p><strong>${escapeHtml(venueName)}</strong> · ${escapeHtml(tableLabel(tableNumber))}</p>
-       <table style="width:100%;border-collapse:collapse">${rows}</table>
-       <p style="font-size:20px;text-align:right"><strong>Toplam: ${total.toLocaleString("tr-TR", { style: "currency", currency: "TRY" })}</strong></p>
-       <p style="text-align:center;margin:24px 0"><a href="${feedbackUrl}" style="display:inline-block;background:#e54b32;color:#fff;text-decoration:none;padding:12px 18px;border-radius:12px;font-weight:600">Deneyimini değerlendir</a></p>
-       <p style="color:#756b62;font-size:12px">Bu belge bilgilendirme amaçlı dijital adisyondur; mali fiş veya fatura yerine geçmez.</p>`,
-    ),
+    text: `${venueName}, ${tableLabel(tableNumber)}, toplam ${money(total)}`,
+    html: mailDocument({
+      title: "Dijital adisyonun",
+      kicker: venueName,
+      preheader: `Toplam ${money(total)} · ${lines.length} kalem`,
+      content,
+    }),
   });
 }
