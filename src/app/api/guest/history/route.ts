@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCustomerFromCookie, isGoogleAuthConfigured } from "@/lib/customer";
+import {
+  getCustomerFromCookie,
+  isGoogleAuthConfigured,
+  refreshCustomerCookie,
+} from "@/lib/customer";
 import { prisma } from "@/lib/db";
 
 export async function GET() {
@@ -95,10 +99,13 @@ export async function GET() {
     visits: venue.visits.sort((a, b) => b.openedAt.localeCompare(a.openedAt)),
   }));
 
-  return NextResponse.json({
-    linked: true,
-    googleAuth,
-    customer: { name: customer.name, email: customer.email },
-    venues: grouped,
-  });
+  return refreshCustomerCookie(
+    NextResponse.json({
+      linked: true,
+      googleAuth,
+      customer: { name: customer.name, email: customer.email },
+      venues: grouped,
+    }),
+    customer.id,
+  );
 }

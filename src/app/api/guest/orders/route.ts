@@ -8,6 +8,7 @@ import { z } from "zod";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
 import { customerVenueLoyalty } from "@/lib/loyalty";
+import { notifyLoyaltyReward } from "@/lib/loyalty-mail";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -305,6 +306,11 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("Bildirim yazılamadı", error);
+  }
+  if (guest.customerId) {
+    void notifyLoyaltyReward(guest.customerId, venueId).catch((error) => {
+      console.error("Müdavim e-postası gönderilemedi", error);
+    });
   }
   void pushToVenueRoles(
     guest.tableSession.table.venueId,

@@ -20,6 +20,7 @@ import {
   joinTable,
   signedGuestCookie,
 } from "@/lib/guest";
+import { sendCustomerWelcomeMail } from "@/lib/customer-mail";
 
 function fail(request: Request, qr: string | null, reason: string) {
   const path = qr ? `/t/${qr}?google=${reason}` : `/login?google=${reason}`;
@@ -79,11 +80,17 @@ export async function GET(request: Request) {
     return fail(request, qr, "error");
   }
 
-  const customer = await upsertCustomerFromGoogle({
+  const { customer, created } = await upsertCustomerFromGoogle({
     sub: profile.sub,
     email: profile.email,
     name: profile.name,
   });
+
+  if (created) {
+    void sendCustomerWelcomeMail(customer.id).catch((error) => {
+      console.error("Hoş geldin e-postası gönderilemedi", error);
+    });
+  }
 
   if (!state.qr) {
     const response = NextResponse.redirect(publicUrl("/hesabim", request));

@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { GoogleJoinButton } from "@/components/google-join-button";
-import { isGoogleAuthConfigured } from "@/lib/customer";
+import { getCustomerFromCookie, isGoogleAuthConfigured } from "@/lib/customer";
 
 export default async function LoginPage({
   searchParams,
@@ -12,6 +13,11 @@ export default async function LoginPage({
 }) {
   const query = await searchParams;
   const googleAuth = isGoogleAuthConfigured();
+
+  if (query.google !== "error" && query.google !== "off") {
+    const customer = await getCustomerFromCookie();
+    if (customer) redirect("/hesabim");
+  }
 
   return (
     <AppShell

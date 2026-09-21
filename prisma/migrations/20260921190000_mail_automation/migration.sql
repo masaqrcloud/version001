@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Customer" ADD COLUMN "welcomeMailAt" DATETIME;
+ALTER TABLE "Customer" ADD COLUMN "mailOptOut" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "VenueMember" ADD COLUMN "loyaltyMailed" INTEGER NOT NULL DEFAULT 0;

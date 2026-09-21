@@ -1,5 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 export const CUSTOMER_COOKIE = "customer_session";
@@ -95,6 +96,32 @@ export function verifySignedCustomerId(value: string | undefined) {
   return verifySigned(value);
 }
 
+/**
+ * Kaydırmalı oturum: müşteri her istekte çerezi tazeler, böylece aktif
+ * kullanıcıdan tekrar Google girişi istenmez.
+ */
+export function refreshCustomerCookie<T extends NextResponse>(
+  response: T,
+  customerId: string,
+): T {
+  response.cookies.set(
+    CUSTOMER_COOKIE,
+    signedCustomerCookie(customerId),
+    customerCookieOptions(),
+  );
+  return response;
+}
+
+export function mailOptOutToken(customerId: string) {
+  return sign(`mail:${customerId}`);
+}
+
+export function readMailOptOutToken(token: string | undefined) {
+  const value = verifySigned(token);
+  if (!value?.startsWith("mail:")) return null;
+  return value.slice("mail:".length) || null;
+}
+
 export async function getCustomerFromCookie() {
   const store = await cookies();
   const customerId = verifySignedCustomerId(store.get(CUSTOMER_COOKIE)?.value);
@@ -122,7 +149,7 @@ export async function upsertCustomerFromGoogle(profile: GoogleProfile) {
     },
   });
   if (existing) {
-    return prisma.customer.update({
+    const customer = await prisma.customer.update({
       where: { id: existing.id },
       data: {
         googleSub: profile.sub,
@@ -130,14 +157,16 @@ export async function upsertCustomerFromGoogle(profile: GoogleProfile) {
         name: existing.name?.trim() || name,
       },
     });
+    return { customer, created: false };
   }
-  return prisma.customer.create({
+  const customer = await prisma.customer.create({
     data: {
       email,
       name,
       googleSub: profile.sub,
     },
   });
+  return { customer, created: true };
 }
 
 export async function attachCustomerToGuest<

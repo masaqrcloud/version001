@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   google.searchParams.set("response_type", "code");
   google.searchParams.set("scope", "openid email profile");
   google.searchParams.set("state", state);
-  google.searchParams.set("prompt", "select_account");
+  // prompt verilmez: Google'da tek oturum varsa hesap seçtirmeden geçer.
 
   const response = NextResponse.redirect(google);
   response.cookies.set(

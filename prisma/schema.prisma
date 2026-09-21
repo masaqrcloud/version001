@@ -176,14 +176,16 @@ model TableSession {
 }
 
 model Customer {
-  id        String        @id @default(cuid())
-  email     String        @unique
-  name      String?
-  googleSub String?       @unique
-  createdAt DateTime      @default(now())
-  deletedAt DateTime?
-  guests    Guest[]
-  members   VenueMember[]
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  googleSub     String?       @unique
+  welcomeMailAt DateTime?
+  mailOptOut    Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  deletedAt     DateTime?
+  guests        Guest[]
+  members       VenueMember[]
 
   @@index([deletedAt])
 }
@@ -197,6 +199,7 @@ model VenueMember {
   joinedAt        DateTime  @default(now())
   unlinkedAt      DateTime?
   loyaltyRedeemed Int       @default(0)
+  loyaltyMailed   Int       @default(0)
 
   @@unique([venueId, customerId])
   @@index([venueId, unlinkedAt])

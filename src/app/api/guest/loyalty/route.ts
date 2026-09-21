@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getCustomerFromCookie, isGoogleAuthConfigured } from "@/lib/customer";
+import {
+  getCustomerFromCookie,
+  isGoogleAuthConfigured,
+  refreshCustomerCookie,
+} from "@/lib/customer";
 import { findTable } from "@/lib/guest";
 import { customerVenueLoyalty, punchCard } from "@/lib/loyalty";
 import { prisma } from "@/lib/db";
@@ -55,27 +59,30 @@ export async function GET(request: Request) {
       });
     }
     const loyalty = await customerVenueLoyalty(customer.id, table.venue.id);
-    return NextResponse.json({
-      linked: true,
-      googleAuth,
-      venues: [
-        {
-          venueId: table.venue.id,
-          venueName: table.venue.name,
-          logoUrl: table.venue.logoUrl,
-          enabled: Boolean(loyalty.item),
-          item: packItem(locale, loyalty.item),
-          count: loyalty.count,
-          redeemed: loyalty.redeemed,
-          earned: loyalty.earned,
-          available: loyalty.available,
-          rewards: loyalty.available,
-          filled: loyalty.filled,
-          complete: loyalty.complete,
-          threshold: loyalty.threshold,
-        },
-      ],
-    });
+    return refreshCustomerCookie(
+      NextResponse.json({
+        linked: true,
+        googleAuth,
+        venues: [
+          {
+            venueId: table.venue.id,
+            venueName: table.venue.name,
+            logoUrl: table.venue.logoUrl,
+            enabled: Boolean(loyalty.item),
+            item: packItem(locale, loyalty.item),
+            count: loyalty.count,
+            redeemed: loyalty.redeemed,
+            earned: loyalty.earned,
+            available: loyalty.available,
+            rewards: loyalty.available,
+            filled: loyalty.filled,
+            complete: loyalty.complete,
+            threshold: loyalty.threshold,
+          },
+        ],
+      }),
+      customer.id,
+    );
   }
 
   if (!customer) {
@@ -108,5 +115,8 @@ export async function GET(request: Request) {
     });
   }
 
-  return NextResponse.json({ linked: true, googleAuth, venues });
+  return refreshCustomerCookie(
+    NextResponse.json({ linked: true, googleAuth, venues }),
+    customer.id,
+  );
 }
