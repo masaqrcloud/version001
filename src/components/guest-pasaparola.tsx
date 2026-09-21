@@ -48,7 +48,7 @@ function clock(ms: number) {
 
 function Mark({ ok }: { ok: boolean }) {
   return ok ? (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ok text-white">
       <svg viewBox="0 0 20 20" className="h-4 w-4" aria-hidden>
         <path
           fill="currentColor"
@@ -57,7 +57,7 @@ function Mark({ ok }: { ok: boolean }) {
       </svg>
     </span>
   ) : (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-bad text-white">
       <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" aria-hidden>
         <path
           fill="currentColor"
@@ -303,8 +303,8 @@ export function GuestPasaparola({
               onClick={() => setMode("RACE")}
               className={`rounded-2xl border p-4 text-left ${
                 mode === "RACE"
-                  ? "border-[var(--ink)] bg-black/5"
-                  : "border-[var(--line)] bg-white"
+                  ? "border-[var(--ink)] bg-soft"
+                  : "border-[var(--line)] bg-surface"
               }`}
             >
               <p className="font-serif text-xl">Hep beraber</p>
@@ -317,8 +317,8 @@ export function GuestPasaparola({
               onClick={() => setMode("CLAIM")}
               className={`rounded-2xl border p-4 text-left ${
                 mode === "CLAIM"
-                  ? "border-[var(--ink)] bg-black/5"
-                  : "border-[var(--line)] bg-white"
+                  ? "border-[var(--ink)] bg-soft"
+                  : "border-[var(--line)] bg-surface"
               }`}
             >
               <p className="font-serif text-xl">Kapışma</p>
@@ -350,10 +350,10 @@ export function GuestPasaparola({
                   key={row.guestId}
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
                     row.left
-                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      ? "bg-soft text-[var(--muted)] line-through"
                       : row.isMe
                         ? "bg-[var(--accent)] text-white"
-                        : "bg-black/5 text-[var(--ink)]"
+                        : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.name} · {row.left ? "çıktı" : row.score}
@@ -409,10 +409,10 @@ export function GuestPasaparola({
                   key={row.guestId}
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
                     row.left
-                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      ? "bg-soft text-[var(--muted)] line-through"
                       : row.isMe
                         ? "bg-[var(--accent)] text-white"
-                        : "bg-black/5 text-[var(--ink)]"
+                        : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.name} · {row.left ? "çıktı" : row.score}
@@ -432,16 +432,16 @@ export function GuestPasaparola({
             <Card
               className={`p-5 text-center transition-colors ${
                 flash === "wrong"
-                  ? "bg-red-50 ring-2 ring-red-500"
+                  ? "bg-bad-soft ring-2 ring-bad"
                   : flash === "ok"
-                    ? "bg-emerald-50 ring-2 ring-emerald-500"
+                    ? "bg-ok-soft ring-2 ring-ok"
                     : ""
               }`}
             >
               <p className="font-serif text-[7rem] leading-none">{current.letter}</p>
               <p className="mt-4 text-sm leading-relaxed">{current.clue}</p>
               {current.claimedBy && data.mode === "CLAIM" ? (
-                <p className="mt-2 text-xs text-amber-800">
+                <p className="mt-2 text-xs text-warn">
                   {current.claimedBy.name} aldı
                 </p>
               ) : null}
@@ -461,7 +461,7 @@ export function GuestPasaparola({
                       : `${current.letter} ile başlayan kelime veya pas`
                   }
                   maxLength={40}
-                  className={flash === "wrong" ? "border-red-500" : undefined}
+                  className={flash === "wrong" ? "border-bad" : undefined}
                   disabled={
                     busy ||
                     (data.mode === "CLAIM" &&
@@ -484,12 +484,12 @@ export function GuestPasaparola({
                 ) : null}
               </form>
               {flash === "ok" ? (
-                <p className="mt-2 text-sm font-semibold text-emerald-800">
+                <p className="mt-2 text-sm font-semibold text-ok">
                   Doğru
                 </p>
               ) : null}
               {flash === "wrong" ? (
-                <p className="mt-2 text-sm font-semibold text-red-700">Yanlış</p>
+                <p className="mt-2 text-sm font-semibold text-bad">Yanlış</p>
               ) : null}
               {flash && flash !== "ok" && flash !== "wrong" ? (
                 <p className="mt-2 text-sm font-semibold text-[var(--accent)]">
@@ -509,7 +509,7 @@ export function GuestPasaparola({
               {data.mode === "CLAIM" ? "Kapışma" : "Hep beraber"}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-1 rounded-full bg-black/5 p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-full bg-soft p-1">
             <button
               type="button"
               className={`rounded-full py-2 text-sm font-medium ${
@@ -539,10 +539,10 @@ export function GuestPasaparola({
                   key={row.guestId}
                   className={`rounded-full px-3 py-1 text-sm font-medium ${
                     row.left
-                      ? "bg-black/5 text-[var(--muted)] line-through"
+                      ? "bg-soft text-[var(--muted)] line-through"
                       : row.isMe
                         ? "bg-[var(--accent)] text-white"
-                        : "bg-black/5 text-[var(--ink)]"
+                        : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.name} · {row.left ? "çıktı" : row.score}
@@ -550,7 +550,7 @@ export function GuestPasaparola({
               ))}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+            <div className="overflow-hidden rounded-2xl border border-[var(--line)] bg-surface">
               {data.letters.map((item, index) => {
                 const answer = data.solutions?.[item.letter] ?? "—";
                 const ok =
@@ -562,14 +562,14 @@ export function GuestPasaparola({
                       index ? "border-t border-[var(--line)]" : ""
                     } ${
                       ok
-                        ? "bg-emerald-50/80"
-                        : "bg-red-50/80"
+                        ? "bg-ok-soft"
+                        : "bg-bad-soft"
                     }`}
                   >
                     <div className="flex items-start gap-2 pt-0.5">
                       <span
                         className={`font-serif text-xl leading-none ${
-                          ok ? "text-emerald-800" : "text-red-800"
+                          ok ? "text-ok" : "text-bad"
                         }`}
                       >
                         {item.letter}
@@ -582,26 +582,26 @@ export function GuestPasaparola({
                       </p>
                       <p
                         className={`mt-1 text-base font-semibold ${
-                          ok ? "text-emerald-900" : "text-red-900"
+                          ok ? "text-ok" : "text-bad"
                         }`}
                       >
                         {answer}
                       </p>
                       {ok && item.claimedBy ? (
-                        <p className="mt-0.5 text-xs font-medium text-emerald-800">
+                        <p className="mt-0.5 text-xs font-medium text-ok">
                           {item.claimedBy.name} bildi
                         </p>
                       ) : null}
                       {!ok && item.wrong && item.mine ? (
-                        <p className="mt-0.5 text-xs text-red-700">
+                        <p className="mt-0.5 text-xs text-bad">
                           Senin: {item.mine}
                         </p>
                       ) : null}
                       {!ok && item.passed ? (
-                        <p className="mt-0.5 text-xs text-red-700">Pas</p>
+                        <p className="mt-0.5 text-xs text-bad">Pas</p>
                       ) : null}
                       {!ok && data.mode === "CLAIM" && !item.claimedBy ? (
-                        <p className="mt-0.5 text-xs text-red-700">
+                        <p className="mt-0.5 text-xs text-bad">
                           Kimse bilemedi
                         </p>
                       ) : null}
@@ -618,8 +618,8 @@ export function GuestPasaparola({
               onClick={() => setMode("RACE")}
               className={`rounded-2xl border p-4 text-left ${
                 mode === "RACE"
-                  ? "border-[var(--ink)] bg-black/5"
-                  : "border-[var(--line)] bg-white"
+                  ? "border-[var(--ink)] bg-soft"
+                  : "border-[var(--line)] bg-surface"
               }`}
             >
               <p className="font-serif text-xl">Hep beraber</p>
@@ -629,8 +629,8 @@ export function GuestPasaparola({
               onClick={() => setMode("CLAIM")}
               className={`rounded-2xl border p-4 text-left ${
                 mode === "CLAIM"
-                  ? "border-[var(--ink)] bg-black/5"
-                  : "border-[var(--line)] bg-white"
+                  ? "border-[var(--ink)] bg-soft"
+                  : "border-[var(--line)] bg-surface"
               }`}
             >
               <p className="font-serif text-xl">Kapışma</p>

@@ -243,8 +243,8 @@ export function SettingsForm({
             Sadece küçük harf ve tire. Türkçe karakterler otomatik çevrilir.
           </p>
         </div>
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
-        {saved ? <p className="text-sm text-emerald-800">Kaydedildi.</p> : null}
+        {error ? <p className="text-sm text-bad">{error}</p> : null}
+        {saved ? <p className="text-sm text-ok">Kaydedildi.</p> : null}
         <Button onClick={() => void save()} disabled={busy}>
           {busy ? "Kaydediliyor…" : "Kaydet"}
         </Button>
@@ -339,7 +339,7 @@ export function SettingsForm({
             }}
           />
           {suggestions.length ? (
-            <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--line)] bg-white py-1 shadow-lg">
+            <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-[var(--line)] bg-surface py-1 shadow-lg">
               {suggestions.map((item) => (
                 <li key={`${item.latitude}-${item.longitude}-${item.address}`}>
                   <button

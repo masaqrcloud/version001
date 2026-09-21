@@ -131,7 +131,7 @@ export function VenuesManager({ canCreate = false }: { canCreate?: boolean }) {
           <Card key={venue.id} className="flex flex-wrap items-center justify-between gap-3 p-5">
             <div className="flex min-w-0 items-center gap-3">
               {venue.logoUrl ? (
-                <div className="photo-box h-12 w-12 rounded-xl border border-[var(--line)] bg-white">
+                <div className="photo-box h-12 w-12 rounded-xl border border-[var(--line)] bg-surface">
                   <img src={venue.logoUrl} alt="" />
                 </div>
               ) : (
@@ -184,9 +184,9 @@ export function VenuesManager({ canCreate = false }: { canCreate?: boolean }) {
               </p>
             ) : null}
           </div>
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="text-sm text-bad">{error}</p> : null}
           {success ? (
-            <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p className="rounded-xl bg-ok-soft px-3 py-2 text-sm text-ok">
               {success}
             </p>
           ) : null}

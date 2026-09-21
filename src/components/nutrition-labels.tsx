@@ -70,10 +70,10 @@ export function NutritionLabels({
               key={tag.key}
               className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                 tag.tone === "warn"
-                  ? "bg-red-100 text-red-800"
+                  ? "bg-bad-soft text-bad"
                   : tag.tone === "meat"
-                    ? "bg-amber-100 text-amber-900"
-                    : "bg-black/5 text-[var(--ink)]"
+                    ? "bg-warn-soft text-warn"
+                    : "bg-soft text-[var(--ink)]"
               }`}
             >
               {tag.text}

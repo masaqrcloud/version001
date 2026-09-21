@@ -37,18 +37,18 @@ function TableGlyph({
     state === "selected"
       ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
       : state === "available"
-        ? "border-emerald-300 bg-emerald-100 text-emerald-900"
+        ? "border-ok bg-ok-soft text-ok"
         : state === "busy"
-          ? "border-red-300 bg-red-100 text-red-900"
-          : "border-black/15 bg-black/[0.04] text-[var(--muted)]";
+          ? "border-bad bg-bad-soft text-bad"
+          : "border-soft-strong bg-soft text-[var(--muted)]";
   const chair =
     state === "selected"
       ? "bg-[var(--accent)]/50"
       : state === "available"
-        ? "bg-emerald-300"
+        ? "bg-ok"
         : state === "busy"
-          ? "bg-red-300"
-          : "bg-black/15";
+          ? "bg-bad"
+          : "bg-soft-strong";
 
   return (
     <div className="relative mx-auto h-16 w-[4.5rem]" aria-hidden="true">
@@ -201,7 +201,7 @@ export function ReservationForm({
         <select
           id="venueId"
           required
-          className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+          className="h-11 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
           value={form.venueId}
           onChange={(event) =>
             setForm((current) => ({
@@ -331,17 +331,17 @@ export function ReservationForm({
           ) : null}
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-800">
+          <span className="rounded-full bg-ok-soft px-2.5 py-1 text-ok">
             Yeşil: uygun
           </span>
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-800">
+          <span className="rounded-full bg-bad-soft px-2.5 py-1 text-bad">
             Kırmızı: bugün dolu veya o tarihte rezerve
           </span>
           <span className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[var(--accent)]">
             Turuncu: senin seçimin
           </span>
         </div>
-        <div className="relative mt-3 overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.95),_rgba(237,226,211,0.75))] p-3 shadow-inner sm:p-5">
+        <div className="relative mt-3 overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-[image:var(--plate)] p-3 shadow-inner sm:p-5">
           <div className="mb-3 flex items-center justify-between border-b border-dashed border-[var(--line)] pb-2 text-xs text-[var(--muted)]">
             <span>Salon girişi</span>
             <span>
@@ -381,10 +381,10 @@ export function ReservationForm({
                       selected
                         ? "z-20 border-[var(--accent)] bg-[var(--accent-soft)]"
                         : selectable
-                          ? "z-10 border-emerald-200 bg-white/90 hover:scale-105 hover:border-emerald-400"
+                          ? "z-10 border-ok bg-surface/90 hover:scale-105 hover:border-ok"
                           : timeReady
-                            ? "z-0 cursor-not-allowed border-red-200 bg-red-50/90"
-                            : "z-0 cursor-not-allowed border-black/10 bg-white/70 opacity-60"
+                            ? "z-0 cursor-not-allowed border-bad bg-bad-soft"
+                            : "z-0 cursor-not-allowed border-soft-strong bg-surface/70 opacity-60"
                     }`}
                     style={{
                       left: `${position.x / 10}%`,
@@ -406,9 +406,9 @@ export function ReservationForm({
                         selected
                           ? "text-[var(--accent)]"
                           : selectable
-                            ? "text-emerald-700"
+                            ? "text-ok"
                             : timeReady
-                              ? "text-red-700"
+                              ? "text-bad"
                               : "text-[var(--muted)]"
                       }`}
                     >
@@ -430,7 +430,7 @@ export function ReservationForm({
               </div>
             </div>
           ) : (
-            <p className="py-10 text-center text-sm text-amber-800">
+            <p className="py-10 text-center text-sm text-warn">
               {tablesBusy
                 ? "Salon hazırlanıyor…"
                 : "Bu mekânda henüz rezervasyon için masa tanımlanmamış."}
@@ -463,7 +463,7 @@ export function ReservationForm({
           setForm((current) => ({ ...current, website: event.target.value }))
         }
       />
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       <Button type="submit" size="lg" className="w-full" disabled={busy}>
         {busy ? "Gönderiliyor…" : "Rezervasyon talebi gönder"}
       </Button>

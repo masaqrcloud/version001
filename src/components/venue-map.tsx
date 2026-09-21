@@ -79,7 +79,7 @@ function GoogleEmbed({
       {address ? (
         <p className="mb-2 text-sm text-[var(--muted)]">{address}</p>
       ) : null}
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-surface">
         <iframe
           key={`${src}`}
           title={label ? `${label} konumu` : "Mekan konumu"}
@@ -94,7 +94,7 @@ function GoogleEmbed({
             href={mapsAppUrl(latitude, longitude, label)}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute bottom-3 right-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow"
+            className="absolute bottom-3 right-3 rounded-full bg-surface/95 px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow"
           >
             Google Haritalar'da aç
           </a>
@@ -227,12 +227,12 @@ export function VenueMap({
       {address ? (
         <p className="mb-2 text-sm text-[var(--muted)]">{address}</p>
       ) : null}
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--line)] bg-surface">
         <div ref={el} className="h-56 w-full sm:h-72" />
         {placed ? (
           <button
             type="button"
-            className="absolute bottom-3 right-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow"
+            className="absolute bottom-3 right-3 rounded-full bg-surface/95 px-3 py-1.5 text-xs font-medium text-[var(--ink)] shadow"
             onClick={() => openInGoogle(lat, lng, label)}
           >
             Google Haritalar'da aç

@@ -26,11 +26,11 @@ export function Badge({
 }
 
 const orderTone: Record<OrderStatus, string> = {
-  PENDING: "bg-amber-100 text-amber-900",
-  PREPARING: "bg-sky-100 text-sky-900",
-  READY: "bg-emerald-100 text-emerald-900",
-  SERVED: "bg-stone-200 text-stone-700",
-  CANCELLED: "bg-red-100 text-red-800",
+  PENDING: "bg-warn-soft text-warn",
+  PREPARING: "bg-info-soft text-info",
+  READY: "bg-ok-soft text-ok",
+  SERVED: "bg-soft-strong text-muted",
+  CANCELLED: "bg-bad-soft text-bad",
 };
 
 export function OrderBadge({ status }: { status: OrderStatus }) {

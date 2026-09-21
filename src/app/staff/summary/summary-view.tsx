@@ -65,7 +65,7 @@ export function SummaryView() {
             className={`rounded-full px-4 py-2 text-sm ${
               days === value
                 ? "bg-[var(--ink)] text-[var(--bg)]"
-                : "bg-black/5"
+                : "bg-soft"
             }`}
             onClick={() => setDays(Number(value))}
           >

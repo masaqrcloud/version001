@@ -43,7 +43,7 @@ export function LoginForm() {
         />
       </div>
       {state.error ? (
-        <p className="text-sm text-red-700">{state.error}</p>
+        <p className="text-sm text-bad">{state.error}</p>
       ) : null}
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
         {pending ? "Kapı açılıyor…" : "Mekânıma gir"}

@@ -69,7 +69,7 @@ export function LoyaltySettings({
       <div>
         <Label>Hediye / sayılacak ürün</Label>
         <select
-          className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm outline-none ring-[var(--accent)] focus:ring-2"
+          className="mt-1 h-11 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm outline-none ring-[var(--accent)] focus:ring-2"
           value={itemId}
           onChange={(event) => {
             setItemId(event.target.value);
@@ -84,9 +84,9 @@ export function LoyaltySettings({
           ))}
         </select>
       </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       {saved ? (
-        <p className="text-sm text-emerald-700">Müdavim ürünü kaydedildi.</p>
+        <p className="text-sm text-ok">Müdavim ürünü kaydedildi.</p>
       ) : null}
       <Button onClick={() => void save()} disabled={busy}>
         {busy ? "Kaydediliyor…" : "Müdavimi kaydet"}

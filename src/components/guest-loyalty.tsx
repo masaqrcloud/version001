@@ -111,7 +111,7 @@ export function GuestLoyalty({ qrToken }: { qrToken?: string }) {
           <Card key={venue.venueId} className="space-y-4 p-5">
             <div className="flex items-center gap-2">
               {venue.logoUrl ? (
-                <div className="photo-box h-8 w-8 rounded-full border border-[var(--line)] bg-white">
+                <div className="photo-box h-8 w-8 rounded-full border border-[var(--line)] bg-surface">
                   <img src={venue.logoUrl} alt="" />
                 </div>
               ) : null}
@@ -123,7 +123,7 @@ export function GuestLoyalty({ qrToken }: { qrToken?: string }) {
               <>
                 <div className="flex items-center gap-3">
                   {venue.item.imageUrl ? (
-                    <div className="photo-box h-12 w-12 rounded-2xl border border-[var(--line)] bg-white">
+                    <div className="photo-box h-12 w-12 rounded-2xl border border-[var(--line)] bg-surface">
                       <img src={venue.item.imageUrl} alt="" />
                     </div>
                   ) : null}

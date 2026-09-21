@@ -323,7 +323,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                 {data.mergedTables.map((table) => (
                   <li
                     key={table.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-red-50 px-3 py-2 text-red-900"
+                    className="flex items-center justify-between gap-2 rounded-xl bg-bad-soft px-3 py-2 text-bad"
                   >
                     <span>{tableLabel(table.number)} birleşik</span>
                     <Button
@@ -339,7 +339,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
               </ul>
             ) : null}
             <select
-              className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
               value={mergeId}
               onChange={(e) => setMergeId(e.target.value)}
             >
@@ -366,7 +366,7 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
               Kişiler ve hesap boş masaya geçer. Bu masa yeşile döner.
             </p>
             <select
-              className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
               value={transferId}
               onChange={(e) => setTransferId(e.target.value)}
             >

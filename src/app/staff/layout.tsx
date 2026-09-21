@@ -18,7 +18,7 @@ export default async function StaffLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/mekan-giris");
   const role = session.user.role;
   const [venue, account] = await Promise.all([
     session.user.venueId
@@ -42,7 +42,7 @@ export default async function StaffLayout({
         venue ? (
           <div className="mt-3 flex items-center gap-3">
             {venue.logoUrl ? (
-              <div className="photo-box h-10 w-10 rounded-2xl border border-[var(--line)] bg-white">
+              <div className="photo-box h-10 w-10 rounded-2xl border border-[var(--line)] bg-surface">
                 <img src={venue.logoUrl} alt="" />
               </div>
             ) : null}

@@ -18,7 +18,7 @@ export default async function WaiterOrderPage({
     "ADMIN",
     "WAITER",
   ]);
-  if (error || !user) redirect("/login");
+  if (error || !user) redirect("/mekan-giris");
 
   const { sessionId } = await params;
   const { orderId } = await searchParams;

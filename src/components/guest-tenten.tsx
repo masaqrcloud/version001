@@ -76,8 +76,8 @@ export function GuestTenTen({
                     onClick={() => void send("rate", { score: n })}
                     className={`rounded-xl border py-2.5 text-sm font-semibold ${
                       picked
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-800"
-                        : "border-[var(--line)] bg-white text-[var(--ink)]"
+                        ? "border-ok bg-ok-soft text-ok"
+                        : "border-[var(--line)] bg-surface text-[var(--ink)]"
                     }`}
                   >
                     {n}

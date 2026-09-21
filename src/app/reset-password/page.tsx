@@ -20,12 +20,12 @@ export default async function ResetPasswordPage({
           {token ? (
             <ResetPasswordForm token={token} />
           ) : (
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-bad">
               Şifre yenileme bağlantısı eksik veya geçersiz.
             </p>
           )}
         </Card>
-        <Link href="/login" className="mt-6 text-sm text-[var(--accent)]">
+        <Link href="/mekan-giris" className="mt-6 text-sm text-[var(--accent)]">
           Giriş ekranına dön
         </Link>
       </div>

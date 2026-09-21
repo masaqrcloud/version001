@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MasaQR Personel",
     short_name: "MasaQR",
     description: "Masa siparişleri, mutfak ve garson bildirimleri",
-    start_url: "/login",
+    start_url: "/mekan-giris",
     display: "standalone",
     background_color: "#f7f1e8",
     theme_color: "#e54b32",

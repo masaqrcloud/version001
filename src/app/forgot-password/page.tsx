@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
         <Card className="mt-8 p-7">
           <ForgotPasswordForm />
         </Card>
-        <Link href="/login" className="mt-6 text-sm text-[var(--accent)]">
+        <Link href="/mekan-giris" className="mt-6 text-sm text-[var(--accent)]">
           Giriş ekranına dön
         </Link>
       </div>

@@ -79,7 +79,7 @@ export function EnableStaffNotifications() {
             : "Bildirimleri aç"}
       </Button>
       {state === "error" ? (
-        <span className="text-xs text-red-700">
+        <span className="text-xs text-bad">
           Bildirim açılamadı; izin ve PWA ayarlarını kontrol edin.
         </span>
       ) : null}

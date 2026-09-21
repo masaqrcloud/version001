@@ -61,7 +61,7 @@ export function GuestRather({
             className={`shrink-0 rounded-full px-3 py-2 text-sm font-medium ${
               tab === id
                 ? "bg-[var(--ink)] text-[var(--bg)]"
-                : "bg-black/5 text-[var(--ink)]"
+                : "bg-soft text-[var(--ink)]"
             }`}
           >
             {label}
@@ -140,7 +140,7 @@ function RatherPlay({
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
                 active
                   ? "bg-[var(--ink)] text-[var(--bg)]"
-                  : "bg-black/5 text-[var(--ink)]"
+                  : "bg-soft text-[var(--ink)]"
               }`}
             >
               {row.label}
@@ -169,10 +169,10 @@ function RatherPlay({
                     onClick={() => void send("vote", { choice: side })}
                     className={`rounded-2xl border p-4 text-left transition-colors ${
                       picked
-                        ? "border-emerald-600 bg-emerald-50"
+                        ? "border-ok bg-ok-soft"
                         : show
-                          ? "border-[var(--line)] bg-white"
-                          : "border-[var(--line)] bg-white hover:border-[var(--ink)]"
+                          ? "border-[var(--line)] bg-surface"
+                          : "border-[var(--line)] bg-surface hover:border-[var(--ink)]"
                     }`}
                   >
                     <p className="font-serif text-xl leading-snug">

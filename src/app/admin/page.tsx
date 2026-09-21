@@ -53,7 +53,7 @@ export default async function AdminHomePage() {
               ) : null}
               <div className="flex items-start gap-4 p-5">
                 {venue.logoUrl ? (
-                  <div className="photo-box h-16 w-16 rounded-2xl border border-[var(--line)] bg-white">
+                  <div className="photo-box h-16 w-16 rounded-2xl border border-[var(--line)] bg-surface">
                     <img src={venue.logoUrl} alt="" />
                   </div>
                 ) : (

@@ -39,7 +39,7 @@ export function AllergenFilter({
   }
 
   return (
-    <details className="rounded-2xl border border-[var(--line)] bg-white p-3">
+    <details className="rounded-2xl border border-[var(--line)] bg-surface p-3">
       <summary className="cursor-pointer text-sm font-medium">
         {t ? t("allergenFilter") : "Alerjen filtresi"}
         {active ? (
@@ -89,7 +89,7 @@ export function AllergenFilter({
           }
           className={`rounded-full border px-3 py-1 text-xs ${
             hideAlcohol
-              ? "border-red-300 bg-red-50 text-red-800"
+              ? "border-bad bg-bad-soft text-bad"
               : "border-[var(--line)] text-[var(--muted)]"
           }`}
         >
@@ -106,7 +106,7 @@ export function AllergenFilter({
           }
           className={`rounded-full border px-3 py-1 text-xs ${
             hidePork
-              ? "border-red-300 bg-red-50 text-red-800"
+              ? "border-bad bg-bad-soft text-bad"
               : "border-[var(--line)] text-[var(--muted)]"
           }`}
         >

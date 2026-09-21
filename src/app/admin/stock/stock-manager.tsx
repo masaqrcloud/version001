@@ -59,10 +59,10 @@ const reasonLabel: Record<Reason, string> = {
 };
 
 const statusCopy: Record<StockStatus, { label: string; className: string }> = {
-  out: { label: "Bitti", className: "bg-red-100 text-red-800" },
-  low: { label: "Az kaldı", className: "bg-amber-100 text-amber-900" },
-  ok: { label: "Yeterli", className: "bg-emerald-100 text-emerald-800" },
-  off: { label: "Takip yok", className: "bg-black/5 text-[var(--muted)]" },
+  out: { label: "Bitti", className: "bg-bad-soft text-bad" },
+  low: { label: "Az kaldı", className: "bg-warn-soft text-warn" },
+  ok: { label: "Yeterli", className: "bg-ok-soft text-ok" },
+  off: { label: "Takip yok", className: "bg-soft text-[var(--muted)]" },
 };
 
 type Panel =
@@ -130,7 +130,7 @@ export function StockManager() {
     return <p className="mt-8 text-sm text-[var(--muted)]">Stoklar yükleniyor…</p>;
   }
   if (error) {
-    return <p className="mt-8 text-sm text-red-700">Stok bilgileri alınamadı.</p>;
+    return <p className="mt-8 text-sm text-bad">Stok bilgileri alınamadı.</p>;
   }
 
   const summary = data!.summary;
@@ -145,7 +145,7 @@ export function StockManager() {
   return (
     <div className="mt-8 space-y-6">
       {message ? (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">
           {message}
         </p>
       ) : null}
@@ -166,8 +166,8 @@ export function StockManager() {
               onClick={() => setFilter(chip.id)}
               className={`rounded-full px-3 py-1.5 text-sm ${
                 filter === chip.id
-                  ? "bg-[var(--ink)] text-white"
-                  : "bg-black/5 text-[var(--muted)]"
+                  ? "bg-[var(--ink)] text-[var(--bg)]"
+                  : "bg-soft text-[var(--muted)]"
               }`}
             >
               {chip.label} {chip.count}
@@ -181,7 +181,7 @@ export function StockManager() {
             onChange={(event) => setQuery(event.target.value)}
           />
           <select
-            className="h-11 rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+            className="h-11 rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
             value={categoryId}
             onChange={(event) => setCategoryId(event.target.value)}
           >
@@ -371,7 +371,7 @@ export function StockManager() {
                     )}
 
                     {panel ? (
-                      <div className="mt-4 rounded-2xl bg-black/[0.03] p-3">
+                      <div className="mt-4 rounded-2xl bg-soft p-3">
                         <Label>
                           {panel.kind === "receive"
                             ? "Gelen adet"
@@ -511,7 +511,7 @@ export function StockManager() {
                   </div>
                   <p
                     className={`font-medium ${
-                      movement.delta < 0 ? "text-red-700" : "text-emerald-800"
+                      movement.delta < 0 ? "text-bad" : "text-ok"
                     }`}
                   >
                     {movement.delta > 0 ? `+${movement.delta}` : movement.delta}
@@ -549,9 +549,9 @@ function SummaryCard({
 }) {
   const color =
     tone === "red"
-      ? "text-red-800"
+      ? "text-bad"
       : tone === "amber"
-        ? "text-amber-900"
+        ? "text-warn"
         : tone === "muted"
           ? "text-[var(--muted)]"
           : "text-[var(--ink)]";

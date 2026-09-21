@@ -76,7 +76,7 @@ export function ReservationsManager({
   return (
     <div className="space-y-4">
       {message ? (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">
           {message}
         </p>
       ) : null}
@@ -99,12 +99,12 @@ export function ReservationsManager({
             <p className="text-sm font-medium">{labels[reservation.status]}</p>
           </div>
           {reservation.note ? (
-            <p className="mt-3 rounded-xl bg-black/[0.03] p-3 text-sm">
+            <p className="mt-3 rounded-xl bg-soft p-3 text-sm">
               {reservation.note}
             </p>
           ) : null}
           {reservation.tableId ? (
-            <p className="mt-3 text-sm font-medium text-emerald-800">
+            <p className="mt-3 text-sm font-medium text-ok">
               Misafirin seçtiği masa:{" "}
               {(() => {
                 const chosen = tables.find(
@@ -117,7 +117,7 @@ export function ReservationsManager({
           {reservation.status === "PENDING" ? (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <select
-                className="h-9 rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+                className="h-9 rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
                 value={selectedTables[reservation.id] ?? ""}
                 onChange={(event) =>
                   setSelectedTables((current) => ({

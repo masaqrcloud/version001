@@ -227,7 +227,7 @@ export function KitchenBoard() {
                 {actionLabel[order.status]}
               </Button>
             ) : (
-              <p className="flex-1 self-center text-sm text-emerald-800">
+              <p className="flex-1 self-center text-sm text-ok">
                 Garson alsın
               </p>
             )}

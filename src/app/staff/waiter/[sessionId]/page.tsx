@@ -9,7 +9,7 @@ export default async function WaiterSessionPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/mekan-giris");
   if (!canAccessWaiter(session.user.role)) {
     redirect(homeForRole(session.user.role));
   }

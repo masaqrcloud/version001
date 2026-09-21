@@ -343,7 +343,7 @@ export function TablesManager({
             {busy ? "Ekleniyor…" : "Masa ekle"}
           </Button>
         </form>
-        {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-bad">{error}</p> : null}
       </Card>
 
       {tables.length === 0 ? (

@@ -23,7 +23,7 @@ function GameNav({
       <Button type="button" size="sm" variant="outline" onClick={onHome}>
         {t("hubBack")}
       </Button>
-      <Button type="button" size="sm" variant="secondary" onClick={onGames}>
+      <Button type="button" size="sm" variant="outline" onClick={onGames}>
         {t("backGames")}
       </Button>
     </div>

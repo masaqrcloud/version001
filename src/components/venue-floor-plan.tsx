@@ -52,9 +52,9 @@ function PeopleIcon() {
 
 function TableShape({ occupied }: { occupied: boolean }) {
   const surface = occupied
-    ? "border-red-300 bg-red-100 text-red-900 shadow-red-200/70"
-    : "border-emerald-300 bg-emerald-100 text-emerald-900 shadow-emerald-200/70";
-  const chair = occupied ? "bg-red-300" : "bg-emerald-300";
+    ? "border-bad bg-bad-soft text-bad shadow-red-200/70"
+    : "border-ok bg-ok-soft text-ok shadow-emerald-200/70";
+  const chair = occupied ? "bg-bad" : "bg-ok";
 
   return (
     <div className="relative mx-auto h-28 w-32" aria-hidden="true">
@@ -87,8 +87,8 @@ function FloorCard({ table }: { table: FloorTable }) {
     <Card
       className={`relative overflow-hidden p-3 shadow-lg transition ${
         taken
-          ? "border-red-200 bg-red-50/95"
-          : "border-emerald-200 bg-emerald-50/95"
+          ? "border-bad bg-bad-soft"
+          : "border-ok bg-ok-soft"
       }`}
     >
       {table.billRequestedAt ? (
@@ -100,11 +100,11 @@ function FloorCard({ table }: { table: FloorTable }) {
           Garson çağrısı
         </span>
       ) : table.isMerged ? (
-        <span className="absolute right-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[9px] font-semibold text-white">
+        <span className="absolute right-2 top-2 z-10 rounded-full bg-bad px-2 py-1 text-[9px] font-semibold text-white">
           Birleşik {table.mergedLabel}
         </span>
       ) : table.reserved && !table.occupied ? (
-        <span className="absolute right-2 top-2 z-10 rounded-full bg-red-700 px-2 py-1 text-[9px] font-semibold text-white">
+        <span className="absolute right-2 top-2 z-10 rounded-full bg-bad px-2 py-1 text-[9px] font-semibold text-white">
           Rezerve
         </span>
       ) : null}
@@ -116,7 +116,7 @@ function FloorCard({ table }: { table: FloorTable }) {
           <p className="font-serif text-xl">{tableLabel(table.number)}</p>
           <p
             className={`text-xs font-medium ${
-              taken ? "text-red-700" : "text-emerald-700"
+              taken ? "text-bad" : "text-ok"
             }`}
           >
             {table.occupied ? "Dolu" : table.reserved ? "Rezerve" : "Boş"}
@@ -260,13 +260,13 @@ export function VenueFloorPlan({
         <div className="flex flex-wrap items-center gap-2">
           {data ? (
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-emerald-800">
+              <span className="rounded-full bg-ok-soft px-3 py-1.5 text-ok">
                 {data.summary.available} boş
               </span>
-          <span className="rounded-full bg-red-100 px-3 py-1.5 text-red-800">
+          <span className="rounded-full bg-bad-soft px-3 py-1.5 text-bad">
                 {data.summary.occupied} dolu / rezerve
               </span>
-              <span className="rounded-full bg-black/5 px-3 py-1.5">
+              <span className="rounded-full bg-soft px-3 py-1.5">
                 {data.summary.guests} misafir
               </span>
             </div>
@@ -297,17 +297,17 @@ export function VenueFloorPlan({
       </div>
 
       {saveError ? (
-        <p className="mt-3 text-sm text-red-700">{saveError}</p>
+        <p className="mt-3 text-sm text-bad">{saveError}</p>
       ) : null}
       {saving ? (
         <p className="mt-3 text-xs text-[var(--muted)]">Kaydediliyor…</p>
       ) : null}
 
-      <div className="mt-5 rounded-[2rem] border border-[var(--line)] bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.95),_rgba(237,226,211,0.75))] p-4 shadow-inner sm:p-7">
+      <div className="mt-5 rounded-[2rem] border border-[var(--line)] bg-[image:var(--plate)] p-4 shadow-inner sm:p-7">
         <div className="mb-3 flex items-center justify-between border-b border-dashed border-[var(--line)] pb-3 text-xs text-[var(--muted)]">
           <span>Salon girişi</span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            <span className="h-2 w-2 animate-pulse rounded-full bg-ok" />
             {editing ? "Düzenleme modu" : "Canlı"}
           </span>
         </div>
@@ -318,7 +318,7 @@ export function VenueFloorPlan({
           </p>
         ) : null}
         {error ? (
-          <p className="py-12 text-center text-sm text-red-700">
+          <p className="py-12 text-center text-sm text-bad">
             Masa bilgileri alınamadı.
           </p>
         ) : null}
@@ -335,7 +335,7 @@ export function VenueFloorPlan({
             </p>
           <div
             ref={floorRef}
-            className="relative h-[480px] w-[720px] overflow-hidden rounded-[1.5rem] border border-dashed border-black/10 bg-white/20 sm:h-[680px] sm:w-full"
+            className="relative h-[480px] w-[720px] overflow-hidden rounded-[1.5rem] border border-dashed border-soft-strong bg-surface/20 sm:h-[680px] sm:w-full"
           >
             {data.tables.map((table, index) => {
               const position = tablePosition(

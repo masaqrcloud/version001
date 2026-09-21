@@ -113,7 +113,7 @@ export function GuestHistory({
               <section key={venue.venueId} className="space-y-3">
                 <div className="flex items-center gap-2">
                   {venue.logoUrl ? (
-                    <div className="photo-box h-8 w-8 rounded-full border border-[var(--line)] bg-white">
+                    <div className="photo-box h-8 w-8 rounded-full border border-[var(--line)] bg-surface">
                       <img src={venue.logoUrl} alt="" />
                     </div>
                   ) : null}

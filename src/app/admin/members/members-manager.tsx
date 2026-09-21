@@ -68,7 +68,7 @@ export function MembersManager() {
           görünmez.
         </p>
       </Card>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       {!members.length ? (
         <p className="text-sm text-[var(--muted)]">Henüz mail ile üye yok.</p>
       ) : (

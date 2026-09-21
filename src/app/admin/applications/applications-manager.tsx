@@ -75,7 +75,7 @@ export function ApplicationsManager({
   return (
     <div className="space-y-4">
       {message ? (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="rounded-xl bg-ok-soft px-4 py-3 text-sm text-ok">
           {message}
         </p>
       ) : null}
@@ -121,7 +121,7 @@ export function ApplicationsManager({
             </p>
           </div>
           {application.message ? (
-            <p className="mt-3 rounded-xl bg-black/[0.03] p-3 text-sm leading-relaxed">
+            <p className="mt-3 rounded-xl bg-soft p-3 text-sm leading-relaxed">
               {application.message}
             </p>
           ) : null}

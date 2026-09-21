@@ -10,7 +10,7 @@ export default function AccountPage() {
     <AppShell
       nav={
         <>
-          <ButtonLink href="/login" variant="ghost" size="sm">
+          <ButtonLink href="/mekan-giris" variant="ghost" size="sm">
             Mekân girişi
           </ButtonLink>
           <ButtonLink href="/" variant="secondary" size="sm">

@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Brand } from "@/components/app-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SidebarShell({
   brandHref = "/",
@@ -28,13 +29,16 @@ export function SidebarShell({
     <div className="app-shell-side">
       <div className="sidebar-topbar">
         <Brand href={brandHref} />
-        <button
-          type="button"
-          className="sidebar-toggle"
-          onClick={() => setOpen(true)}
-        >
-          Menü
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            type="button"
+            className="sidebar-toggle"
+            onClick={() => setOpen(true)}
+          >
+            Menü
+          </button>
+        </div>
       </div>
       {open ? (
         <button
@@ -46,7 +50,10 @@ export function SidebarShell({
       ) : null}
       <aside className={`app-sidebar${open ? " is-open" : ""}`}>
         <div className="app-sidebar-brand">
-          <Brand href={brandHref} />
+          <div className="flex items-center justify-between gap-2">
+            <Brand href={brandHref} />
+            <ThemeToggle />
+          </div>
           {brandAside}
         </div>
         {nav ? <nav className="app-sidebar-nav">{nav}</nav> : null}

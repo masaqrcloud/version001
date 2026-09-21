@@ -7,8 +7,8 @@ export default function ApplicationPage() {
   return (
     <AppShell
       nav={
-        <ButtonLink href="/login" variant="secondary" size="sm">
-          Giriş yap
+        <ButtonLink href="/mekan-giris" variant="secondary" size="sm">
+          Mekân girişi
         </ButtonLink>
       }
     >
@@ -28,7 +28,7 @@ export default function ApplicationPage() {
             ].map((benefit) => (
               <p
                 key={benefit}
-                className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3"
+                className="rounded-2xl border border-[var(--line)] bg-surface/60 px-4 py-3"
               >
                 ✓ {benefit}
               </p>

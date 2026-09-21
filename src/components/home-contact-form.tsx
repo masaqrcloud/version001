@@ -140,7 +140,7 @@ export function HomeContactForm() {
           <Label htmlFor="home-venueType">Mekân türü</Label>
           <select
             id="home-venueType"
-            className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm text-[var(--ink)] outline-none ring-[var(--accent)] focus:ring-2"
+            className="h-11 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm text-[var(--ink)] outline-none ring-[var(--accent)] focus:ring-2"
             value={form.venueType}
             onChange={(event) =>
               setForm((current) => ({
@@ -180,7 +180,7 @@ export function HomeContactForm() {
           setForm((current) => ({ ...current, website: event.target.value }))
         }
       />
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       <Button type="submit" className="w-full" size="lg" disabled={busy}>
         {busy ? "Gönderiliyor…" : "Gönder"}
       </Button>

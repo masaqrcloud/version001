@@ -31,7 +31,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       setError(data.error ?? "Şifre yenilenemedi.");
       return;
     }
-    router.push("/login?password=updated");
+    router.push("/mekan-giris?password=updated");
   }
 
   return (
@@ -62,7 +62,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           onChange={(event) => setRepeat(event.target.value)}
         />
       </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={busy || !token}>
         {busy ? "Kaydediliyor…" : "Şifremi yenile"}
       </Button>

@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
         />
       </div>
       {message ? (
-        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="rounded-xl bg-ok-soft px-3 py-2 text-sm text-ok">
           {message}
         </p>
       ) : null}

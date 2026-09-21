@@ -136,7 +136,7 @@ export function GuestMemory({
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                     row.isMe
                       ? "bg-[var(--accent)] text-white"
-                      : "bg-black/5 text-[var(--ink)]"
+                      : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.name}
@@ -182,7 +182,7 @@ export function GuestMemory({
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                     row.isMe
                       ? "bg-[var(--accent)] text-white"
-                      : "bg-black/5 text-[var(--ink)]"
+                      : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.name} · {row.score}
@@ -212,10 +212,10 @@ export function GuestMemory({
                   className={`aspect-square rounded-xl text-lg leading-none transition-colors ${
                     tile.matched
                       ? tile.mine
-                        ? "bg-emerald-100"
-                        : "bg-amber-50"
+                        ? "bg-ok-soft"
+                        : "bg-warn-soft"
                       : open
-                        ? "bg-white ring-1 ring-[var(--ink)]"
+                        ? "bg-surface ring-1 ring-[var(--ink)]"
                         : "bg-[var(--ink)] text-[var(--bg)]"
                   }`}
                 >

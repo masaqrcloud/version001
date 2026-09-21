@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Brand } from "@/components/app-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AppShell({
   brandHref = "/",
@@ -20,7 +21,10 @@ export function AppShell({
             <Brand href={brandHref} />
             {brandAside}
           </div>
-          {nav ? <nav className="app-nav">{nav}</nav> : null}
+          <nav className="app-nav">
+            {nav}
+            <ThemeToggle className="ml-1" />
+          </nav>
         </div>
       </header>
       <main className="app-frame app-main">{children}</main>

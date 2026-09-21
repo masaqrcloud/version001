@@ -322,7 +322,7 @@ function GuestBrand({
       <div className="px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
         <div className="flex items-center gap-3">
           {venueLogo ? (
-            <div className="photo-box h-12 w-12 rounded-full border border-[var(--line)] bg-white">
+            <div className="photo-box h-12 w-12 rounded-full border border-[var(--line)] bg-surface">
               <img src={venueLogo} alt={venueName} />
             </div>
           ) : null}
@@ -436,14 +436,14 @@ function GuestWelcomeHub({
         )}
         <div className="hub-cover-fade pointer-events-none absolute inset-0" />
         <div className="absolute right-4 top-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="rounded-full bg-white/80 px-1 py-1 shadow-sm backdrop-blur-md">
+          <div className="rounded-full bg-surface/80 px-1 py-1 shadow-sm backdrop-blur-md">
             <LanguageSwitch />
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-0 px-5 pb-1">
           <div className="flex items-end gap-3">
             {venueLogo ? (
-              <div className="photo-box h-16 w-16 rounded-[1.35rem] border-2 border-white bg-white shadow-lg">
+              <div className="photo-box h-16 w-16 rounded-[1.35rem] border-2 border-surface bg-surface shadow-lg">
                 <img src={venueLogo} alt={venueName} />
               </div>
             ) : null}
@@ -496,7 +496,7 @@ function GuestWelcomeHub({
             onClick={onLoyalty}
           />
         </div>
-        <p className="mt-6 rounded-2xl bg-black/5 px-4 py-3 text-sm text-[var(--muted)]">
+        <p className="mt-6 rounded-2xl bg-soft px-4 py-3 text-sm text-[var(--muted)]">
           {hoursLabel}
         </p>
         <GuestWifiCard
@@ -519,7 +519,7 @@ function SectionLogo({
   return (
     <div className="mb-3 flex items-center gap-2">
       {src ? (
-        <div className="photo-box h-7 w-7 rounded-full border border-[var(--line)] bg-white">
+        <div className="photo-box h-7 w-7 rounded-full border border-[var(--line)] bg-surface">
           <img src={src} alt="" />
         </div>
       ) : null}
@@ -562,7 +562,7 @@ function MenuDish({
         />
         <NutritionLabels item={item} compact />
         {item.soldOut ? (
-          <p className="mt-1 text-xs font-semibold text-red-700">{t("soldOut")}</p>
+          <p className="mt-1 text-xs font-semibold text-bad">{t("soldOut")}</p>
         ) : null}
       </div>
       {action}
@@ -1339,7 +1339,7 @@ function GuestAppContent({
           tableNumber={tableNumber}
         >
           <LanguageSwitch className="mt-3" />
-          <p className="mt-2 rounded-xl bg-black/5 px-3 py-2 text-sm">
+          <p className="mt-2 rounded-xl bg-soft px-3 py-2 text-sm">
             {t("staffPreview")}
           </p>
         </GuestBrand>
@@ -1395,7 +1395,7 @@ function GuestAppContent({
           </p>
         </div>
         {nameError ? (
-          <p className="mt-2 text-center text-sm text-red-700">{nameError}</p>
+          <p className="mt-2 text-center text-sm text-bad">{nameError}</p>
         ) : null}
         {(sessionStatus?.lines?.length ?? 0) > 0 ? (
         <Card className="mt-6 p-5">
@@ -1478,7 +1478,7 @@ function GuestAppContent({
               maxLength={40}
               enterKeyHint="done"
             />
-            {nameError ? <p className="text-sm text-red-700">{nameError}</p> : null}
+            {nameError ? <p className="text-sm text-bad">{nameError}</p> : null}
             <Button type="submit" className="w-full" size="lg" disabled={busy}>
               {busy ? t("saving") : t("joinNamed")}
             </Button>
@@ -1699,7 +1699,7 @@ function GuestAppContent({
               </Button>
             </form>
           ) : null}
-          {nameError ? <p className="mt-2 text-sm text-red-700">{nameError}</p> : null}
+          {nameError ? <p className="mt-2 text-sm text-bad">{nameError}</p> : null}
         </GuestBrand>
         ) : (
           <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
@@ -1729,7 +1729,7 @@ function GuestAppContent({
         )}
         <div className="px-4 pb-3">
         {area === "menu" ? (
-        <div className="grid grid-cols-4 gap-1 rounded-full bg-black/5 p-1">
+        <div className="grid grid-cols-4 gap-1 rounded-full bg-soft p-1">
           {tabs.map(([key, label]) => (
             <button
               key={key}
@@ -1764,8 +1764,8 @@ function GuestAppContent({
       <p
         className={`mx-4 mt-3 rounded-xl px-3 py-2 text-sm ${
           openState.isOpen
-            ? "bg-emerald-50 text-emerald-800"
-            : "bg-red-50 text-red-800"
+            ? "bg-ok-soft text-ok"
+            : "bg-bad-soft text-bad"
         }`}
       >
         {hoursLabel}
@@ -1918,7 +1918,7 @@ function GuestAppContent({
                           </p>
                         ) : null}
                         {!item.available ? (
-                          <p className="mt-1 text-xs font-semibold text-red-700">
+                          <p className="mt-1 text-xs font-semibold text-bad">
                             {t("unavailable")}
                           </p>
                         ) : null}
@@ -2025,7 +2025,7 @@ function GuestAppContent({
                         {t("cancelOrder")}
                       </Button>
                     ) : order.status === "CANCELLED" ? (
-                      <p className="mt-2 text-xs text-red-700">{t("cancelled")}</p>
+                      <p className="mt-2 text-xs text-bad">{t("cancelled")}</p>
                     ) : (
                       <p className="mt-2 text-xs text-[var(--muted)]">
                         {t("kitchenHasIt")}
@@ -2046,7 +2046,7 @@ function GuestAppContent({
             {t("billIntro")}
           </p>
           {orders?.orders.some((order) => order.status === "PENDING") ? (
-            <Card className="border-amber-200 bg-amber-50/80 p-4">
+            <Card className="border-warn bg-warn-soft p-4">
               <p className="text-sm font-medium">{t("pendingOrder")}</p>
               <p className="mt-1 text-xs text-[var(--muted)]">
                 {t("pendingHint")}

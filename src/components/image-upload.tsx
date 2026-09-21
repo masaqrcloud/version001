@@ -93,7 +93,7 @@ export function ImageUpload({
         ) : null}
       </div>
       {hint ? <p className="mt-1 text-xs text-[var(--muted)]">{hint}</p> : null}
-      {error ? <p className="mt-1 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="mt-1 text-sm text-bad">{error}</p> : null}
     </div>
   );
 }

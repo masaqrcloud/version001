@@ -90,8 +90,8 @@ export function GuestBestOf({
                     onClick={() => void send("vote", { choice: side })}
                     className={`rounded-2xl border p-4 text-left ${
                       picked
-                        ? "border-emerald-600 bg-emerald-50"
-                        : "border-[var(--line)] bg-white"
+                        ? "border-ok bg-ok-soft"
+                        : "border-[var(--line)] bg-surface"
                     }`}
                   >
                     <p className="font-serif text-2xl leading-snug">
@@ -150,7 +150,7 @@ export function GuestBestOf({
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
                     active
                       ? "bg-[var(--ink)] text-[var(--bg)]"
-                      : "bg-black/5 text-[var(--ink)]"
+                      : "bg-soft text-[var(--ink)]"
                   }`}
                 >
                   {row.label}

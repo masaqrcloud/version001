@@ -111,7 +111,7 @@ export function RegisterForm() {
           onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
         />
       </div>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm text-bad">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? "Oluşturuluyor…" : "Mekanı oluştur"}
       </Button>

@@ -180,8 +180,8 @@ export function HomePage() {
           <ButtonLink href="/apply" variant="ghost" size="sm">
             Başvuru
           </ButtonLink>
-          <ButtonLink href="/hesabim" variant="ghost" size="sm">
-            Siparişlerim
+          <ButtonLink href="/mekan-giris" variant="outline" size="sm">
+            Mekân girişi
           </ButtonLink>
           <ButtonLink href="/login" variant="secondary" size="sm">
             Giriş yap
@@ -385,12 +385,12 @@ export function HomePage() {
       <section className="mt-16">
         <Card className="overflow-hidden p-0">
           <div className="grid lg:grid-cols-2">
-            <div className="bg-[var(--ink)] p-8 text-[#fff6ee] sm:p-10">
+            <div className="bg-[var(--ink)] p-8 text-[var(--bg)] sm:p-10">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">
                 Referanslar
               </p>
               <p className="mt-3 font-serif text-3xl">Referans işletmeler</p>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/75">
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--bg)]/75">
                 MasaQR kullanan işletmelerin menü ve salon görünümleri bu
                 bölümde yayınlanacaktır.
               </p>
@@ -419,7 +419,7 @@ export function HomePage() {
               kısa sürede sizinle iletişime geçeriz.
             </p>
             <div className="mt-6 space-y-3 text-sm">
-              <p className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3">
+              <p className="rounded-2xl border border-[var(--line)] bg-surface/60 px-4 py-3">
                 E-posta
                 <a
                   className="mt-1 block font-medium text-[var(--ink)]"
@@ -428,13 +428,13 @@ export function HomePage() {
                   masaqr.cloud@gmail.com
                 </a>
               </p>
-              <p className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3">
+              <p className="rounded-2xl border border-[var(--line)] bg-surface/60 px-4 py-3">
                 Telefon
                 <span className="mt-1 block font-medium text-[var(--muted)]">
                   Yakında duyurulacaktır
                 </span>
               </p>
-              <p className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3">
+              <p className="rounded-2xl border border-[var(--line)] bg-surface/60 px-4 py-3">
                 Ofis
                 <span className="mt-1 block font-medium text-[var(--muted)]">
                   Türkiye
@@ -463,8 +463,8 @@ export function HomePage() {
             <a href="#moduller">Modüller</a>
             <a href="#paketler">Paketler</a>
             <a href="/apply">Başvuru</a>
-            <a href="/hesabim">Siparişlerim</a>
-            <a href="/login">Giriş</a>
+            <a href="/login">Giriş yap</a>
+            <a href="/mekan-giris">Mekân girişi</a>
           </div>
         </div>
       </footer>

@@ -54,7 +54,7 @@ export function SessionFeedbackForm({
             className={`flex h-11 w-11 items-center justify-center rounded-full border text-lg ${
               rating >= value
                 ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                : "border-[var(--line)] bg-white"
+                : "border-[var(--line)] bg-surface"
             }`}
             onClick={() => setRating(value)}
           >
@@ -63,7 +63,7 @@ export function SessionFeedbackForm({
         ))}
       </div>
       <textarea
-        className="mt-3 min-h-24 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm"
+        className="mt-3 min-h-24 w-full rounded-xl border border-[var(--line)] bg-surface px-3 py-2 text-sm"
         maxLength={500}
         value={comment}
         placeholder={t ? t("commentPh") : "İstersen kısa bir yorum bırak"}

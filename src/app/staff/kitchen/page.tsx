@@ -7,7 +7,7 @@ import { EnableStaffNotifications } from "@/components/enable-staff-notification
 
 export default async function KitchenPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/mekan-giris");
   if (!canAccessKitchen(session.user.role)) {
     redirect(homeForRole(session.user.role));
   }

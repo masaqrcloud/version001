@@ -314,7 +314,7 @@ export function MenuManager() {
               <div>
                 <Label>Kategori</Label>
                 <select
-                  className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+                  className="h-10 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
                   value={editForm.categoryId}
                   onChange={(event) =>
                     setEditForm((form) =>
@@ -432,7 +432,7 @@ export function MenuManager() {
               {editForm.optionGroups.map((group, groupIndex) => (
                 <div
                   key={group.key}
-                  className="rounded-2xl border border-[var(--line)] bg-black/[0.02] p-4"
+                  className="rounded-2xl border border-[var(--line)] bg-soft p-4"
                 >
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="min-w-40 flex-1">
@@ -712,7 +712,7 @@ export function MenuManager() {
                 </div>
               ))}
             </div>
-            {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
+            {error ? <p className="mt-3 text-sm text-bad">{error}</p> : null}
             <Button className="mt-4" onClick={() => void saveItem()}>
               Değişiklikleri kaydet
             </Button>
@@ -763,7 +763,7 @@ export function MenuManager() {
                         className={`mt-2 inline-block text-xs font-medium ${
                           item.stockTracked &&
                           item.stockQuantity <= item.lowStockThreshold
-                            ? "text-red-700"
+                            ? "text-bad"
                             : "text-[var(--accent)]"
                         }`}
                       >
@@ -848,7 +848,7 @@ export function MenuManager() {
               placeholder="Örn. Soğuk içecekler"
             />
           </div>
-          {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="mt-2 text-sm text-bad">{error}</p> : null}
           <Button className="mt-3 w-full" onClick={() => void addCategory()}>
             Ekle
           </Button>
@@ -860,7 +860,7 @@ export function MenuManager() {
             <div>
               <Label>Kategori</Label>
               <select
-                className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+                className="h-10 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
                 value={itemForm.categoryId}
                 onChange={(e) =>
                   setItemForm((f) => ({ ...f, categoryId: e.target.value }))

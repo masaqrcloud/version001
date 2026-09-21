@@ -1,0 +1,32 @@
+---
+description: Dark mode uyumlu renk kullanımı (tema token'ları)
+globs: src/**/*.tsx,src/**/*.css
+alwaysApply: false
+---
+
+# Tema token'ları — her sayfa dark mode'a uymalı
+
+Dark mode `html[data-theme="dark"]` ile açılır ve tüm renkler `src/app/globals.css`
+içindeki CSS değişkenlerinden gelir. Yeni sayfa/bileşen yazarken sabit renk kullanma;
+token utility'lerini kullan:
+
+| Amaç                     | Kullan                                   | Kullanma                              |
+|--------------------------|------------------------------------------|---------------------------------------|
+| Beyaz kutu, input zemini | `bg-surface`                             | `bg-white`, `#fff`                    |
+| Kart zemini              | `bg-[var(--card)]` / `Card` bileşeni     | `bg-[#fffaf4]`                        |
+| Hafif gri zemin          | `bg-soft`, `bg-soft-strong`              | `bg-black/5`, `bg-black/15`           |
+| Yazı                     | `text-[var(--ink)]`, `text-[var(--muted)]` | `text-black`, `text-gray-500`        |
+| Çizgi                    | `border-[var(--line)]`, `border-line-strong` | `border-gray-200`                 |
+| Başarı                   | `text-ok`, `bg-ok-soft`, `border-ok`     | `text-emerald-700`, `bg-emerald-50`   |
+| Hata                     | `text-bad`, `bg-bad-soft`, `border-bad`  | `text-red-700`, `bg-red-50`           |
+| Uyarı                    | `text-warn`, `bg-warn-soft`, `border-warn` | `text-amber-800`, `bg-amber-50`     |
+| Bilgi                    | `text-info`, `bg-info-soft`              | `bg-sky-100`                          |
+| Accent üstü yazı         | `text-on-accent`                         | `text-[#fff6ee]`                      |
+| Ink zemin üstü yazı      | `text-[var(--bg)]`                       | `text-white`                          |
+
+- `text-white` yalnızca `bg-[var(--accent)]`, `bg-ok`, `bg-bad` gibi doygun renk zeminlerde kabul edilir.
+- Karartma katmanları (`bg-black/45`) her iki temada çalışır, kalabilir.
+- Yeni bir renk gerekiyorsa `:root` ve `html[data-theme="dark"]` bloklarına ekle,
+  `@theme inline` içinde `--color-*` olarak tanımla; komponentte hardcode etme.
+- Gradyanlar için `var(--bubble-from)`, `var(--bubble-to)`, `var(--plate)`, `var(--body-gradient)` kullan.
+- Tema anahtarı: `ThemeToggle` (`src/components/theme-toggle.tsx`). `LanguageSwitch`, `AppShell` ve `SidebarShell` zaten içerir.

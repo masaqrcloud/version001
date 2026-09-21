@@ -4,6 +4,6 @@ import { homeForRole } from "@/lib/tenant";
 
 export default async function StaffIndexPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/mekan-giris");
   redirect(homeForRole(session.user.role));
 }

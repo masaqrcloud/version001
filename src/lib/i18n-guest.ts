@@ -271,6 +271,8 @@ export const guestTr = {
   bestof_yemek: "Yemek",
   bestof_meyve: "Meyve",
   bestof_atistirmalik: "Atıştırmalık",
+  themeLight: "Açık tema",
+  themeDark: "Koyu tema",
 };
 
 export type GuestMessage = keyof typeof guestTr;
@@ -542,6 +544,8 @@ const guestEn: Record<GuestMessage, string> = {
   bestof_yemek: "Food",
   bestof_meyve: "Fruit",
   bestof_atistirmalik: "Snacks",
+  themeLight: "Light theme",
+  themeDark: "Dark theme",
 };
 
 export const GUEST_MESSAGES: Record<Locale, Record<GuestMessage, string>> = {

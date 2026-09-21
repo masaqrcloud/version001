@@ -53,7 +53,7 @@ export function NutritionEditor({
       <div>
         <Label>Hayvansal kaynak</Label>
         <select
-          className="h-11 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+          className="h-11 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
           value={value.animalSource ?? ""}
           onChange={(event) =>
             onChange({
@@ -104,7 +104,7 @@ export function NutritionEditor({
                 className={`rounded-full border px-2.5 py-1 text-xs ${
                   selected
                     ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "border-[var(--line)] bg-white text-[var(--muted)]"
+                    : "border-[var(--line)] bg-surface text-[var(--muted)]"
                 }`}
               >
                 {allergen.label}
@@ -135,8 +135,8 @@ function ToggleFlag({
       onClick={onToggle}
       className={`rounded-xl border px-3 py-2 text-left text-sm ${
         on
-          ? "border-red-300 bg-red-50 text-red-800"
-          : "border-[var(--line)] bg-white text-[var(--ink)]"
+          ? "border-bad bg-bad-soft text-bad"
+          : "border-[var(--line)] bg-surface text-[var(--ink)]"
       }`}
     >
       <span className="block text-[11px] text-[var(--muted)]">{label}</span>

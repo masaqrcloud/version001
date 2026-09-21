@@ -184,7 +184,7 @@ export function StaffManager({
           <div>
             <Label>Rol</Label>
             <select
-              className="h-10 w-full rounded-xl border border-[var(--line)] bg-white px-3 text-sm"
+              className="h-10 w-full rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
               value={form.role}
               onChange={(e) =>
                 setForm((f) => ({
@@ -200,7 +200,7 @@ export function StaffManager({
               ))}
             </select>
           </div>
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="text-sm text-bad">{error}</p> : null}
           <Button className="w-full" type="submit" disabled={busy}>
             {busy ? "Ekleniyor…" : "Hesap oluştur"}
           </Button>

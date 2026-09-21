@@ -16,7 +16,7 @@ export default async function WaiterTableOrderPage({
     "ADMIN",
     "WAITER",
   ]);
-  if (error || !user) redirect("/login");
+  if (error || !user) redirect("/mekan-giris");
 
   const { tableId } = await params;
   const table = await prisma.table.findFirst({

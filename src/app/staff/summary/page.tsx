@@ -6,7 +6,7 @@ import { PageIntro } from "@/components/page-intro";
 
 export default async function SummaryPage() {
   const session = await auth();
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/mekan-giris");
   if (!canAccessReports(session.user.role)) {
     redirect(homeForRole(session.user.role));
   }

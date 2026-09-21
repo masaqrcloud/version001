@@ -199,7 +199,7 @@ export function HomeGuestDemo() {
             ) : (
               <>
                 <div className="px-3 pb-2">
-                  <div className="grid grid-cols-3 gap-1 rounded-full bg-black/5 p-1">
+                  <div className="grid grid-cols-3 gap-1 rounded-full bg-soft p-1">
                     {(
                       [
                         ["menu", "Menü"],
@@ -229,7 +229,7 @@ export function HomeGuestDemo() {
                 </div>
 
                 {notice ? (
-                  <p className="mx-3 mb-2 rounded-xl bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">
+                  <p className="mx-3 mb-2 rounded-xl bg-ok-soft px-3 py-2 text-[11px] text-ok">
                     {notice}
                   </p>
                 ) : null}
@@ -304,7 +304,7 @@ export function HomeGuestDemo() {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                className="h-7 w-7 rounded-full bg-black/5 text-sm"
+                                className="h-7 w-7 rounded-full bg-soft text-sm"
                                 onClick={() => changeQty(line.id, -1)}
                               >
                                 −
@@ -314,7 +314,7 @@ export function HomeGuestDemo() {
                               </span>
                               <button
                                 type="button"
-                                className="h-7 w-7 rounded-full bg-black/5 text-sm"
+                                className="h-7 w-7 rounded-full bg-soft text-sm"
                                 onClick={() => changeQty(line.id, 1)}
                               >
                                 +

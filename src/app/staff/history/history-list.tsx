@@ -136,7 +136,7 @@ export function HistoryList() {
                       {order.guestName} · {orderStatusLabel[order.status]}
                     </p>
                     {order.cancelReason ? (
-                      <p className="text-xs text-red-700">
+                      <p className="text-xs text-bad">
                         İptal nedeni: {order.cancelReason}
                       </p>
                     ) : null}
@@ -170,7 +170,7 @@ export function HistoryList() {
                   </div>
                 ))}
                 {session.feedback.length ? (
-                  <div className="rounded-xl bg-black/[0.03] p-3 text-sm">
+                  <div className="rounded-xl bg-soft p-3 text-sm">
                     <p className="font-medium">
                       Müşteri puanı:{" "}
                       {(

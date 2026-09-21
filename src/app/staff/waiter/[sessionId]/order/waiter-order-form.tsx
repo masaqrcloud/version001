@@ -309,7 +309,7 @@ export function WaiterOrderForm({
                   type="button"
                   disabled={item.soldOut}
                   onClick={() => addItem(item)}
-                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-left disabled:opacity-50"
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-surface px-4 py-3 text-left disabled:opacity-50"
                 >
                   <span>
                     <span className="block font-medium">{item.name}</span>
@@ -414,7 +414,7 @@ export function WaiterOrderForm({
                   : "Mutfağa gönder"}
             </Button>
           </div>
-          {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="mt-2 text-sm text-bad">{error}</p> : null}
         </div>
       ) : null}
     </div>
