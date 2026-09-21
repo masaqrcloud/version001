@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { CustomerSignOutButton } from "@/components/customer-sign-out-button";
 import { GoogleJoinButton } from "@/components/google-join-button";
 import { Popup } from "@/components/ui/popup";
 import { useLocale } from "@/components/locale-provider";
@@ -150,13 +151,20 @@ export function GuestHistory({
               </section>
             ))
           )}
-          <button
-            type="button"
-            className="min-h-11 text-sm text-[var(--muted)] underline-offset-4 hover:underline"
-            onClick={() => setConfirmDelete(true)}
-          >
-            {t("historyDelete")}
-          </button>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <CustomerSignOutButton
+              label={t("historySignOut")}
+              variant="outline"
+              size="sm"
+            />
+            <button
+              type="button"
+              className="min-h-11 text-sm text-[var(--muted)] underline-offset-4 hover:underline"
+              onClick={() => setConfirmDelete(true)}
+            >
+              {t("historyDelete")}
+            </button>
+          </div>
         </>
       )}
       {message ? (

@@ -112,6 +112,16 @@ export function refreshCustomerCookie<T extends NextResponse>(
   return response;
 }
 
+/** Müşteri oturum çerezlerini temizler (çıkış). */
+export function clearCustomerCookies<T extends NextResponse>(response: T): T {
+  response.cookies.set(CUSTOMER_COOKIE, "", customerCookieOptions(0));
+  response.cookies.set(CUSTOMER_OAUTH_COOKIE, "", {
+    ...customerCookieOptions(0),
+    maxAge: 0,
+  });
+  return response;
+}
+
 export function mailOptOutToken(customerId: string) {
   return sign(`mail:${customerId}`);
 }

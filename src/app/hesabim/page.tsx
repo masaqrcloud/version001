@@ -1,11 +1,15 @@
 import { AppShell } from "@/components/app-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CustomerSignOutButton } from "@/components/customer-sign-out-button";
 import { GuestHistory } from "@/components/guest-history";
 import { GuestLoyalty } from "@/components/guest-loyalty";
 import { LocaleProvider } from "@/components/locale-provider";
+import { getCustomerFromCookie } from "@/lib/customer";
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const customer = await getCustomerFromCookie();
+
   return (
     <AppShell
       nav={
@@ -16,6 +20,7 @@ export default function AccountPage() {
           <ButtonLink href="/" variant="secondary" size="sm">
             Ana sayfa
           </ButtonLink>
+          {customer ? <CustomerSignOutButton /> : null}
         </>
       }
     >
