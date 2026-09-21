@@ -38,11 +38,14 @@ export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=768}"
 npm run build
 
 mkdir -p public/uploads/menu public/uploads/venues
-chmod +x scripts/backup-local.sh
+chmod +x scripts/backup-local.sh scripts/day-summary.sh
 sudo cp deploy/masaqr-backup.service /etc/systemd/system/masaqr-backup.service
 sudo cp deploy/masaqr-backup.timer /etc/systemd/system/masaqr-backup.timer
+sudo cp deploy/masaqr-day-summary.service /etc/systemd/system/masaqr-day-summary.service
+sudo cp deploy/masaqr-day-summary.timer /etc/systemd/system/masaqr-day-summary.timer
 sudo systemctl daemon-reload
 sudo systemctl enable --now masaqr-backup.timer
+sudo systemctl enable --now masaqr-day-summary.timer
 
 if [ -f "$APP_DIR/deploy/nextapp.service" ]; then
   sudo cp "$APP_DIR/deploy/nextapp.service" /etc/systemd/system/nextapp.service

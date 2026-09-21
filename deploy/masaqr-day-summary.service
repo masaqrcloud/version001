@@ -1,0 +1,11 @@
+[Unit]
+Description=MasaQR daily venue summary email
+After=network.target nextapp.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/masaqr
+Environment=APP_DIR=/home/ubuntu/masaqr
+Environment=APP_ORIGIN=http://127.0.0.1:3000
+ExecStart=/bin/bash /home/ubuntu/masaqr/scripts/day-summary.sh

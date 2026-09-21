@@ -1,0 +1,13 @@
+[Unit]
+Description=Send MasaQR venue summary email every night
+
+[Timer]
+# 20:50 UTC = 23:50 Europe/Istanbul. Rapor Istanbul gunune gore hesaplandigi
+# icin saat dilimi sunucu ayarina birakilmaz.
+OnCalendar=*-*-* 20:50:00 UTC
+Persistent=false
+RandomizedDelaySec=3m
+Unit=masaqr-day-summary.service
+
+[Install]
+WantedBy=timers.target
