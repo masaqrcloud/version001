@@ -57,15 +57,34 @@ export async function GET(request: Request) {
   return html(mail.html);
 }
 
-/** Aynı raporu giriş yapan kişinin adresine test olarak yollar. */
+/** Raporu gerçek alıcı listesine (OWNER/ADMIN + ek adres) test olarak yollar. */
 export async function POST() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
   if (error) return error;
 
-  const to = user.email?.trim();
-  if (!to) {
+  const venue = await prisma.venue.findUnique({
+    where: { id: user.venueId },
+    select: { reportEmail: true, reportMail: true },
+  });
+  if (!venue) {
+    return NextResponse.json({ error: "Mekân bulunamadı" }, { status: 404 });
+  }
+
+  const staff = await prisma.user.findMany({
+    where: { venueId: user.venueId, role: { in: ["OWNER", "ADMIN"] } },
+    select: { email: true },
+  });
+  const recipients = new Set<string>();
+  for (const member of staff) {
+    if (member.email?.trim()) recipients.add(member.email.trim());
+  }
+  if (user.email?.trim()) recipients.add(user.email.trim());
+  if (venue.reportEmail?.trim()) recipients.add(venue.reportEmail.trim());
+
+  const emails = [...recipients];
+  if (!emails.length) {
     return NextResponse.json(
-      { error: "Hesabında kayıtlı e-posta yok" },
+      { error: "Gönderilecek e-posta adresi yok" },
       { status: 400 },
     );
   }
@@ -75,20 +94,51 @@ export async function POST() {
     return NextResponse.json({ error: "Mekân bulunamadı" }, { status: 404 });
   }
 
+  const stamp = new Date().toLocaleTimeString("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "Europe/Istanbul",
+  });
+  const subject = `[Test ${stamp}] ${mail.subject}`;
+
   try {
-    const sent = await sendTransactionalEmail({
-      to,
-      subject: `[Test] ${mail.subject}`,
-      text: mail.text,
-      html: mail.html,
-    });
-    if (!sent) {
+    const delivered: string[] = [];
+    const failed: string[] = [];
+    for (const to of emails) {
+      try {
+        const sent = await sendTransactionalEmail({
+          to,
+          subject,
+          text: mail.text,
+          html: mail.html,
+        });
+        if (sent) delivered.push(to);
+        else failed.push(to);
+      } catch (sendError) {
+        console.error(`Test raporu gönderilemedi: ${to}`, sendError);
+        failed.push(to);
+      }
+    }
+
+    if (!delivered.length) {
       return NextResponse.json(
-        { error: "E-posta servisi kapalı (RESEND_API_KEY tanımlı değil)" },
-        { status: 503 },
+        {
+          error:
+            failed.length
+              ? "E-posta gönderilemedi. Resend API key ve domain ayarını kontrol et."
+              : "E-posta servisi kapalı (RESEND_API_KEY tanımlı değil)",
+        },
+        { status: failed.length ? 502 : 503 },
       );
     }
-    return NextResponse.json({ ok: true, to });
+
+    return NextResponse.json({
+      ok: true,
+      to: delivered,
+      failed,
+      reportMailEnabled: venue.reportMail,
+    });
   } catch (sendError) {
     console.error("Test raporu gönderilemedi", sendError);
     return NextResponse.json(

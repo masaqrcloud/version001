@@ -33,7 +33,16 @@ export function ReportSettings({
       setError(json.error ?? "Test maili gönderilemedi");
       return;
     }
-    setTestNote(`Test raporu ${json.to} adresine gönderildi.`);
+    const delivered = Array.isArray(json.to) ? json.to : [json.to];
+    const failed = Array.isArray(json.failed) ? json.failed : [];
+    setTestNote(
+      [
+        `Test raporu gönderildi: ${delivered.filter(Boolean).join(", ")}`,
+        failed.length ? `Gidemedi: ${failed.join(", ")}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    );
   }
 
   async function save() {
@@ -145,6 +154,10 @@ export function ReportSettings({
           {testing ? "Gönderiliyor…" : "Bana test gönder"}
         </Button>
       </div>
+      <p className="text-xs text-[var(--muted)]">
+        Test, giriş hesabına ve kaydettiğin ek rapor adresine gider. Önce
+        “Rapor ayarını kaydet”e basmayı unutma.
+      </p>
       <p className="text-xs text-[var(--muted)]">
         Müşteriye giden şablonlar:{" "}
         <a
