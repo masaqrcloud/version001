@@ -622,6 +622,7 @@ function GuestAppContent({
   const [area, setArea] = useState<Area>("hub");
   const [tab, setTab] = useState<Tab>("menu");
   const [gameImmersive, setGameImmersive] = useState(false);
+  const [inGame, setInGame] = useState(false);
   const [googleAuth, setGoogleAuth] = useState(false);
   const [guestId, setGuestId] = useState("");
   const [guestToken, setGuestToken] = useState("");
@@ -1532,7 +1533,11 @@ function GuestAppContent({
           setTab("menu");
           setArea("menu");
         }}
-        onPlay={() => setArea("play")}
+        onPlay={() => {
+          setInGame(false);
+          setGameImmersive(false);
+          setArea("play");
+        }}
         onHistory={() => setArea("history")}
         onLoyalty={() => setArea("loyalty")}
       />
@@ -1632,7 +1637,7 @@ function GuestAppContent({
         </div>
       ) : null}
       {flash ? <div className="add-flash" /> : null}
-      <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${area === "play" && gameImmersive ? "hidden" : ""}`}>
+      <header className={`sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--bg)]/80 backdrop-blur-md ${area === "play" && (gameImmersive || inGame) ? "hidden" : ""}`}>
         {area === "menu" ? (
         <GuestBrand
           venueName={venueName}
@@ -1642,18 +1647,20 @@ function GuestAppContent({
           tableNumber={tableNumber}
           compact
         >
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <button
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Button
               type="button"
-              className="text-xs font-semibold text-[var(--accent)]"
+              size="sm"
+              variant="outline"
               onClick={() => {
                 setGameImmersive(false);
+                setInGame(false);
                 setArea("hub");
               }}
             >
               {t("hubBack")}
-            </button>
-            <p className="text-xs text-[var(--muted)]">
+            </Button>
+            <p className="min-w-0 flex-1 text-xs text-[var(--muted)]">
               {t("guestsAtTable", { n: bill?.guests.length ?? 1 })}
             </p>
             <LanguageSwitch />
@@ -1696,18 +1703,20 @@ function GuestAppContent({
         </GuestBrand>
         ) : (
           <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-            <div className="flex items-center justify-between gap-2 pb-2">
-              <button
+            <div className="flex items-center gap-2 pb-2">
+              <Button
                 type="button"
-                className="text-sm font-semibold text-[var(--accent)]"
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setGameImmersive(false);
+                  setInGame(false);
                   setArea("hub");
                 }}
               >
                 {t("hubBack")}
-              </button>
-              <p className="font-serif text-xl">
+              </Button>
+              <p className="min-w-0 flex-1 text-center font-serif text-xl">
                 {area === "history"
                   ? t("hubHistory")
                   : area === "loyalty"
@@ -2184,6 +2193,12 @@ function GuestAppContent({
           guestHeaders={guestHeaders}
           onRoundLive={() => setArea("play")}
           onImmersiveChange={setGameImmersive}
+          onHome={() => {
+            setGameImmersive(false);
+            setInGame(false);
+            setArea("hub");
+          }}
+          onActiveGameChange={setInGame}
         />
       </div>
 
