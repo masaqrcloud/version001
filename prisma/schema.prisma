@@ -341,6 +341,7 @@ model Reservation {
   reservationTime String
   note            String?
   status          ReservationStatus @default(PENDING)
+  rejectReason    String?
   reviewedAt      DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

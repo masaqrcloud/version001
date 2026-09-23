@@ -9,11 +9,14 @@ import { venueStaffEmails } from "@/lib/venue-mail-recipients";
 type ReservationMail = {
   email: string;
   fullName: string;
+  phone?: string | null;
   venueName: string;
   reservationDate: string;
   reservationTime: string;
   guestCount: number;
+  note?: string | null;
   tableNumber?: string | null;
+  rejectReason?: string | null;
 };
 
 type ReservationRequestMail = {
@@ -27,6 +30,24 @@ type ReservationRequestMail = {
   note?: string | null;
   tableNumber?: string | null;
 };
+
+function requestDetailsHtml(reservation: ReservationMail) {
+  const table = reservation.tableNumber
+    ? `<p><strong>Masa:</strong> ${escapeHtml(reservation.tableNumber)}</p>`
+    : "";
+  const phone = reservation.phone
+    ? `<p><strong>Telefon:</strong> ${escapeHtml(reservation.phone)}</p>`
+    : "";
+  const note = reservation.note
+    ? `<p><strong>Notun:</strong> ${escapeHtml(reservation.note)}</p>`
+    : "";
+  return `<p><strong>Tarih:</strong> ${escapeHtml(reservation.reservationDate)}</p>
+     <p><strong>Saat:</strong> ${escapeHtml(reservation.reservationTime)}</p>
+     <p><strong>Kişi:</strong> ${reservation.guestCount}</p>
+     ${phone}
+     ${table}
+     ${note}`;
+}
 
 export async function sendReservationRequestMailToVenue(
   reservation: ReservationRequestMail,
@@ -75,26 +96,46 @@ export function sendReservationStatusMail(
   reservation: ReservationMail,
   status: "CONFIRMED" | "REJECTED",
 ) {
-  const confirmed = status === "CONFIRMED";
-  const table = reservation.tableNumber
-    ? `<p><strong>Masa:</strong> ${escapeHtml(reservation.tableNumber)}</p>`
+  if (status === "CONFIRMED") {
+    const table = reservation.tableNumber
+      ? `<p><strong>Masa:</strong> ${escapeHtml(reservation.tableNumber)}</p>`
+      : "";
+    return sendTransactionalEmail({
+      to: reservation.email,
+      subject: `${reservation.venueName}: rezervasyonun onaylandı`,
+      text: `${reservation.venueName} rezervasyonun onaylandı: ${reservation.reservationDate} ${reservation.reservationTime}${
+        reservation.tableNumber ? ` · ${reservation.tableNumber}` : ""
+      }`,
+      html: brandedEmail(
+        "Rezervasyonun onaylandı",
+        `<p>Merhaba ${escapeHtml(reservation.fullName)},</p>
+         <p><strong>${escapeHtml(reservation.venueName)}</strong> için yaptığın rezervasyon talebi onaylandı. Seni bekliyor olacağız.</p>
+         <p><strong>Tarih:</strong> ${escapeHtml(reservation.reservationDate)}</p>
+         <p><strong>Saat:</strong> ${escapeHtml(reservation.reservationTime)}</p>
+         <p><strong>Kişi:</strong> ${reservation.guestCount}</p>
+         ${table}`,
+      ),
+    });
+  }
+
+  const reason = reservation.rejectReason?.trim()
+    ? `<p><strong>Red sebebi:</strong> ${escapeHtml(reservation.rejectReason.trim())}</p>`
     : "";
   return sendTransactionalEmail({
     to: reservation.email,
-    subject: `${reservation.venueName} rezervasyonun ${confirmed ? "onaylandı" : "hakkında"}`,
-    text: confirmed
-      ? `${reservation.venueName} rezervasyonun onaylandı: ${reservation.reservationDate} ${reservation.reservationTime}`
-      : `${reservation.venueName} rezervasyonun şu aşamada onaylanamadı.`,
+    subject: `${reservation.venueName}: rezervasyon talebin reddedildi`,
+    text: `${reservation.venueName} rezervasyon talebin reddedildi. ${
+      reservation.rejectReason?.trim()
+        ? `Sebep: ${reservation.rejectReason.trim()}. `
+        : ""
+    }Talep: ${reservation.reservationDate} ${reservation.reservationTime}, ${reservation.guestCount} kişi.`,
     html: brandedEmail(
-      confirmed ? "Rezervasyonun hazır" : "Rezervasyonun hakkında",
+      "Rezervasyon talebin reddedildi",
       `<p>Merhaba ${escapeHtml(reservation.fullName)},</p>
-       <p><strong>${escapeHtml(reservation.venueName)}</strong> rezervasyonun ${
-         confirmed ? "onaylandı." : "şu aşamada onaylanamadı."
-       }</p>
-       <p><strong>Tarih:</strong> ${escapeHtml(reservation.reservationDate)}</p>
-       <p><strong>Saat:</strong> ${escapeHtml(reservation.reservationTime)}</p>
-       <p><strong>Kişi:</strong> ${reservation.guestCount}</p>
-       ${table}`,
+       <p><strong>${escapeHtml(reservation.venueName)}</strong> için ilettiğin rezervasyon talebi maalesef onaylanamadı.</p>
+       ${reason}
+       <p><strong>Talebin:</strong></p>
+       ${requestDetailsHtml(reservation)}`,
     ),
   });
 }

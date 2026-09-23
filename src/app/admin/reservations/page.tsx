@@ -42,6 +42,7 @@ export default async function ReservationsPage() {
             reservationDate: reservation.reservationDate,
             reservationTime: reservation.reservationTime,
             note: reservation.note,
+            rejectReason: reservation.rejectReason,
             status: reservation.status,
             tableId: reservation.tableId,
           }))}

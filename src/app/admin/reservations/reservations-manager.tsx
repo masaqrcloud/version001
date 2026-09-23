@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ type Row = {
   reservationDate: string;
   reservationTime: string;
   note: string | null;
+  rejectReason: string | null;
   status: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
   tableId: string | null;
 };
@@ -33,15 +35,23 @@ function ReservationRow({
   reservation,
   tables,
   selectedTable,
+  rejectReason,
+  rejecting,
   busy,
   onSelectTable,
+  onRejectReason,
+  onToggleReject,
   onDecide,
 }: {
   reservation: Row;
   tables: { id: string; number: string }[];
   selectedTable: string;
+  rejectReason: string;
+  rejecting: boolean;
   busy: boolean;
   onSelectTable: (tableId: string) => void;
+  onRejectReason: (value: string) => void;
+  onToggleReject: (open: boolean) => void;
   onDecide: (action: "confirm" | "reject") => void;
 }) {
   const chosen = tables.find((table) => table.id === reservation.tableId)?.number;
@@ -70,40 +80,80 @@ function ReservationRow({
       {reservation.note ? (
         <p className="mt-3 rounded-xl bg-soft p-3 text-sm">{reservation.note}</p>
       ) : null}
+      {reservation.status === "REJECTED" && reservation.rejectReason ? (
+        <p className="mt-3 rounded-xl border border-bad/30 bg-bad-soft p-3 text-sm text-bad">
+          <span className="font-semibold">Red sebebi:</span>{" "}
+          {reservation.rejectReason}
+        </p>
+      ) : null}
       {reservation.tableId ? (
         <p className="mt-3 text-sm font-medium text-ok">
           Misafirin seçtiği masa: {chosen ? tableLabel(chosen) : "—"}
         </p>
       ) : null}
       {reservation.status === "PENDING" ? (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <select
-            className="h-9 rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
-            value={selectedTable}
-            onChange={(event) => onSelectTable(event.target.value)}
-          >
-            <option value="">Masa sonra belirlenecek</option>
-            {tables.map((table) => (
-              <option key={table.id} value={table.id}>
-                {tableLabel(table.number)}
-              </option>
-            ))}
-          </select>
-          <Button
-            size="sm"
-            disabled={busy}
-            onClick={() => onDecide("confirm")}
-          >
-            Onayla
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => onDecide("reject")}
-          >
-            Reddet
-          </Button>
+        <div className="mt-4 space-y-3">
+          {!rejecting ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                className="h-9 rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
+                value={selectedTable}
+                onChange={(event) => onSelectTable(event.target.value)}
+              >
+                <option value="">Masa sonra belirlenecek</option>
+                {tables.map((table) => (
+                  <option key={table.id} value={table.id}>
+                    {tableLabel(table.number)}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                disabled={busy}
+                onClick={() => onDecide("confirm")}
+              >
+                Onayla
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => onToggleReject(true)}
+              >
+                Reddet
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 rounded-xl border border-[var(--line)] bg-soft p-3">
+              <label className="block text-sm font-medium text-[var(--ink)]">
+                Red sebebi
+              </label>
+              <Textarea
+                rows={3}
+                maxLength={400}
+                placeholder="Misafire iletilecek red sebebini yazın"
+                value={rejectReason}
+                onChange={(event) => onRejectReason(event.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  disabled={busy || !rejectReason.trim()}
+                  onClick={() => onDecide("reject")}
+                >
+                  Reddi gönder
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => onToggleReject(false)}
+                >
+                  Vazgeç
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
     </Card>
@@ -132,6 +182,10 @@ export function ReservationsManager({
           ]),
       ),
   );
+  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>(
+    {},
+  );
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -164,6 +218,10 @@ export function ReservationsManager({
       : "Geçmiş rezervasyon yok.";
 
   async function decide(id: string, action: "confirm" | "reject") {
+    if (action === "reject" && !rejectReasons[id]?.trim()) {
+      setMessage("Red sebebi yazılmadan gönderilemez.");
+      return;
+    }
     setBusyId(id);
     setMessage(null);
     const response = await fetch(`/api/admin/reservations/${id}`, {
@@ -172,6 +230,8 @@ export function ReservationsManager({
       body: JSON.stringify({
         action,
         tableId: selectedTables[id] || null,
+        rejectReason:
+          action === "reject" ? rejectReasons[id]?.trim() : undefined,
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -180,10 +240,13 @@ export function ReservationsManager({
       setMessage(data.error ?? "İşlem tamamlanamadı.");
       return;
     }
+    setRejectingId(null);
     setMessage(
       data.emailSent === false
         ? "Durum kaydedildi fakat e-posta gönderilemedi."
-        : "Rezervasyon güncellendi ve misafire e-posta gönderildi.",
+        : action === "confirm"
+          ? "Rezervasyon onaylandı ve misafire e-posta gönderildi."
+          : "Rezervasyon reddedildi ve misafire e-posta gönderildi.",
     );
     router.refresh();
   }
@@ -259,12 +322,23 @@ export function ReservationsManager({
               reservation={reservation}
               tables={tables}
               selectedTable={selectedTables[reservation.id] ?? ""}
+              rejectReason={rejectReasons[reservation.id] ?? ""}
+              rejecting={rejectingId === reservation.id}
               busy={busyId === reservation.id}
               onSelectTable={(tableId) =>
                 setSelectedTables((current) => ({
                   ...current,
                   [reservation.id]: tableId,
                 }))
+              }
+              onRejectReason={(value) =>
+                setRejectReasons((current) => ({
+                  ...current,
+                  [reservation.id]: value,
+                }))
+              }
+              onToggleReject={(open) =>
+                setRejectingId(open ? reservation.id : null)
               }
               onDecide={(action) => void decide(reservation.id, action)}
             />

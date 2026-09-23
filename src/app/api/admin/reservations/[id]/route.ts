@@ -3,12 +3,24 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { sendReservationStatusMail } from "@/lib/reservation-mail";
+import { tableLabel } from "@/lib/table-label";
 
 type Context = { params: Promise<{ id: string }> };
-const schema = z.object({
-  action: z.enum(["confirm", "reject"]),
-  tableId: z.string().nullable().optional(),
-});
+const schema = z
+  .object({
+    action: z.enum(["confirm", "reject"]),
+    tableId: z.string().nullable().optional(),
+    rejectReason: z.string().trim().max(400).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.action === "reject" && !value.rejectReason?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Red sebebi gerekli",
+        path: ["rejectReason"],
+      });
+    }
+  });
 
 export async function PATCH(request: Request, context: Context) {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -16,12 +28,18 @@ export async function PATCH(request: Request, context: Context) {
 
   const body = schema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
-    return NextResponse.json({ error: "Geçersiz işlem" }, { status: 400 });
+    const rejectIssue = body.error.issues.find((issue) =>
+      issue.path.includes("rejectReason"),
+    );
+    return NextResponse.json(
+      { error: rejectIssue?.message ?? "Geçersiz işlem" },
+      { status: 400 },
+    );
   }
   const { id } = await context.params;
   const reservation = await prisma.reservation.findFirst({
     where: { id, venueId: user.venueId },
-    include: { venue: true },
+    include: { venue: true, table: { select: { number: true } } },
   });
   if (!reservation) {
     return NextResponse.json({ error: "Rezervasyon bulunamadı" }, { status: 404 });
@@ -62,14 +80,22 @@ export async function PATCH(request: Request, context: Context) {
 
   const status =
     body.data.action === "confirm" ? ("CONFIRMED" as const) : ("REJECTED" as const);
+  const rejectReason =
+    status === "REJECTED" ? body.data.rejectReason!.trim() : null;
   await prisma.reservation.update({
     where: { id },
     data: {
       status,
-      tableId: status === "CONFIRMED" ? table?.id ?? null : null,
+      tableId: status === "CONFIRMED" ? table?.id ?? null : reservation.tableId,
+      rejectReason,
       reviewedAt: new Date(),
     },
   });
+
+  const tableNumber =
+    status === "CONFIRMED"
+      ? table?.number ?? reservation.table?.number
+      : reservation.table?.number;
 
   let emailSent = true;
   try {
@@ -77,11 +103,14 @@ export async function PATCH(request: Request, context: Context) {
       {
         email: reservation.email,
         fullName: reservation.fullName,
+        phone: reservation.phone,
         venueName: reservation.venue.name,
         reservationDate: reservation.reservationDate,
         reservationTime: reservation.reservationTime,
         guestCount: reservation.guestCount,
-        tableNumber: table?.number,
+        note: reservation.note,
+        tableNumber: tableNumber ? tableLabel(tableNumber) : null,
+        rejectReason,
       },
       status,
     );
