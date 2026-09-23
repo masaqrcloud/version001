@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { istanbulToday } from "@/lib/reservation-occupancy";
 import { PageIntro } from "@/components/page-intro";
 import { ReservationsManager } from "@/app/admin/reservations/reservations-manager";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function ReservationsPage() {
   const { user } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
   const staff = user!;
+  const today = istanbulToday();
   const [reservations, tables] = await Promise.all([
     prisma.reservation.findMany({
       where: { venueId: staff.venueId },
@@ -30,6 +32,7 @@ export default async function ReservationsPage() {
       </PageIntro>
       <div className="mt-8">
         <ReservationsManager
+          today={today}
           reservations={reservations.map((reservation) => ({
             id: reservation.id,
             fullName: reservation.fullName,

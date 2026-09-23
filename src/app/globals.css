@@ -267,6 +267,8 @@ h3,
 .side-link {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-height: 2.5rem;
   padding: 0 0.85rem;
   border-radius: 0.9rem;
@@ -275,6 +277,30 @@ h3,
   font-weight: 600;
   text-decoration: none;
   transition: background-color 160ms ease, color 160ms ease;
+}
+
+.side-link-label {
+  min-width: 0;
+}
+
+.side-link-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.side-link-active .side-link-badge {
+  background: var(--on-accent);
+  color: var(--accent);
 }
 
 .side-link:hover {

@@ -5,6 +5,8 @@ import { parseOpeningHours } from "@/lib/opening-hours";
 import { sittingIsOccupied } from "@/lib/media";
 import { istanbulToday } from "@/lib/reservation-occupancy";
 import { normalizeTrMobile } from "@/lib/phone";
+import { sendReservationRequestMailToVenue } from "@/lib/reservation-mail";
+import { tableLabel } from "@/lib/table-label";
 
 const schema = z.object({
   venueId: z.string().min(1),
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
 
   const venue = await prisma.venue.findUnique({
     where: { id: body.data.venueId },
-    select: { id: true, openingHours: true },
+    select: { id: true, name: true, openingHours: true },
   });
   if (!venue) {
     return NextResponse.json({ error: "Mekân bulunamadı." }, { status: 404 });
@@ -192,7 +194,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       const table = await tx.table.findFirst({
         where: { id: body.data.tableId, venueId: venue.id },
       });
@@ -215,7 +217,25 @@ export async function POST(request: Request) {
           note: body.data.note || null,
         },
       });
+
+      return { tableNumber: table.number };
     });
+
+    try {
+      await sendReservationRequestMailToVenue({
+        venueId: venue.id,
+        fullName: body.data.fullName,
+        email,
+        phone: body.data.phone,
+        reservationDate: body.data.reservationDate,
+        reservationTime: body.data.reservationTime,
+        guestCount: body.data.guestCount,
+        note: body.data.note || null,
+        tableNumber: tableLabel(created.tableNumber),
+      });
+    } catch (mailError) {
+      console.error("Rezervasyon mekân e-postası gönderilemedi:", mailError);
+    }
   } catch (error) {
     if (
       error instanceof Error &&

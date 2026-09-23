@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canAccessAdmin, getStaffUser, homeForRole } from "@/lib/tenant";
+import { istanbulToday } from "@/lib/reservation-occupancy";
 import { NavLink, SideGroup, SignedInName } from "@/components/app-nav";
 import { SignOutButton } from "@/components/sign-out-button";
 import { SidebarShell } from "@/components/sidebar-shell";
@@ -29,7 +30,8 @@ export default async function AdminLayout({
   }
 
   const { user } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
-  const [venue, account] = await Promise.all([
+  const today = istanbulToday();
+  const [venue, account, pendingReservations] = await Promise.all([
     user?.venueId
       ? prisma.venue.findUnique({ where: { id: user.venueId } })
       : null,
@@ -39,6 +41,15 @@ export default async function AdminLayout({
           select: { name: true, email: true },
         })
       : null,
+    user?.venueId
+      ? prisma.reservation.count({
+          where: {
+            venueId: user.venueId,
+            status: "PENDING",
+            reservationDate: { gte: today },
+          },
+        })
+      : Promise.resolve(0),
   ]);
 
   return (
@@ -64,7 +75,16 @@ export default async function AdminLayout({
         <>
           <SideGroup title="Mekân">
             {venueLinks.map((link) => (
-              <NavLink key={link.href} href={link.href} exact={link.exact}>
+              <NavLink
+                key={link.href}
+                href={link.href}
+                exact={link.exact}
+                badge={
+                  link.href === "/admin/reservations"
+                    ? pendingReservations
+                    : null
+                }
+              >
                 {link.label}
               </NavLink>
             ))}
