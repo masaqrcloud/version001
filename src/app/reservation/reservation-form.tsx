@@ -6,6 +6,11 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
 import { asCoord, hasCoordinates } from "@/lib/maps";
 import { VenueMap } from "@/components/venue-map";
+import {
+  formatTrMobileDisplay,
+  isTrMobile,
+  normalizeTrMobile,
+} from "@/lib/phone";
 
 type TableOption = {
   id: string;
@@ -154,6 +159,11 @@ export function ReservationForm({
       setError("Lütfen bir masa seç.");
       return;
     }
+    const phone = normalizeTrMobile(form.phone);
+    if (!phone) {
+      setError("Geçerli bir Türkiye cep telefonu gir (05XX XXX XX XX).");
+      return;
+    }
     setBusy(true);
     setError(null);
     const response = await fetch("/api/reservations", {
@@ -161,6 +171,7 @@ export function ReservationForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        phone,
         guestCount: Number(form.guestCount),
       }),
     });
@@ -248,12 +259,30 @@ export function ReservationForm({
           <Input
             id="phone"
             type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
             required
+            placeholder="05XX XXX XX XX"
+            maxLength={14}
             value={form.phone}
             onChange={(event) =>
-              setForm((current) => ({ ...current, phone: event.target.value }))
+              setForm((current) => ({
+                ...current,
+                phone: formatTrMobileDisplay(event.target.value),
+              }))
             }
+            onBlur={() => {
+              if (form.phone && !isTrMobile(form.phone)) {
+                setError("Geçerli bir Türkiye cep telefonu gir (05XX XXX XX XX).");
+              } else if (error?.includes("cep telefonu")) {
+                setError(null);
+              }
+            }}
+            aria-invalid={Boolean(form.phone) && !isTrMobile(form.phone)}
           />
+          <p className="mt-1.5 text-xs text-[var(--muted)]">
+            Türkiye cep numarası: 05XX XXX XX XX
+          </p>
         </div>
       </div>
       <div>

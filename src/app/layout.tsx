@@ -11,6 +11,7 @@ const manrope = Manrope({
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

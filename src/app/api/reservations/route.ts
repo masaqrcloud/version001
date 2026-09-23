@@ -4,13 +4,27 @@ import { prisma } from "@/lib/db";
 import { parseOpeningHours } from "@/lib/opening-hours";
 import { sittingIsOccupied } from "@/lib/media";
 import { istanbulToday } from "@/lib/reservation-occupancy";
+import { normalizeTrMobile } from "@/lib/phone";
 
 const schema = z.object({
   venueId: z.string().min(1),
   tableId: z.string().min(1),
   fullName: z.string().trim().min(3).max(80),
   email: z.string().trim().email().max(120),
-  phone: z.string().trim().min(7).max(24),
+  phone: z
+    .string()
+    .trim()
+    .transform((value, ctx) => {
+      const normalized = normalizeTrMobile(value);
+      if (!normalized) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Geçerli bir Türkiye cep telefonu girin.",
+        });
+        return z.NEVER;
+      }
+      return normalized;
+    }),
   guestCount: z.number().int().min(1).max(30),
   reservationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reservationTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -103,8 +117,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = schema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
+    const phoneIssue = body.error.issues.find((issue) =>
+      issue.path.includes("phone"),
+    );
     return NextResponse.json(
-      { error: "Rezervasyon bilgilerini kontrol et." },
+      {
+        error:
+          phoneIssue?.message ?? "Rezervasyon bilgilerini kontrol et.",
+      },
       { status: 400 },
     );
   }

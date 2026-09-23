@@ -1,5 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { HomeContactForm } from "@/components/home-contact-form";
+import {
+  HomeFeatureIcon,
+  type IconName,
+} from "@/components/home-feature-icon";
 import { HomeGuestDemo } from "@/components/home-guest-demo";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,52 +13,91 @@ const steps = [
     n: "01",
     title: "Masadaki kod okutulur",
     body: "Misafir, kamera ile QR kodu tarar. Uygulama indirmeden menü saniyeler içinde açılır.",
+    image: "/home/scan-qr.png",
+    alt: "Masada QR kod tarayan telefon",
   },
   {
     n: "02",
     title: "Sipariş telefondan iletilir",
     body: "Her misafir kendi sepetini oluşturur. Alerjen bilgisi, kalori ve ürün seçenekleri ilgili kalemin yanında yer alır.",
+    image: "/home/phone-menu.png",
+    alt: "Telefonda açık dijital menü",
   },
   {
     n: "03",
     title: "Mutfak ve servis aynı anda görür",
     body: "Sipariş mutfak ekranına düşer. Garson masa durumunu ve adisyonu takip eder; hazırlık tamamlandığında misafir bilgilendirilir.",
+    image: "/home/kitchen.png",
+    alt: "Mutfak tezgâhında sipariş ekranı",
   },
 ];
 
-const reasons = [
+const references = [
+  { label: "Kafe", image: "/home/tea-coffee.png", alt: "Çay ve kahve ikramı" },
+  { label: "Balıkçı", image: "/home/seafood.png", alt: "Izgara balık tabağı" },
+  {
+    label: "Otel restoranı",
+    image: "/home/hotel.png",
+    alt: "Otel restoranı masası",
+  },
+  {
+    label: "Pastane",
+    image: "/home/pastry.png",
+    alt: "Pastane tatlıları ve Türk kahvesi",
+  },
+];
+
+const reasons: {
+  title: string;
+  body: string;
+  icon: IconName;
+}[] = [
   {
     title: "1 Temmuz menü yönetmeliğine uyum",
     body: "14 alerjen, et kaynağı, alkol ve domuz bilgisi ile porsiyon kalorisi yönetim panelinden girilir, menüde anında yayınlanır.",
+    icon: "allergen",
   },
   {
     title: "Baskı maliyeti ortadan kalkar",
     body: "Fiyat veya ürün değişikliğinde menüyü yeniden bastırmanız gerekmez. QR kod aynı kalır, içerik güncellenir.",
+    icon: "print",
   },
   {
     title: "Anlık güncelleme",
     body: "Tükendi işareti, yeni ürün veya kampanya fiyatı kaydedildiği anda masadaki ekranda görünür.",
+    icon: "bolt",
   },
   {
     title: "Hijyenik sunum",
     body: "Misafir menüye kendi telefonundan ulaşır. Ortak basılı menü dolaşmaz, temas azalır.",
+    icon: "hygiene",
   },
   {
     title: "Mutfak ve garson ekranları",
     body: "Sipariş, çağrı, masa durumu ve adisyon tek panelde toplanır. Garson, QR olmadan da masaya sipariş yazabilir.",
+    icon: "screens",
   },
   {
     title: "Salon planı",
     body: "Kat yerleşimi canlı izlenir. Dolu masalar boş görünmez; servis ekibi boş masaya sipariş başlatabilir.",
+    icon: "floor",
   },
   {
     title: "Stok takibi",
     body: "Siparişle stok adedi düşer; tükenecek ürün menüde otomatik işaretlenir. İsteğe bağlı aylık modül olarak sunulur.",
+    icon: "stock",
   },
   {
     title: "Misafir ağı",
     body: "Kablosuz ağ adı ve şifresi masa ekranında gösterilir. Şifre, dokunulduğunda panoya kopyalanır.",
+    icon: "wifi",
   },
+];
+
+const guestChips: { label: string; icon: IconName }[] = [
+  { label: "QR ile giriş", icon: "qr" },
+  { label: "Alerjen & kalori", icon: "allergen" },
+  { label: "Kendi sepeti", icon: "cart" },
 ];
 
 const EXTRA_TABLE_TRY = 89;
@@ -114,13 +157,20 @@ const packages = [
   },
 ];
 
-const modules = [
+const modules: {
+  name: string;
+  price: string;
+  screens: string;
+  summary: string;
+  icon: IconName;
+}[] = [
   {
     name: "Rezervasyon",
     price: "590",
     screens: "Misafir rezervasyon sayfası · Yönetim / Rezervasyonlar",
     summary:
       "Tarih, saat ve masa seçimi alınır; onay bilgisi e-posta ile iletilir. Menü veya Sipariş paketine eklenebilir. Zincir paketinde dahildir.",
+    icon: "floor",
   },
   {
     name: "Stok",
@@ -128,6 +178,7 @@ const modules = [
     screens: "Yönetim / Stok",
     summary:
       "Siparişle stok adedi düşer, iptalde iade edilir. Teslimat, fire ve sayım aynı ekrandan yürütülür. Zincir paketinde dahildir.",
+    icon: "stock",
   },
 ];
 
@@ -190,7 +241,7 @@ export function HomePage() {
       }
     >
       <section className="grid items-center gap-8 pt-4 lg:grid-cols-[1.05fr_0.95fr] lg:pt-6">
-        <div className="flex flex-col justify-center">
+        <div className="home-rise flex flex-col justify-center">
           <p className="page-kicker">Kafe ve restoran işletmeleri</p>
           <h1 className="page-title max-w-2xl text-5xl sm:text-6xl">
             Misafirlerinize modern bir menü deneyimi sunun.
@@ -215,7 +266,12 @@ export function HomePage() {
           </div>
         </div>
 
-        <HomeGuestDemo />
+        <div className="home-rise home-rise-2 home-hero-stage">
+          <div className="home-hero-glow" aria-hidden />
+          <div className="home-hero-phone">
+            <HomeGuestDemo />
+          </div>
+        </div>
       </section>
 
       <section id="nasil" className="home-anchor mt-16">
@@ -227,15 +283,23 @@ export function HomePage() {
           telefon, QR kodu okutulmuş bir masanın çalışan örneğidir.
         </p>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {steps.map((step) => (
-            <Card key={step.title} className="p-6">
-              <p className="text-sm font-semibold text-[var(--accent)]">
-                {step.n}
-              </p>
-              <p className="mt-2 font-serif text-2xl">{step.title}</p>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-                {step.body}
-              </p>
+          {steps.map((step, index) => (
+            <Card
+              key={step.title}
+              className={`home-step-card home-rise ${index === 1 ? "home-rise-2" : index === 2 ? "home-rise-3" : ""}`}
+            >
+              <div className="home-media">
+                <img src={step.image} alt={step.alt} loading="lazy" />
+              </div>
+              <div className="home-step-body">
+                <p className="text-sm font-semibold text-[var(--accent)]">
+                  {step.n}
+                </p>
+                <p className="mt-2 font-serif text-2xl">{step.title}</p>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                  {step.body}
+                </p>
+              </div>
             </Card>
           ))}
         </div>
@@ -243,16 +307,60 @@ export function HomePage() {
 
       <section id="ozellikler" className="home-anchor mt-16">
         <p className="page-kicker">Neden MasaQR?</p>
-        <h2 className="page-title">Menüden salona, tek platform</h2>
+        <h2 className="page-title home-title-wide">
+          Menüden mutfağa, salondan kasaya — hepsi tek platformda
+        </h2>
         <p className="page-lead">
           Yalnızca dijital bir menü değil; sipariş, stok, rezervasyon ve yasal
           bildirim yükümlülükleri aynı sistemde yönetilir.
         </p>
+        <div className="home-feature-band">
+          <div className="home-feature-copy">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                Misafir deneyimi
+              </p>
+              <p className="mt-2 font-serif text-3xl leading-snug text-[var(--ink)]">
+                Menü cebinde, sipariş masada.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+                Uygulama indirmeden QR ile giriş, alerjen ve kalori bilgisi,
+                kendi sepeti. Ortak basılı menü dolaşmaz; herkes kendi
+                telefonundan ilerler.
+              </p>
+              <div className="home-feature-chips">
+                {guestChips.map((chip) => (
+                  <span key={chip.label} className="home-feature-chip">
+                    <HomeFeatureIcon name={chip.icon} />
+                    {chip.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="home-media home-feature-inset">
+              <img
+                src="/home/feature-guest-phone.png"
+                alt="Misafir telefonundan menüye bakıyor"
+                loading="lazy"
+              />
+            </div>
+          </div>
+          <div className="home-media home-feature-photo">
+            <img
+              src="/home/feature-cafe-table.png"
+              alt="Kafe masasında dijital menü ve ikram"
+              loading="lazy"
+            />
+          </div>
+        </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {reasons.map((reason) => (
-            <Card key={reason.title} className="p-5">
-              <p className="font-serif text-xl leading-snug">{reason.title}</p>
-              <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+            <Card key={reason.title} className="home-reason-card">
+              <HomeFeatureIcon name={reason.icon} />
+              <p className="font-serif text-xl leading-snug text-[var(--ink)]">
+                {reason.title}
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--muted)]">
                 {reason.body}
               </p>
             </Card>
@@ -282,9 +390,9 @@ export function HomePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                 {pack.tag}
               </p>
-              <p className="mt-2 font-serif text-3xl">{pack.name}</p>
+              <p className="mt-2 font-serif text-3xl text-[var(--ink)]">{pack.name}</p>
               <p className="mt-2 text-sm text-[var(--muted)]">{pack.summary}</p>
-              <p className="mt-4 font-serif text-4xl tracking-tight">
+              <p className="mt-4 font-serif text-4xl tracking-tight text-[var(--ink)]">
                 {pack.price} ₺
                 <span className="ml-1 text-base font-sans font-medium text-[var(--muted)]">
                   / ay
@@ -301,7 +409,7 @@ export function HomePage() {
               <ButtonLink
                 href={`/apply?paket=${encodeURIComponent(pack.name.toLowerCase())}`}
                 variant={pack.featured ? "primary" : "outline"}
-                className="mt-6 w-full"
+                className="mt-6 self-start"
               >
                 Paketi seçin
               </ButtonLink>
@@ -346,11 +454,12 @@ export function HomePage() {
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {modules.map((mod) => (
             <Card key={mod.name} className="flex flex-col p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+              <HomeFeatureIcon name={mod.icon} />
+              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
                 Aylık ek
               </p>
-              <p className="mt-2 font-serif text-3xl">{mod.name}</p>
-              <p className="mt-3 font-serif text-4xl tracking-tight">
+              <p className="mt-2 font-serif text-3xl text-[var(--ink)]">{mod.name}</p>
+              <p className="mt-3 font-serif text-4xl tracking-tight text-[var(--ink)]">
                 {mod.price} ₺
                 <span className="ml-1 text-base font-sans font-medium text-[var(--muted)]">
                   / ay
@@ -362,7 +471,11 @@ export function HomePage() {
               <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--muted)]">
                 {mod.summary}
               </p>
-              <ButtonLink href="/apply?paket=modul" variant="outline" className="mt-6">
+              <ButtonLink
+                href="/apply?paket=modul"
+                variant="outline"
+                className="mt-6 self-start"
+              >
                 Modülü ekleyin
               </ButtonLink>
             </Card>
@@ -385,23 +498,23 @@ export function HomePage() {
       <section className="mt-16">
         <Card className="overflow-hidden p-0">
           <div className="grid lg:grid-cols-2">
-            <div className="bg-[var(--ink)] p-8 text-[var(--bg)] sm:p-10">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">
-                Referanslar
-              </p>
-              <p className="mt-3 font-serif text-3xl">Referans işletmeler</p>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--bg)]/75">
-                MasaQR kullanan işletmelerin menü ve salon görünümleri bu
-                bölümde yayınlanacaktır.
-              </p>
+            <div className="relative min-h-64 overflow-hidden bg-[var(--ink)] p-8 text-[var(--bg)] sm:min-h-full sm:p-10">
+              <div className="relative">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--gold)]">
+                  Referanslar
+                </p>
+                <p className="mt-3 font-serif text-3xl">Referans işletmeler</p>
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--bg)]/75">
+                  MasaQR kullanan işletmelerin menü ve salon görünümleri bu
+                  bölümde yayınlanacaktır.
+                </p>
+              </div>
             </div>
             <div className="grid gap-3 p-6 sm:grid-cols-2">
-              {["Kafe", "Balıkçı", "Otel restoranı", "Pastane"].map((label) => (
-                <div
-                  key={label}
-                  className="flex min-h-28 items-end rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg)] p-4"
-                >
-                  <p className="text-sm text-[var(--muted)]">{label}</p>
+              {references.map((item) => (
+                <div key={item.label} className="home-ref-tile">
+                  <img src={item.image} alt={item.alt} loading="lazy" />
+                  <span>{item.label}</span>
                 </div>
               ))}
             </div>
@@ -418,6 +531,13 @@ export function HomePage() {
               Başvurunuz yönetim paneline ve e-posta adresimize iletilir. En
               kısa sürede sizinle iletişime geçeriz.
             </p>
+            <div className="home-media mt-6 aspect-[5/3]">
+              <img
+                src="/home/coffee-pour.png"
+                alt="Taze demlenen kahve"
+                loading="lazy"
+              />
+            </div>
             <div className="mt-6 space-y-3 text-sm">
               <p className="rounded-2xl border border-[var(--line)] bg-surface/60 px-4 py-3">
                 E-posta
