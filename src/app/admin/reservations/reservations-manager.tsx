@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { tableLabel } from "@/lib/table-label";
+import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
@@ -18,6 +19,8 @@ type Row = {
   status: "PENDING" | "CONFIRMED" | "REJECTED" | "CANCELLED";
   tableId: string | null;
 };
+
+type Tab = "upcoming" | "past";
 
 const labels = {
   PENDING: "Bekliyor",
@@ -44,10 +47,10 @@ function ReservationRow({
   const chosen = tables.find((table) => table.id === reservation.tableId)?.number;
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+    <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-serif text-xl leading-snug">{reservation.fullName}</p>
+          <p className="font-serif text-2xl leading-snug">{reservation.fullName}</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {reservation.reservationDate} · {reservation.reservationTime} ·{" "}
             {reservation.guestCount} kişi
@@ -65,7 +68,7 @@ function ReservationRow({
         <p className="text-sm font-medium">{labels[reservation.status]}</p>
       </div>
       {reservation.note ? (
-        <p className="mt-3 rounded-lg bg-soft p-2.5 text-sm">{reservation.note}</p>
+        <p className="mt-3 rounded-xl bg-soft p-3 text-sm">{reservation.note}</p>
       ) : null}
       {reservation.tableId ? (
         <p className="mt-3 text-sm font-medium text-ok">
@@ -73,7 +76,7 @@ function ReservationRow({
         </p>
       ) : null}
       {reservation.status === "PENDING" ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <select
             className="h-9 rounded-xl border border-[var(--line)] bg-surface px-3 text-sm"
             value={selectedTable}
@@ -103,61 +106,6 @@ function ReservationRow({
           </Button>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function ReservationPanel({
-  title,
-  description,
-  count,
-  emptyText,
-  rows,
-  tables,
-  selectedTables,
-  busyId,
-  onSelectTable,
-  onDecide,
-}: {
-  title: string;
-  description: string;
-  count: number;
-  emptyText: string;
-  rows: Row[];
-  tables: { id: string; number: string }[];
-  selectedTables: Record<string, string>;
-  busyId: string | null;
-  onSelectTable: (id: string, tableId: string) => void;
-  onDecide: (id: string, action: "confirm" | "reject") => void;
-}) {
-  return (
-    <Card className="flex h-full flex-col p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
-        <div>
-          <h2 className="font-serif text-2xl text-[var(--ink)]">{title}</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
-        </div>
-        <span className="inline-flex min-w-8 items-center justify-center rounded-full bg-soft px-2.5 py-1 text-sm font-semibold text-[var(--ink)]">
-          {count}
-        </span>
-      </div>
-      <div className="mt-4 flex-1 space-y-3">
-        {rows.length ? (
-          rows.map((reservation) => (
-            <ReservationRow
-              key={reservation.id}
-              reservation={reservation}
-              tables={tables}
-              selectedTable={selectedTables[reservation.id] ?? ""}
-              busy={busyId === reservation.id}
-              onSelectTable={(tableId) => onSelectTable(reservation.id, tableId)}
-              onDecide={(action) => onDecide(reservation.id, action)}
-            />
-          ))
-        ) : (
-          <p className="py-6 text-sm text-[var(--muted)]">{emptyText}</p>
-        )}
-      </div>
     </Card>
   );
 }
@@ -172,6 +120,7 @@ export function ReservationsManager({
   today: string;
 }) {
   const router = useRouter();
+  const [tab, setTab] = useState<Tab>("upcoming");
   const [selectedTables, setSelectedTables] = useState<Record<string, string>>(
     () =>
       Object.fromEntries(
@@ -208,6 +157,12 @@ export function ReservationsManager({
     return { upcoming: upcomingRows, past: pastRows };
   }, [reservations, today]);
 
+  const rows = tab === "upcoming" ? upcoming : past;
+  const emptyText =
+    tab === "upcoming"
+      ? "Bekleyen rezervasyon yok."
+      : "Geçmiş rezervasyon yok.";
+
   async function decide(id: string, action: "confirm" | "reject") {
     setBusyId(id);
     setMessage(null);
@@ -241,35 +196,82 @@ export function ReservationsManager({
         </p>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-        <ReservationPanel
-          title="Bekleyen rezervasyonlar"
-          description="Bugün ve sonraki tarihler"
-          count={upcoming.length}
-          emptyText="Bekleyen rezervasyon yok."
-          rows={upcoming}
-          tables={tables}
-          selectedTables={selectedTables}
-          busyId={busyId}
-          onSelectTable={(id, tableId) =>
-            setSelectedTables((current) => ({ ...current, [id]: tableId }))
-          }
-          onDecide={(id, action) => void decide(id, action)}
-        />
-        <ReservationPanel
-          title="Geçmiş rezervasyonlar"
-          description="Tarihi bir gün geçmiş kayıtlar"
-          count={past.length}
-          emptyText="Geçmiş rezervasyon yok."
-          rows={past}
-          tables={tables}
-          selectedTables={selectedTables}
-          busyId={busyId}
-          onSelectTable={(id, tableId) =>
-            setSelectedTables((current) => ({ ...current, [id]: tableId }))
-          }
-          onDecide={(id, action) => void decide(id, action)}
-        />
+      <div
+        className="inline-flex rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-1"
+        role="tablist"
+        aria-label="Rezervasyon sekmeleri"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "upcoming"}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+            tab === "upcoming"
+              ? "bg-[var(--card)] text-[var(--ink)] shadow-sm"
+              : "text-[var(--muted)] hover:text-[var(--ink)]",
+          )}
+          onClick={() => setTab("upcoming")}
+        >
+          Bekleyen
+          <span
+            className={cn(
+              "inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold",
+              tab === "upcoming"
+                ? "bg-[var(--accent)] text-[var(--on-accent)]"
+                : "bg-soft text-[var(--muted)]",
+            )}
+          >
+            {upcoming.length}
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "past"}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+            tab === "past"
+              ? "bg-[var(--card)] text-[var(--ink)] shadow-sm"
+              : "text-[var(--muted)] hover:text-[var(--ink)]",
+          )}
+          onClick={() => setTab("past")}
+        >
+          Geçmiş
+          <span
+            className={cn(
+              "inline-flex min-w-6 items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold",
+              tab === "past"
+                ? "bg-[var(--accent)] text-[var(--on-accent)]"
+                : "bg-soft text-[var(--muted)]",
+            )}
+          >
+            {past.length}
+          </span>
+        </button>
+      </div>
+
+      <div role="tabpanel" className="space-y-4">
+        {rows.length ? (
+          rows.map((reservation) => (
+            <ReservationRow
+              key={reservation.id}
+              reservation={reservation}
+              tables={tables}
+              selectedTable={selectedTables[reservation.id] ?? ""}
+              busy={busyId === reservation.id}
+              onSelectTable={(tableId) =>
+                setSelectedTables((current) => ({
+                  ...current,
+                  [reservation.id]: tableId,
+                }))
+              }
+              onDecide={(action) => void decide(reservation.id, action)}
+            />
+          ))
+        ) : (
+          <Card className="p-6 text-sm text-[var(--muted)]">{emptyText}</Card>
+        )}
       </div>
     </div>
   );
