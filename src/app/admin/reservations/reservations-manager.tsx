@@ -193,12 +193,13 @@ export function ReservationsManager({
     const upcomingRows: Row[] = [];
     const pastRows: Row[] = [];
     for (const reservation of reservations) {
-      if (reservation.reservationDate < today) pastRows.push(reservation);
-      else upcomingRows.push(reservation);
+      const activePending =
+        reservation.status === "PENDING" &&
+        reservation.reservationDate >= today;
+      if (activePending) upcomingRows.push(reservation);
+      else pastRows.push(reservation);
     }
     upcomingRows.sort((a, b) => {
-      if (a.status === "PENDING" && b.status !== "PENDING") return -1;
-      if (b.status === "PENDING" && a.status !== "PENDING") return 1;
       const byDate = a.reservationDate.localeCompare(b.reservationDate);
       if (byDate !== 0) return byDate;
       return a.reservationTime.localeCompare(b.reservationTime);
