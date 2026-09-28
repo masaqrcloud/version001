@@ -60,6 +60,7 @@ const DEMO_ITEMS: DemoItem[] = [
 type Tab = "menu" | "cart" | "bill";
 
 export function HomeGuestDemo() {
+  const [started, setStarted] = useState(false);
   const [joined, setJoined] = useState(false);
   const [name, setName] = useState("");
   const [tab, setTab] = useState<Tab>("menu");
@@ -125,7 +126,28 @@ export function HomeGuestDemo() {
     <div className="demo-phone">
       <div className="demo-phone-bezel">
         <div className="demo-phone-island" />
-        <div className="demo-phone-screen">
+        <div className="demo-phone-screen relative">
+          {!started ? (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[var(--bg)]/70 px-6 text-center backdrop-blur-sm">
+              <span className="rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white">
+                Demo
+              </span>
+              <p className="font-serif text-2xl leading-tight">
+                Demoyu denemek için başlat
+              </p>
+              <p className="text-[11px] leading-relaxed text-[var(--muted)]">
+                Örnek bir masada misafir gibi sipariş ver. Hiçbir şey gerçek
+                mutfağa gitmez.
+              </p>
+              <Button size="lg" className="w-full" onClick={() => setStarted(true)}>
+                Başlat
+              </Button>
+            </div>
+          ) : null}
+          <div
+            aria-hidden={!started}
+            className={`flex min-h-0 flex-1 flex-col ${started ? "" : "pointer-events-none select-none"}`}
+          >
           <div className="flex items-center justify-between px-4 pt-2 text-[10px] font-semibold text-[var(--ink)]">
             <span>21:14</span>
             <span>MasaQR</span>
@@ -361,6 +383,7 @@ export function HomeGuestDemo() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
         <div className="demo-phone-home" />

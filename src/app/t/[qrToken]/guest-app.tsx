@@ -383,6 +383,73 @@ function HubBubble({
   );
 }
 
+const TABLE_GUESTS_SHOWN = 5;
+
+function TableGuests({
+  guests,
+  className = "",
+}: {
+  guests?: { nickname: string; isMe: boolean }[];
+  className?: string;
+}) {
+  const { t } = useLocale();
+  const list = guests ?? [];
+  if (list.length < 2) return null;
+  const ordered = [...list].sort((a, b) => Number(b.isMe) - Number(a.isMe));
+  const shown = ordered.slice(0, TABLE_GUESTS_SHOWN);
+  const hidden = ordered.length - shown.length;
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${className}`}>
+      <span className="inline-flex items-center gap-1 pr-0.5 text-xs font-medium text-[var(--muted)]">
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
+        </svg>
+        {t("tableGuestCount", { n: list.length })}
+      </span>
+      {shown.map((guest, index) => (
+        <span
+          key={`${guest.nickname}-${index}`}
+          className={`inline-flex max-w-[10rem] items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-xs font-medium ${
+            guest.isMe
+              ? "bg-[var(--accent)] text-white"
+              : "bg-soft text-[var(--ink)]"
+          }`}
+        >
+          <span
+            aria-hidden
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${
+              guest.isMe
+                ? "bg-white/25 text-white"
+                : "bg-[var(--accent-soft)] text-[var(--accent)]"
+            }`}
+          >
+            {guest.nickname.trim().charAt(0).toLocaleUpperCase("tr") || "?"}
+          </span>
+          <span className="truncate">
+            {guest.nickname}
+            {guest.isMe ? t("youParen") : ""}
+          </span>
+        </span>
+      ))}
+      {hidden > 0 ? (
+        <span className="rounded-full bg-soft px-2 py-0.5 text-xs font-medium text-[var(--muted)]">
+          +{hidden}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function GuestWelcomeHub({
   venueName,
   venueTagline,
@@ -415,15 +482,6 @@ function GuestWelcomeHub({
   onLoyalty: () => void;
 }) {
   const { t, dir } = useLocale();
-  const tableGuests = guests ?? [];
-  const guestNames =
-    tableGuests.length > 1
-      ? tableGuests
-          .map((guest) =>
-            guest.isMe ? `${guest.nickname}${t("youParen")}` : guest.nickname,
-          )
-          .join(" · ")
-      : "";
   return (
     <div dir={dir} className="mx-auto flex min-h-dvh w-full max-w-lg flex-1 flex-col">
       <div className="relative">
@@ -470,11 +528,7 @@ function GuestWelcomeHub({
       <div className="flex flex-1 flex-col px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6">
         <p className="text-sm text-[var(--muted)]">{t("hubWelcome")}</p>
         <p className="font-serif text-3xl">{t("hello", { name: guestName })}</p>
-        {guestNames ? (
-          <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-            {t("hubGuests", { names: guestNames })}
-          </p>
-        ) : null}
+        <TableGuests guests={guests} className="mt-2" />
         <p className="mt-1 text-sm text-[var(--muted)]">{t("hubPick")}</p>
         <div className="mt-6 grid grid-cols-2 gap-4">
           <HubBubble
@@ -1755,10 +1809,8 @@ function GuestAppContent({
           ))}
         </div>
         ) : null}
-        {area === "menu" && bill?.guests.length ? (
-          <p className="mt-2 text-xs text-[var(--muted)]">
-            {bill.guests.map((g) => (g.isMe ? `${g.nickname}${t("youParen")}` : g.nickname)).join(" · ")}
-          </p>
+        {area === "menu" ? (
+          <TableGuests guests={bill?.guests} className="mt-2" />
         ) : null}
         </div>
       </header>
