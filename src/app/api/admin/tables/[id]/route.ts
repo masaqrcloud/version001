@@ -12,20 +12,13 @@ export async function PATCH(request: Request, context: Ctx) {
   const { id } = await context.params;
   const body = z
     .object({
-      number: z.string().trim().min(1).max(40).optional(),
-      floorX: z.number().int().min(0).max(1000).optional(),
-      floorY: z.number().int().min(0).max(1000).optional(),
+      floorX: z.number().int().min(0).max(1000),
+      floorY: z.number().int().min(0).max(1000),
     })
-    .refine(
-      (value) =>
-        value.number !== undefined ||
-        (value.floorX !== undefined && value.floorY !== undefined),
-      { message: "Güncellenecek masa bilgisi gerekli" },
-    )
     .safeParse(await request.json());
 
   if (!body.success) {
-    return NextResponse.json({ error: "Geçersiz masa" }, { status: 400 });
+    return NextResponse.json({ error: "Geçersiz masa konumu" }, { status: 400 });
   }
 
   const existing = await prisma.table.findFirst({
@@ -38,24 +31,12 @@ export async function PATCH(request: Request, context: Ctx) {
   try {
     const table = await prisma.table.update({
       where: { id },
-      data: {
-        ...(body.data.number !== undefined
-          ? { number: body.data.number }
-          : {}),
-        ...(body.data.floorX !== undefined && body.data.floorY !== undefined
-          ? { floorX: body.data.floorX, floorY: body.data.floorY }
-          : {}),
-      },
+      data: { floorX: body.data.floorX, floorY: body.data.floorY },
     });
     return NextResponse.json(table);
   } catch {
     return NextResponse.json(
-      {
-        error:
-          body.data.number !== undefined
-            ? "Bu masa numarası zaten var"
-            : "Masa konumu kaydedilemedi",
-      },
+      { error: "Masa konumu kaydedilemedi" },
       { status: 409 },
     );
   }
