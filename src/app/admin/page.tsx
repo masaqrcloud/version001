@@ -87,6 +87,9 @@ export default async function AdminHomePage() {
           Toplam {itemCount} ürün kayıtlı. Bir mekâna geçmek için karttaki
           butonu kullan.
         </p>
+        {staff.venueId ? (
+          <VenueFloorPlan editable emptyHref="/admin/tables" />
+        ) : null}
       </div>
     );
   }

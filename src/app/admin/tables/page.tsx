@@ -51,6 +51,7 @@ export default async function AdminTablesPage() {
         initialTables={tables.map((table) => ({
           id: table.id,
           number: table.number,
+          area: table.area,
           qrToken: table.qrToken,
           openGuests: table.sessions[0]?.guests.length ?? 0,
           isOpen: table.sessions.length > 0,

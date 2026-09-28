@@ -96,7 +96,7 @@ export async function GET(request: Request) {
   const [tables, busy] = await Promise.all([
     prisma.table.findMany({
       where: { venueId: parsed.data.venueId },
-      select: { id: true, number: true, floorX: true, floorY: true },
+      select: { id: true, number: true, area: true, floorX: true, floorY: true },
       orderBy: { number: "asc" },
     }),
     busyTableIds(parsed.data.venueId, parsed.data.date),

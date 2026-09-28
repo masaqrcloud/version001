@@ -7,10 +7,12 @@ import { Input, Label } from "@/components/ui/input";
 import { Popup } from "@/components/ui/popup";
 import { makeQr } from "@/lib/qr-with-logo";
 import { tableLabel } from "@/lib/table-label";
+import { areaName, listAreas } from "@/lib/table-area";
 
 type TableRow = {
   id: string;
   number: string;
+  area: string | null;
   qrToken: string;
   openGuests: number;
   isOpen: boolean;
@@ -105,6 +107,7 @@ export function TablesManager({
 }) {
   const [venueLogo, setVenueLogo] = useState(logoUrl ?? "");
   const [number, setNumber] = useState("");
+  const [area, setArea] = useState("");
   const [origin, setOrigin] = useState(phoneOrigin);
   const [tables, setTables] = useState<TableCard[]>(() =>
     initialTables.map((table) => toCard(table, phoneOrigin)),
@@ -204,7 +207,7 @@ export function TablesManager({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ number: value }),
+        body: JSON.stringify({ number: value, area: area.trim() || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -215,6 +218,7 @@ export function TablesManager({
         {
           id: data.id,
           number: data.number,
+          area: data.area ?? null,
           qrToken: data.qrToken,
           openGuests: 0,
           isOpen: false,
@@ -300,6 +304,22 @@ export function TablesManager({
               maxLength={40}
             />
           </div>
+          <div className="min-w-40 flex-1">
+            <Label htmlFor="table-area">Bölge</Label>
+            <Input
+              id="table-area"
+              list="table-area-options"
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              placeholder="Salon, Bahçe, Teras…"
+              maxLength={30}
+            />
+            <datalist id="table-area-options">
+              {listAreas(tables, ["Bahçe", "Teras"]).map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </div>
           <Button type="submit" disabled={busy}>
             {busy ? "Ekleniyor…" : "Masa ekle"}
           </Button>
@@ -317,6 +337,7 @@ export function TablesManager({
                 <div>
                   <h2 className="text-2xl">{tableLabel(table.number)}</h2>
                   <p className="text-sm text-[var(--muted)]">
+                    {areaName(table.area)} ·{" "}
                     {table.isOpen
                       ? `Açık · ${table.openGuests} misafir`
                       : "Boş"}

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
 import { uniqueTableQrToken } from "@/lib/table-token";
+import { normalizeArea } from "@/lib/table-area";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -27,7 +28,10 @@ export async function POST(request: Request) {
   if (error) return error;
 
   const body = z
-    .object({ number: z.string().trim().min(1).max(40) })
+    .object({
+      number: z.string().trim().min(1).max(40),
+      area: z.string().trim().max(30).optional(),
+    })
     .safeParse(await request.json());
 
   if (!body.success) {
@@ -47,6 +51,7 @@ export async function POST(request: Request) {
       data: {
         venueId: user.venueId,
         number: body.data.number,
+        area: normalizeArea(body.data.area),
         qrToken: await uniqueTableQrToken(venue.slug, body.data.number),
       },
     });

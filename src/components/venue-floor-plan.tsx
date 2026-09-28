@@ -8,10 +8,12 @@ import { usePoll } from "@/lib/poll";
 import { autoFloorPosition, clusteredPosition } from "@/lib/table-groups";
 import { formatTRY } from "@/lib/utils";
 import { tableLabel } from "@/lib/table-label";
+import { areaName, floorScale, listAreas } from "@/lib/table-area";
 
 type FloorTable = {
   id: string;
   number: string;
+  area: string | null;
   floorX: number | null;
   floorY: number | null;
   occupied: boolean;
@@ -154,13 +156,29 @@ export function VenueFloorPlan({
   emptyHref?: string;
   editable?: boolean;
 }) {
-  const { data, error } = usePoll<FloorResponse>("/api/staff/floor", 3000);
+  const { data, error, setData } = usePoll<FloorResponse>(
+    "/api/staff/floor",
+    3000,
+  );
   const floorRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, Position>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [activeArea, setActiveArea] = useState<string | null>(null);
+  const [newAreas, setNewAreas] = useState<string[]>([]);
+  const [areaDraft, setAreaDraft] = useState("");
+
+  const allTables = data?.tables ?? [];
+  const areas = listAreas(allTables, newAreas);
+  const currentArea =
+    activeArea && areas.includes(activeArea) ? activeArea : areas[0];
+  const visibleTables = allTables.filter(
+    (table) => areaName(table.area) === currentArea,
+  );
+  const scale = floorScale(visibleTables.length);
+  const showTabs = areas.length > 1 || editing;
 
   function tablePosition(
     table: FloorTable,
@@ -173,20 +191,74 @@ export function VenueFloorPlan({
         ? { x: table.floorX, y: table.floorY }
         : autoFloorPosition(index, total);
     }
-    return clusteredPosition(table, data?.tables ?? [], index, total);
+    return clusteredPosition(table, visibleTables, index, total);
+  }
+
+  function addArea() {
+    const name = areaDraft.trim().slice(0, 30);
+    if (!name) return;
+    const existing = areas.find(
+      (area) => area.toLocaleLowerCase("tr") === name.toLocaleLowerCase("tr"),
+    );
+    if (!existing) setNewAreas((current) => [...current, name]);
+    setActiveArea(existing ?? name);
+    setAreaDraft("");
+  }
+
+  async function moveTable(tableId: string, area: string) {
+    setSaving(true);
+    setSaveError(null);
+    setDraft((current) => {
+      const next = { ...current };
+      delete next[tableId];
+      return next;
+    });
+    setData((current) =>
+      current
+        ? {
+            ...current,
+            tables: current.tables.map((table) =>
+              table.id === tableId
+                ? { ...table, area, floorX: null, floorY: null }
+                : table,
+            ),
+          }
+        : current,
+    );
+    try {
+      const response = await fetch(`/api/admin/tables/${tableId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ area }),
+      });
+      if (!response.ok) throw new Error("move failed");
+    } catch {
+      setSaveError("Masa bölgeye taşınamadı. Tekrar deneyin.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function pointerPosition(event: PointerEvent<HTMLDivElement>): Position | null {
     const bounds = floorRef.current?.getBoundingClientRect();
     if (!bounds) return null;
+    const marginX = Math.round(70 * scale);
+    const marginY = Math.round(100 * scale);
     return {
       x: Math.max(
-        70,
-        Math.min(930, Math.round(((event.clientX - bounds.left) / bounds.width) * 1000)),
+        marginX,
+        Math.min(
+          1000 - marginX,
+          Math.round(((event.clientX - bounds.left) / bounds.width) * 1000),
+        ),
       ),
       y: Math.max(
-        100,
-        Math.min(900, Math.round(((event.clientY - bounds.top) / bounds.height) * 1000)),
+        marginY,
+        Math.min(
+          1000 - marginY,
+          Math.round(((event.clientY - bounds.top) / bounds.height) * 1000),
+        ),
       ),
     };
   }
@@ -210,19 +282,19 @@ export function VenueFloorPlan({
   }
 
   async function arrangeAutomatically() {
-    if (!data) return;
+    if (!visibleTables.length) return;
     const positions = Object.fromEntries(
-      data.tables.map((table, index) => [
+      visibleTables.map((table, index) => [
         table.id,
-        autoFloorPosition(index, data.tables.length),
+        autoFloorPosition(index, visibleTables.length),
       ]),
     );
-    setDraft(positions);
+    setDraft((current) => ({ ...current, ...positions }));
     setSaving(true);
     setSaveError(null);
     try {
       const responses = await Promise.all(
-        data.tables.map((table) => {
+        visibleTables.map((table) => {
           const position = positions[table.id];
           return fetch(`/api/admin/tables/${table.id}`, {
             method: "PATCH",
@@ -303,9 +375,54 @@ export function VenueFloorPlan({
         <p className="mt-3 text-xs text-[var(--muted)]">Kaydediliyor…</p>
       ) : null}
 
-      <div className="mt-5 rounded-[2rem] border border-[var(--line)] bg-[image:var(--plate)] p-4 shadow-inner sm:p-7">
+      {showTabs && data ? (
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          {areas.map((area) => {
+            const count = allTables.filter(
+              (table) => areaName(table.area) === area,
+            ).length;
+            return (
+              <button
+                key={area}
+                type="button"
+                onClick={() => setActiveArea(area)}
+                className={`min-h-10 rounded-full px-4 text-sm font-medium transition ${
+                  area === currentArea
+                    ? "bg-[var(--ink)] text-[var(--bg)]"
+                    : "bg-soft text-[var(--ink)]"
+                }`}
+              >
+                {area}
+                <span className="ml-1.5 opacity-60">{count}</span>
+              </button>
+            );
+          })}
+          {editing ? (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                addArea();
+              }}
+            >
+              <input
+                value={areaDraft}
+                onChange={(event) => setAreaDraft(event.target.value)}
+                placeholder="Yeni bölge (ör. Bahçe)"
+                maxLength={30}
+                className="h-10 w-44 rounded-full border border-[var(--line)] bg-surface px-4 text-sm"
+              />
+              <Button type="submit" size="sm" variant="outline">
+                Ekle
+              </Button>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className={`${showTabs && data ? "mt-3" : "mt-5"} rounded-[2rem] border border-[var(--line)] bg-[image:var(--plate)] p-4 shadow-inner sm:p-7`}>
         <div className="mb-3 flex items-center justify-between border-b border-dashed border-[var(--line)] pb-3 text-xs text-[var(--muted)]">
-          <span>Salon girişi</span>
+          <span>{currentArea === "Salon" ? "Salon girişi" : currentArea}</span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 animate-pulse rounded-full bg-ok" />
             {editing ? "Düzenleme modu" : "Canlı"}
@@ -327,8 +444,15 @@ export function VenueFloorPlan({
             Henüz masa eklenmemiş.
           </p>
         ) : null}
+        {data?.tables.length && !visibleTables.length ? (
+          <p className="py-12 text-center text-sm text-[var(--muted)]">
+            {editing
+              ? `${currentArea} bölgesinde henüz masa yok. Aşağıdan masaları bu bölgeye taşıyabilirsin.`
+              : `${currentArea} bölgesinde masa yok.`}
+          </p>
+        ) : null}
 
-        {data?.tables.length ? (
+        {visibleTables.length ? (
           <div className="-mx-1 overflow-x-auto touch-pan-x">
             <p className="mb-2 text-center text-[11px] text-[var(--muted)] sm:hidden">
               Krokiyi yana kaydır · boş masaya basınca sipariş formuna gidersin
@@ -337,11 +461,11 @@ export function VenueFloorPlan({
             ref={floorRef}
             className="relative h-[480px] w-[720px] overflow-hidden rounded-[1.5rem] border border-dashed border-soft-strong bg-surface/20 sm:h-[680px] sm:w-full"
           >
-            {data.tables.map((table, index) => {
+            {visibleTables.map((table, index) => {
               const position = tablePosition(
                 table,
                 index,
-                data.tables.length,
+                visibleTables.length,
               );
               const content = <FloorCard table={table} />;
               const linkedContent = table.sessionId ? (
@@ -355,14 +479,17 @@ export function VenueFloorPlan({
               return (
                 <div
                   key={table.id}
-                  className={`absolute w-[120px] -translate-x-1/2 -translate-y-1/2 select-none sm:w-[190px] ${
+                  className={`absolute w-[120px] select-none sm:w-[190px] ${
                     editing
                       ? "cursor-grab touch-none active:cursor-grabbing"
                       : "transition-[left,top] duration-300"
-                  } ${dragging === table.id ? "z-20 scale-105" : "z-10"}`}
+                  } ${dragging === table.id ? "z-20" : "z-10"}`}
                   style={{
                     left: `${position.x / 10}%`,
                     top: `${position.y / 10}%`,
+                    transform: `translate(-50%, -50%) scale(${
+                      dragging === table.id ? scale * 1.05 : scale
+                    })`,
                   }}
                   onPointerDown={(event) => {
                     if (!editing) return;
@@ -401,6 +528,40 @@ export function VenueFloorPlan({
           </div>
         ) : null}
       </div>
+
+      {editing && allTables.length ? (
+        <div className="mt-4 rounded-[1.5rem] border border-[var(--line)] bg-surface p-4">
+          <p className="font-medium">Masaları bölgelere ata</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Bölgesi değişen masa o bölgenin krokisine taşınır; orada yerini
+            sürükleyerek ayarlarsın. Masanın adresi ve QR kodu değişmez.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {allTables.map((table) => (
+              <label
+                key={table.id}
+                className="flex items-center justify-between gap-2 rounded-xl bg-soft px-3 py-2 text-sm"
+              >
+                <span className="truncate font-medium">
+                  {tableLabel(table.number)}
+                </span>
+                <select
+                  className="h-9 max-w-[9rem] rounded-lg border border-[var(--line)] bg-surface px-2 text-sm"
+                  value={areaName(table.area)}
+                  disabled={saving}
+                  onChange={(event) => void moveTable(table.id, event.target.value)}
+                >
+                  {areas.map((area) => (
+                    <option key={area} value={area}>
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

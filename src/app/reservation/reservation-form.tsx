@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { tableLabel } from "@/lib/table-label";
+import { areaName, floorScale, listAreas } from "@/lib/table-area";
 import { asCoord, hasCoordinates } from "@/lib/maps";
 import { VenueMap } from "@/components/venue-map";
 import {
@@ -15,6 +16,7 @@ import {
 type TableOption = {
   id: string;
   number: string;
+  area: string | null;
   available: boolean;
   occupied?: boolean;
   reserved?: boolean;
@@ -113,8 +115,16 @@ export function ReservationForm({
   const [sent, setSent] = useState(false);
   const [tables, setTables] = useState<TableOption[]>([]);
   const [tablesBusy, setTablesBusy] = useState(false);
+  const [activeArea, setActiveArea] = useState<string | null>(null);
   const timeReady = Boolean(form.reservationDate && form.reservationTime);
   const selectedTable = tables.find((table) => table.id === form.tableId);
+  const areas = listAreas(tables);
+  const currentArea =
+    activeArea && areas.includes(activeArea) ? activeArea : areas[0];
+  const areaTables = tables.filter(
+    (table) => areaName(table.area) === currentArea,
+  );
+  const scale = floorScale(areaTables.length);
   const selectedVenue = venues.find((venue) => venue.id === form.venueId);
   const venueLat = asCoord(selectedVenue?.latitude);
   const venueLng = asCoord(selectedVenue?.longitude);
@@ -370,12 +380,38 @@ export function ReservationForm({
             Turuncu: senin seçimin
           </span>
         </div>
+        {areas.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {areas.map((area) => {
+              const available = tables.filter(
+                (table) => areaName(table.area) === area && table.available,
+              ).length;
+              return (
+                <button
+                  key={area}
+                  type="button"
+                  onClick={() => setActiveArea(area)}
+                  className={`min-h-10 rounded-full px-4 text-sm font-medium transition ${
+                    area === currentArea
+                      ? "bg-[var(--ink)] text-[var(--bg)]"
+                      : "bg-soft text-[var(--ink)]"
+                  }`}
+                >
+                  {area}
+                  {timeReady ? (
+                    <span className="ml-1.5 opacity-60">{available} uygun</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
         <div className="relative mt-3 overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-[image:var(--plate)] p-3 shadow-inner sm:p-5">
           <div className="mb-3 flex items-center justify-between border-b border-dashed border-[var(--line)] pb-2 text-xs text-[var(--muted)]">
-            <span>Salon girişi</span>
+            <span>{currentArea === "Salon" ? "Salon girişi" : currentArea}</span>
             <span>
               {selectedTable
-                ? `${tableLabel(selectedTable.number)} seçildi`
+                ? `${areas.length > 1 ? `${areaName(selectedTable.area)} · ` : ""}${tableLabel(selectedTable.number)} seçildi`
                 : timeReady
                   ? "Bir masa seç"
                   : "Önce tarih ve saat"}
@@ -387,7 +423,7 @@ export function ReservationForm({
                 Krokiyi yana kaydır
               </p>
               <div className="relative h-[340px] w-[640px] sm:h-[420px] sm:w-full">
-              {tables.map((table, index) => {
+              {areaTables.map((table, index) => {
                 const selected = form.tableId === table.id;
                 const selectable = timeReady && table.available;
                 const state = selected
@@ -400,13 +436,13 @@ export function ReservationForm({
                 const position =
                   table.floorX !== null && table.floorY !== null
                     ? { x: table.floorX, y: table.floorY }
-                    : autoPosition(index, tables.length);
+                    : autoPosition(index, areaTables.length);
                 return (
                   <button
                     key={table.id}
                     type="button"
                     disabled={!selectable}
-                    className={`absolute w-[72px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-1 text-center shadow-sm transition sm:w-[108px] sm:p-1.5 ${
+                    className={`absolute w-[72px] rounded-2xl border p-1 text-center shadow-sm transition sm:w-[108px] sm:p-1.5 ${
                       selected
                         ? "z-20 border-[var(--accent)] bg-[var(--accent-soft)]"
                         : selectable
@@ -418,6 +454,7 @@ export function ReservationForm({
                     style={{
                       left: `${position.x / 10}%`,
                       top: `${position.y / 10}%`,
+                      transform: `translate(-50%, -50%) scale(${scale})`,
                     }}
                     onClick={() =>
                       setForm((current) => ({

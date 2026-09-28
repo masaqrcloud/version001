@@ -96,6 +96,7 @@ export async function GET() {
     return {
       id: table.id,
       number: table.number,
+      area: table.area,
       floorX: table.floorX,
       floorY: table.floorY,
       occupied: active,
