@@ -1307,7 +1307,7 @@ function GuestAppContent({
     const copy = localizedNotice(locale, latest);
     pingPhone(copy.title, copy.body);
     if (isGuestNoticeCode(latest.code) && GAME_NOTICE_CODES.has(latest.code)) {
-      setArea("play");
+      setMessage(`${copy.title}: ${copy.body}`);
       return;
     }
     setMessage(`${copy.title}: ${copy.body}`);
@@ -2236,7 +2236,6 @@ function GuestAppContent({
         <GuestGames
           guestToken={guestToken}
           guestHeaders={guestHeaders}
-          onRoundLive={() => setArea("play")}
           onImmersiveChange={setGameImmersive}
           onHome={() => {
             setGameImmersive(false);
