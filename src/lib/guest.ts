@@ -48,8 +48,8 @@ export function verifySignedGuestToken(value: string | undefined) {
 }
 
 export async function findTable(qrToken: string) {
-  return prisma.table.findUnique({
-    where: { qrToken },
+  return prisma.table.findFirst({
+    where: { OR: [{ qrToken }, { legacyQrToken: qrToken }] },
     include: { venue: true },
   });
 }
@@ -205,10 +205,7 @@ export async function joinTable(
     freshScan?: boolean;
   },
 ) {
-  const table = await prisma.table.findUnique({
-    where: { qrToken },
-    include: { venue: true },
-  });
+  const table = await findTable(qrToken);
 
   if (!table) {
     return null;

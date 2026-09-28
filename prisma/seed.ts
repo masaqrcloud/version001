@@ -63,9 +63,9 @@ async function main() {
 
   await prisma.table.createMany({
     data: [
-      { number: "1", qrToken: "masa-1", venueId: venue.id },
-      { number: "2", qrToken: "masa-2", venueId: venue.id },
-      { number: "3", qrToken: "masa-3", venueId: venue.id },
+      { number: "1", qrToken: "kahve-duragi-masa-1", venueId: venue.id },
+      { number: "2", qrToken: "kahve-duragi-masa-2", venueId: venue.id },
+      { number: "3", qrToken: "kahve-duragi-masa-3", venueId: venue.id },
     ],
   });
 

@@ -142,6 +142,7 @@ model Table {
   id              String         @id @default(cuid())
   number          String
   qrToken         String         @unique @default(cuid())
+  legacyQrToken   String?        @unique
   floorX          Int?
   floorY          Int?
   venueId         String

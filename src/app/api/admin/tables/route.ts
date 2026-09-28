@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getStaffUser } from "@/lib/tenant";
+import { uniqueTableQrToken } from "@/lib/table-token";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN"]);
@@ -33,9 +34,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Masa numarası gerekli" }, { status: 400 });
   }
 
+  const venue = await prisma.venue.findUnique({
+    where: { id: user.venueId },
+    select: { slug: true },
+  });
+  if (!venue) {
+    return NextResponse.json({ error: "Mekân bulunamadı" }, { status: 404 });
+  }
+
   try {
     const table = await prisma.table.create({
-      data: { venueId: user.venueId, number: body.data.number },
+      data: {
+        venueId: user.venueId,
+        number: body.data.number,
+        qrToken: await uniqueTableQrToken(venue.slug, body.data.number),
+      },
     });
     return NextResponse.json(table);
   } catch {

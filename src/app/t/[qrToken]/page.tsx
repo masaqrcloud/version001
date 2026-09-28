@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { findTable, removeInactiveStaffGuests } from "@/lib/guest";
@@ -20,6 +20,9 @@ export default async function TablePage({
   const table = await findTable(qrToken);
   if (!table) {
     notFound();
+  }
+  if (table.qrToken !== qrToken) {
+    redirect(`/t/${table.qrToken}${query.preview === "1" ? "?preview=1" : ""}`);
   }
 
   const categories = await prisma.menuCategory.findMany({
