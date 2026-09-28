@@ -1349,11 +1349,6 @@ function GuestAppContent({
             {t("staffPreview")}
           </p>
         </GuestBrand>
-        <GuestWifiCard
-          className="mx-4"
-          wifiName={wifiName}
-          wifiPassword={wifiPassword}
-        />
         <div className="space-y-8 px-4 py-6">
           {localizedStaffCategories.map((category) => (
             <section key={category.id}>
@@ -1459,11 +1454,6 @@ function GuestAppContent({
         >
           <LanguageSwitch className="mt-3" />
         </GuestBrand>
-        <GuestWifiCard
-          className="mx-4 mt-1"
-          wifiName={wifiName}
-          wifiPassword={wifiPassword}
-        />
         <div className="flex flex-1 flex-col justify-center px-5">
           <h2 className="text-3xl">{t("joinTitle")}</h2>
           <p className="mt-2 text-[var(--muted)]">
@@ -1777,12 +1767,6 @@ function GuestAppContent({
         {hoursLabel}
       </p>
 
-      <GuestWifiCard
-        className="mx-4 mt-3"
-        wifiName={wifiName}
-        wifiPassword={wifiPassword}
-      />
-
       {message ? (
         <p className="px-4 pt-3 text-sm text-[var(--accent)]">{message}</p>
       ) : null}
@@ -1804,6 +1788,45 @@ function GuestAppContent({
           <p className="text-xs text-[var(--muted)]">
             {t("allergenLegal")}
           </p>
+          {loyalty?.enabled ? (
+            <Card className="space-y-3 p-4">
+              <p className="page-kicker">{t("loyaltyRights")}</p>
+              {!loyalty.linked ? (
+                <>
+                  <p className="text-sm text-[var(--muted)]">
+                    {t("loyaltyNeedLoginCart")}
+                  </p>
+                  {googleAuth ? (
+                    <GoogleJoinButton
+                      href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
+                      label={t("joinGoogle")}
+                    />
+                  ) : null}
+                </>
+              ) : loyalty.available > 0 && loyalty.item ? (
+                <>
+                  <p className="font-serif text-2xl">
+                    {t("loyaltyRightsCount", { n: loyalty.available })}
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">
+                    {loyalty.item.name} · {t("loyaltyGift")}
+                  </p>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={useTreat}
+                      onChange={(event) => setUseTreat(event.target.checked)}
+                    />
+                    {useTreat ? t("loyaltyUsing") : t("loyaltyUse")}
+                  </label>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  {t("loyaltyRightsNone")}
+                </p>
+              )}
+            </Card>
+          ) : null}
           {!visibleCategories.length ? (
             <p className="text-sm text-[var(--muted)]">
               {t("noFilterMatch")}
@@ -1849,45 +1872,6 @@ function GuestAppContent({
       {area === "menu" && tab === "cart" ? (
         <div className="space-y-4 px-4 py-6">
           <SectionLogo src={venueLogo} label={t("tabCart")} />
-          {loyalty?.enabled ? (
-            <Card className="space-y-3 p-4">
-              <p className="page-kicker">{t("loyaltyRights")}</p>
-              {!loyalty.linked ? (
-                <>
-                  <p className="text-sm text-[var(--muted)]">
-                    {t("loyaltyNeedLoginCart")}
-                  </p>
-                  {googleAuth ? (
-                    <GoogleJoinButton
-                      href={`/api/guest/auth/google?qr=${encodeURIComponent(qrToken)}`}
-                      label={t("joinGoogle")}
-                    />
-                  ) : null}
-                </>
-              ) : loyalty.available > 0 && loyalty.item ? (
-                <>
-                  <p className="font-serif text-2xl">
-                    {t("loyaltyRightsCount", { n: loyalty.available })}
-                  </p>
-                  <p className="text-sm text-[var(--muted)]">
-                    {loyalty.item.name} · {t("loyaltyGift")}
-                  </p>
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={useTreat}
-                      onChange={(event) => setUseTreat(event.target.checked)}
-                    />
-                    {useTreat ? t("loyaltyUsing") : t("loyaltyUse")}
-                  </label>
-                </>
-              ) : (
-                <p className="text-sm text-[var(--muted)]">
-                  {t("loyaltyRightsNone")}
-                </p>
-              )}
-            </Card>
-          ) : null}
           {!cart?.items.length ? (
             <p className="text-[var(--muted)]">{t("cartEmpty")}</p>
           ) : (
