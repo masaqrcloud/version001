@@ -1310,7 +1310,6 @@ function GuestAppContent({
       setArea("play");
       return;
     }
-    setArea("menu");
     setMessage(`${copy.title}: ${copy.body}`);
     setAlertPopup({ title: copy.title, body: copy.body });
   }, [notes, locale]);
@@ -1516,6 +1515,7 @@ function GuestAppContent({
 
   if (area === "hub") {
     return (
+      <>
       <GuestWelcomeHub
         venueName={venueName}
         venueTagline={venueTagline}
@@ -1539,6 +1539,12 @@ function GuestAppContent({
         onHistory={() => setArea("history")}
         onLoyalty={() => setArea("loyalty")}
       />
+      <Popup
+        title={alertPopup?.title ?? t("notification")}
+        message={alertPopup?.body ?? null}
+        onClose={() => setAlertPopup(null)}
+      />
+      </>
     );
   }
 
