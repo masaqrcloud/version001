@@ -627,6 +627,7 @@ function GuestAppContent({
         : t("closedUntil", { time: openState.opensAt ?? "" });
   const [area, setArea] = useState<Area>("hub");
   const [tab, setTab] = useState<Tab>("menu");
+  const [billView, setBillView] = useState<"orders" | "bill">("orders");
   const [gameImmersive, setGameImmersive] = useState(false);
   const [inGame, setInGame] = useState(false);
   const [googleAuth, setGoogleAuth] = useState(false);
@@ -1186,7 +1187,8 @@ function GuestAppContent({
       setCart({ items: [] });
       setUseTreat(false);
       setArea("menu");
-      setTab("cart");
+      setTab("bill");
+      setBillView("orders");
       setMessage(t("orderSent"));
     } catch {
       setMessage(t("orderOffline"));
@@ -1970,11 +1972,39 @@ function GuestAppContent({
               {t("loyaltyUseNow")}
             </Button>
           ) : null}
+        </div>
+      ) : null}
 
-          {orders?.orders.length ? (
-            <div className="pt-4">
-              <h2 className="text-xl">{t("sentOrders")}</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
+      {area === "menu" && tab === "bill" ? (
+        <div className="space-y-4 px-4 py-6">
+          <SectionLogo src={venueLogo} label={t("tabBill")} />
+          <div className="grid grid-cols-2 gap-1 rounded-full bg-soft p-1">
+            {(
+              [
+                ["orders", t("billViewOrders")],
+                ["bill", t("billViewBill")],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setBillView(key)}
+                className={`min-h-11 touch-manipulation rounded-full text-sm font-medium ${
+                  billView === key
+                    ? "bg-[var(--ink)] text-[var(--bg)]"
+                    : "text-[var(--ink)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {billView === "orders" ? (
+            !orders?.orders.length ? (
+              <p className="text-[var(--muted)]">{t("noSentOrders")}</p>
+            ) : (
+            <div>
+              <p className="text-sm text-[var(--muted)]">
                 {t("cancelIfPending")}
               </p>
               <div className="mt-3 space-y-3">
@@ -2049,13 +2079,9 @@ function GuestAppContent({
                 ))}
               </div>
             </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {area === "menu" && tab === "bill" ? (
-        <div className="space-y-4 px-4 py-6">
-          <SectionLogo src={venueLogo} label={t("tabBill")} />
+            )
+          ) : (
+          <>
           <p className="text-sm text-[var(--muted)]">
             {t("billIntro")}
           </p>
@@ -2069,10 +2095,7 @@ function GuestAppContent({
                 className="mt-3"
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  setArea("menu");
-                  setTab("cart");
-                }}
+                onClick={() => setBillView("orders")}
               >
                 {t("goToOrders")}
               </Button>
@@ -2157,6 +2180,8 @@ function GuestAppContent({
               {receiptBusy ? t("saving") : t("sendWhenClosed")}
             </Button>
           </Card>
+          </>
+          )}
         </div>
       ) : null}
 

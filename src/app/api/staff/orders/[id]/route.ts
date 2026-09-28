@@ -311,7 +311,6 @@ export async function PATCH(request: Request, context: Ctx) {
       await notifyOrderStatus(
         updated.guestId,
         updated.status,
-        updated.tableSessionId,
         order.items
           .map((item) => `${item.quantity}× ${item.name}`)
           .join(", "),

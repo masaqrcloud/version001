@@ -8,11 +8,8 @@ import {
   type GuestNoticeVars,
 } from "@/lib/i18n-guest";
 
-const orderNotice: Record<OrderStatus, GuestNoticeCode> = {
-  PENDING: "noticeOrderPENDING",
-  PREPARING: "noticeOrderPREPARING",
+const orderNotice: Partial<Record<OrderStatus, GuestNoticeCode>> = {
   READY: "noticeOrderREADY",
-  SERVED: "noticeOrderSERVED",
   CANCELLED: "noticeOrderCANCELLED",
 };
 
@@ -66,41 +63,16 @@ export async function notifyGuest(
   });
 }
 
+/** Misafiri sadece "hazır" ve mutfak iptalinde, yalnızca siparişi verene bildirir. */
 export async function notifyOrderStatus(
   guestId: string,
   status: OrderStatus,
-  tableSessionId?: string,
   itemSummary?: string,
 ) {
   if (!prisma.guestNotification) return;
-
   const code = orderNotice[status];
-  const orderGuest = await prisma.guest.findUnique({ where: { id: guestId } });
-  const sessionId = tableSessionId ?? orderGuest?.tableSessionId;
-  const who = orderGuest?.nickname?.trim() || "";
-
-  const guests = sessionId
-    ? await prisma.guest.findMany({
-        where: {
-          tableSessionId: sessionId,
-          NOT: { nickname: null },
-        },
-      })
-    : [];
-
-  const targets = guests.filter((guest) => guest.nickname?.trim());
-  const recipientIds = targets.length
-    ? targets.map((guest) => guest.id)
-    : [guestId];
-
-  await prisma.guestNotification.createMany({
-    data: recipientIds.map((id) => {
-      const vars: GuestNoticeVars = {
-        ...(itemSummary ? { items: itemSummary } : {}),
-        ...(who ? { who } : {}),
-        ...(id !== guestId ? { other: true } : {}),
-      };
-      return noticeData(id, code, vars);
-    }),
+  if (!code) return;
+  await prisma.guestNotification.create({
+    data: noticeData(guestId, code, itemSummary ? { items: itemSummary } : {}),
   });
 }

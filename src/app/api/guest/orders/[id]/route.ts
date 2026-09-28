@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
-import { notifyOrderStatus } from "@/lib/notify";
 import { restoreStockForOrder } from "@/lib/stock";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
@@ -100,17 +99,6 @@ export async function PATCH(request: Request, context: Ctx) {
       { error: "Sipariş mutfakta güncellendi. İptal için garsonu çağır." },
       { status: 409 },
     );
-  }
-
-  try {
-    await notifyOrderStatus(
-      guest.id,
-      "CANCELLED",
-      guest.tableSessionId,
-      order.items.map((item) => `${item.quantity}× ${item.name}`).join(", "),
-    );
-  } catch (error) {
-    console.error("Bildirim yazılamadı", error);
   }
 
   void pushToVenueRoles(

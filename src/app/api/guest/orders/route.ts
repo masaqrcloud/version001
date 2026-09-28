@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
-import { notifyOrderStatus } from "@/lib/notify";
 import { venueOpenState } from "@/lib/opening-hours";
 import { consumeStockForOrder, groupedTrackedStock } from "@/lib/stock";
 import { z } from "zod";
@@ -298,16 +297,6 @@ export async function POST(request: Request) {
     );
   }
 
-  try {
-    await notifyOrderStatus(
-      guest.id,
-      order.status,
-      guest.tableSessionId,
-      order.items.map((item) => `${item.quantity}× ${item.name}`).join(", "),
-    );
-  } catch (error) {
-    console.error("Bildirim yazılamadı", error);
-  }
   void recordInitialEstimate(venueId, order.id).catch((error) => {
     console.error("Hazırlama tahmini kaydedilemedi", error);
   });
