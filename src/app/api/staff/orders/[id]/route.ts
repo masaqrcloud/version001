@@ -39,6 +39,7 @@ export async function PATCH(request: Request, context: Ctx) {
       advance: z.boolean().optional(),
       reason: z.string().trim().min(3).max(200).optional(),
       items: z.array(staffOrderItemSchema).min(1).max(40).optional(),
+      extendMinutes: z.number().int().min(1).max(30).optional(),
     })
     .safeParse(await request.json());
 
@@ -55,6 +56,33 @@ export async function PATCH(request: Request, context: Ctx) {
   });
   if (!order) {
     return NextResponse.json({ error: "Sipariş yok" }, { status: 404 });
+  }
+
+  if (body.data.extendMinutes) {
+    if (!["PLATFORM", "OWNER", "ADMIN", "KITCHEN"].includes(user.role)) {
+      return NextResponse.json(
+        { error: "Süreyi sadece mutfak uzatabilir" },
+        { status: 403 },
+      );
+    }
+    if (!["PENDING", "PREPARING"].includes(order.status)) {
+      return NextResponse.json(
+        { error: "Hazır olan siparişin süresi uzatılamaz" },
+        { status: 409 },
+      );
+    }
+    if (order.etaExtraMinutes + body.data.extendMinutes > 60) {
+      return NextResponse.json(
+        { error: "Bir siparişe en fazla 60 dk eklenebilir" },
+        { status: 409 },
+      );
+    }
+    const extended = await prisma.order.update({
+      where: { id },
+      data: { etaExtraMinutes: { increment: body.data.extendMinutes } },
+      select: { id: true, etaExtraMinutes: true },
+    });
+    return NextResponse.json(extended);
   }
 
   if (body.data.items) {

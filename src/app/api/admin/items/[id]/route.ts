@@ -34,6 +34,7 @@ export async function PATCH(request: Request, context: Ctx) {
       containsAlcohol: nutritionFieldsSchema.shape.containsAlcohol,
       containsPork: nutritionFieldsSchema.shape.containsPork,
       calories: nutritionFieldsSchema.shape.calories,
+      prepMinutes: z.number().int().min(1).max(180).nullable().optional(),
     })
     .safeParse(await request.json());
 

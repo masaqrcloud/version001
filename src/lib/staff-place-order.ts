@@ -3,6 +3,7 @@ import type { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getOrCreateStaffProxyGuest } from "@/lib/guest";
 import { consumeStockForOrder } from "@/lib/stock";
+import { recordInitialEstimate } from "@/lib/prep-estimate";
 import { resolveStaffOrderLines, staffOrderItemSchema } from "@/lib/staff-order-lines";
 import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
@@ -66,6 +67,9 @@ export async function placeStaffOrder(input: {
       return created;
     });
 
+    void recordInitialEstimate(input.venueId, order.id).catch((error) => {
+      console.error("Hazırlama tahmini kaydedilemedi", error);
+    });
     void pushToVenueRoles(
       input.venueId,
       ["PLATFORM", "OWNER", "ADMIN", "KITCHEN"],

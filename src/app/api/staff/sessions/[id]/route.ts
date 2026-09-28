@@ -4,6 +4,7 @@ import { getOrCreateOpenSession } from "@/lib/guest";
 import { isStaffProxyNickname, sittingIsOccupied } from "@/lib/media";
 import { formatTableGroup } from "@/lib/table-groups";
 import { getStaffUser } from "@/lib/tenant";
+import { estimateJson, estimateVenueOrders } from "@/lib/prep-estimate";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -97,6 +98,12 @@ export async function GET(_request: Request, context: Ctx) {
     ...session.mergedTables.map((table) => table.id),
   ]);
 
+  const estimates = session.orders.some((order) =>
+    ["PENDING", "PREPARING"].includes(order.status),
+  )
+    ? await estimateVenueOrders(user.venueId)
+    : new Map();
+
   const active = session.orders.filter((o) => o.status !== "CANCELLED");
   const total = active.reduce(
     (sum, order) =>
@@ -154,6 +161,7 @@ export async function GET(_request: Request, context: Ctx) {
       id: order.id,
       status: order.status,
       createdAt: order.createdAt,
+      eta: estimateJson(estimates.get(order.id)),
       guestName:
         isStaffProxyNickname(order.guestName) ||
         isStaffProxyNickname(order.guest.nickname)

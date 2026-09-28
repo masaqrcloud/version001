@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireOpenGuest } from "@/lib/guest";
 import { displayGuestName } from "@/lib/media";
 import { customerVenueLoyalty } from "@/lib/loyalty";
+import { estimateJson, estimateVenueOrders } from "@/lib/prep-estimate";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -48,6 +49,12 @@ export async function GET() {
         take: 20,
       }),
     ]);
+
+  const estimates = myOrders.some((order) =>
+    ["PENDING", "PREPARING"].includes(order.status),
+  )
+    ? await estimateVenueOrders(guest.tableSession.table.venueId)
+    : new Map();
 
   const orderedIds = new Set(tableOrders.map((order) => order.guestId));
   const recent = Date.now() - 2 * 60 * 60 * 1000;
@@ -113,6 +120,7 @@ export async function GET() {
         id: order.id,
         status: order.status,
         createdAt: order.createdAt,
+        eta: estimateJson(estimates.get(order.id)),
         items: order.items.map((item) => ({
           id: item.id,
           menuItemId: item.menuItemId,

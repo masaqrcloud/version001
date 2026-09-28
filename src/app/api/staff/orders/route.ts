@@ -3,25 +3,29 @@ import { prisma } from "@/lib/db";
 import { formatTableGroup } from "@/lib/table-groups";
 import { isStaffProxyNickname } from "@/lib/media";
 import { getStaffUser } from "@/lib/tenant";
+import { estimateJson, estimateVenueOrders } from "@/lib/prep-estimate";
 
 export async function GET() {
   const { user, error } = await getStaffUser(["PLATFORM", "OWNER", "ADMIN", "KITCHEN", "WAITER"]);
   if (error) return error;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      tableSession: { status: "OPEN", table: { venueId: user.venueId } },
-      status: { in: ["PENDING", "PREPARING", "READY"] },
-    },
-    include: {
-      items: { include: { options: true } },
-      guest: true,
-      tableSession: {
-        include: { table: true, mergedTables: { select: { number: true } } },
+  const [orders, estimates] = await Promise.all([
+    prisma.order.findMany({
+      where: {
+        tableSession: { status: "OPEN", table: { venueId: user.venueId } },
+        status: { in: ["PENDING", "PREPARING", "READY"] },
       },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+      include: {
+        items: { include: { options: true } },
+        guest: true,
+        tableSession: {
+          include: { table: true, mergedTables: { select: { number: true } } },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    estimateVenueOrders(user.venueId),
+  ]);
 
   return NextResponse.json({
     orders: orders.map((order) => ({
@@ -29,6 +33,8 @@ export async function GET() {
       status: order.status,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
+      eta: estimateJson(estimates.get(order.id)),
+      etaExtraMinutes: order.etaExtraMinutes,
       tableNumber: formatTableGroup(
         order.tableSession.table.number,
         order.tableSession.mergedTables.map((table) => table.number),

@@ -30,6 +30,7 @@ type Detail = {
     status: OrderStatus;
     createdAt: string;
     guestName: string;
+    eta: { remainingMinutes: number; late: boolean } | null;
     items: { id: string; name: string; price: number; quantity: number; note: string | null; complimentary?: boolean; options: string[] }[];
   }[];
 };
@@ -238,6 +239,17 @@ export function WaiterSession({ sessionId }: { sessionId: string }) {
                 <div className="flex items-center gap-2">
                   <OrderBadge status={order.status} />
                   <span className="text-sm">{order.guestName}</span>
+                  {order.eta ? (
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        order.eta.late ? "bg-bad-soft text-bad" : "bg-soft"
+                      }`}
+                    >
+                      {order.eta.late
+                        ? "Gecikti"
+                        : `~${order.eta.remainingMinutes} dk`}
+                    </span>
+                  ) : null}
                 </div>
                 {order.status === "READY" ? (
                   <div className="flex gap-2">

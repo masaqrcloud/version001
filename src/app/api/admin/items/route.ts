@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       containsAlcohol: nutritionFieldsSchema.shape.containsAlcohol,
       containsPork: nutritionFieldsSchema.shape.containsPork,
       calories: z.number().int().min(0).max(99999),
+      prepMinutes: z.number().int().min(1).max(180).nullable().optional(),
     })
     .safeParse(await request.json());
 
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
       containsAlcohol: body.data.containsAlcohol ?? false,
       containsPork: body.data.containsPork ?? false,
       calories: body.data.calories,
+      prepMinutes: body.data.prepMinutes ?? null,
       sortOrder: (last?.sortOrder ?? 0) + 1,
       optionGroups: body.data.optionGroups?.length
         ? {

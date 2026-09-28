@@ -4,6 +4,7 @@ import { SettingsForm } from "@/app/admin/settings/settings-form";
 import { LoyaltySettings } from "@/app/admin/settings/loyalty-settings";
 import { VenuesManager } from "@/app/admin/settings/venues-manager";
 import { ReportSettings } from "@/app/admin/settings/report-settings";
+import { KitchenSettings } from "@/app/admin/settings/kitchen-settings";
 import { PageIntro } from "@/components/page-intro";
 
 export default async function AdminSettingsPage() {
@@ -44,6 +45,7 @@ export default async function AdminSettingsPage() {
               longitude={venue.longitude}
             />
             <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
+            <KitchenSettings kitchenCapacity={venue.kitchenCapacity} />
             <ReportSettings
               reportEmail={venue.reportEmail}
               reportMail={venue.reportMail}
@@ -77,6 +79,7 @@ export default async function AdminSettingsPage() {
           longitude={venue.longitude}
         />
         <LoyaltySettings loyaltyItemId={venue.loyaltyItemId} />
+        <KitchenSettings kitchenCapacity={venue.kitchenCapacity} />
         <ReportSettings
           reportEmail={venue.reportEmail}
           reportMail={venue.reportMail}

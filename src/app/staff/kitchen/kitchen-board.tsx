@@ -18,6 +18,8 @@ type OrdersResponse = {
     updatedAt: string;
     tableNumber: string;
     guestName: string;
+    eta: { remainingMinutes: number; late: boolean } | null;
+    etaExtraMinutes: number;
     items: { id: string; name: string; quantity: number; note: string | null; complimentary?: boolean; options: string[] }[];
   }[];
 };
@@ -103,6 +105,21 @@ export function KitchenBoard() {
     });
     if (!patched.ok) {
       window.alert("Durum güncellenemedi, tekrar dene.");
+      return;
+    }
+    const res = await fetch("/api/staff/orders", { cache: "no-store" });
+    if (res.ok) setData(await res.json());
+  }
+
+  async function extend(id: string) {
+    const patched = await fetch(`/api/staff/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extendMinutes: 5 }),
+    });
+    if (!patched.ok) {
+      const result = await patched.json().catch(() => ({}));
+      window.alert(result.error ?? "Süre uzatılamadı, tekrar dene.");
       return;
     }
     const res = await fetch("/api/staff/orders", { cache: "no-store" });
@@ -201,6 +218,31 @@ export function KitchenBoard() {
               minute: "2-digit",
             })}
           </p>
+          {order.eta ? (
+            <div
+              className={`mt-3 flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm ${
+                order.eta.late ? "bg-bad-soft text-bad" : "bg-soft"
+              }`}
+            >
+              <span className="font-medium">
+                {order.eta.late
+                  ? "Söz verilen süre geçti"
+                  : `Misafire söz: ~${order.eta.remainingMinutes} dk`}
+                {order.etaExtraMinutes > 0 ? (
+                  <span className="ml-1 text-xs font-normal opacity-75">
+                    (+{order.etaExtraMinutes} dk eklendi)
+                  </span>
+                ) : null}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void extend(order.id)}
+              >
+                +5 dk
+              </Button>
+            </div>
+          ) : null}
           <ul className="mt-4 flex-1 space-y-1 text-sm">
             {order.items.map((item) => (
               <li key={item.id}>

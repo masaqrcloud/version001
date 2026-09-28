@@ -32,6 +32,7 @@ type Item = {
   containsAlcohol: boolean;
   containsPork: boolean;
   calories: number | null;
+  prepMinutes: number | null;
   optionGroups: {
     id: string;
     name: string;
@@ -59,6 +60,7 @@ type EditForm = {
   name: string;
   description: string;
   price: string;
+  prepMinutes: string;
   nutrition: NutritionInfo;
   optionGroups: {
     key: string;
@@ -86,6 +88,7 @@ export function MenuManager() {
     name: "",
     description: "",
     price: "",
+    prepMinutes: "",
     imageUrl: "",
     stockTracked: false,
     stockQuantity: "0",
@@ -159,6 +162,7 @@ export function MenuManager() {
         name: itemForm.name,
         description: itemForm.description || undefined,
         price: Number(itemForm.price),
+        prepMinutes: Number(itemForm.prepMinutes) || null,
         imageUrl: itemForm.imageUrl || undefined,
         stockTracked: itemForm.stockTracked,
         stockQuantity: Number(itemForm.stockQuantity) || 0,
@@ -179,6 +183,7 @@ export function MenuManager() {
       name: "",
       description: "",
       price: "",
+      prepMinutes: "",
       imageUrl: "",
       stockQuantity: "0",
       nutrition: EMPTY_NUTRITION,
@@ -224,6 +229,7 @@ export function MenuManager() {
       name: item.name,
       description: item.description ?? "",
       price: String(item.price),
+      prepMinutes: item.prepMinutes ? String(item.prepMinutes) : "",
       nutrition: nutritionFromRow(item),
       optionGroups: item.optionGroups.map((group) => ({
         key: group.id,
@@ -278,6 +284,7 @@ export function MenuManager() {
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
         price: Number(editForm.price),
+        prepMinutes: Number(editForm.prepMinutes) || null,
         optionGroups,
         allergens: editForm.nutrition.allergens,
         animalSource: editForm.nutrition.animalSource,
@@ -368,6 +375,25 @@ export function MenuManager() {
                     )
                   }
                 />
+              </div>
+              <div>
+                <Label>Hazırlanma süresi (dk)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="180"
+                  placeholder="Örn. 12"
+                  value={editForm.prepMinutes}
+                  onChange={(event) =>
+                    setEditForm((form) =>
+                      form ? { ...form, prepMinutes: event.target.value } : form,
+                    )
+                  }
+                />
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Misafire söylenecek süre. Yeterli sipariş birikince sistem
+                  gerçek sürelerden öğrenir.
+                </p>
               </div>
             </div>
 
@@ -755,6 +781,7 @@ export function MenuManager() {
                       <p className="text-sm text-[var(--muted)]">
                         {formatTRY(item.price)}
                         {item.calories != null ? ` · ${item.calories} kcal` : ""}
+                        {item.prepMinutes ? ` · ~${item.prepMinutes} dk` : ""}
                         {item.description ? ` · ${item.description}` : ""}
                       </p>
                       <NutritionLabels item={nutritionFromRow(item)} compact />
@@ -898,6 +925,22 @@ export function MenuManager() {
                 value={itemForm.price}
                 onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
               />
+            </div>
+            <div>
+              <Label>Hazırlanma süresi (dk)</Label>
+              <Input
+                type="number"
+                min="1"
+                max="180"
+                placeholder="Örn. 12"
+                value={itemForm.prepMinutes}
+                onChange={(e) =>
+                  setItemForm((f) => ({ ...f, prepMinutes: e.target.value }))
+                }
+              />
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Misafir siparişte “~12 dk” gibi görür.
+              </p>
             </div>
             <div className="rounded-2xl border border-[var(--line)] p-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-[var(--accent)]">

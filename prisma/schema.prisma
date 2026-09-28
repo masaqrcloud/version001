@@ -95,6 +95,7 @@ model Venue {
   loyaltyItem   MenuItem? @relation("VenueLoyaltyItem", fields: [loyaltyItemId], references: [id], onDelete: SetNull)
   reportEmail   String?
   reportMail    Boolean   @default(true)
+  kitchenCapacity Int     @default(3)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -271,6 +272,7 @@ model MenuItem {
   containsAlcohol   Boolean           @default(false)
   containsPork      Boolean           @default(false)
   calories          Int?
+  prepMinutes       Int?
   cartItems         CartItem[]
   orderItems        OrderItem[]
   optionGroups      MenuOptionGroup[]
@@ -390,6 +392,8 @@ model Order {
   cancelledBy       User?              @relation("OrderCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
   cancelReason      String?
   stockRestoredAt   DateTime?
+  estimatedMinutes  Int?
+  etaExtraMinutes   Int                @default(0)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   items             OrderItem[]

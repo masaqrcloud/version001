@@ -233,6 +233,18 @@ export async function venueSummary(venueId: string, days = 1) {
       return ready ? ready.createdAt.getTime() - order.createdAt.getTime() : null;
     })
     .filter((value): value is number => value !== null && value >= 0);
+  const etaDelays = activeOrders
+    .map((order) => {
+      if (order.estimatedMinutes == null) return null;
+      const ready = order.statusEvents.find(
+        (event) => event.toStatus === "READY",
+      );
+      if (!ready) return null;
+      const actual =
+        (ready.createdAt.getTime() - order.createdAt.getTime()) / 60000;
+      return actual - order.estimatedMinutes;
+    })
+    .filter((value): value is number => value !== null);
   const tableDurations = closed
     .filter((session) => session.closedAt)
     .map((session) => session.closedAt!.getTime() - session.openedAt.getTime())
@@ -268,6 +280,14 @@ export async function venueSummary(venueId: string, days = 1) {
         ? preparationTimes.reduce((sum, value) => sum + value, 0) /
           preparationTimes.length /
           60000
+        : null,
+    etaKeptRate:
+      etaDelays.length > 0
+        ? etaDelays.filter((delay) => delay <= 2).length / etaDelays.length
+        : null,
+    etaAverageDelayMinutes:
+      etaDelays.length > 0
+        ? etaDelays.reduce((sum, value) => sum + value, 0) / etaDelays.length
         : null,
     averageTableMinutes:
       tableDurations.length > 0

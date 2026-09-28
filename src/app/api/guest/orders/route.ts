@@ -9,6 +9,7 @@ import { pushToVenueRoles } from "@/lib/staff-push";
 import { tableLabel } from "@/lib/table-label";
 import { customerVenueLoyalty } from "@/lib/loyalty";
 import { notifyLoyaltyReward } from "@/lib/loyalty-mail";
+import { recordInitialEstimate } from "@/lib/prep-estimate";
 
 export async function GET() {
   const guest = await requireOpenGuest();
@@ -307,6 +308,9 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Bildirim yazılamadı", error);
   }
+  void recordInitialEstimate(venueId, order.id).catch((error) => {
+    console.error("Hazırlama tahmini kaydedilemedi", error);
+  });
   if (guest.customerId) {
     void notifyLoyaltyReward(guest.customerId, venueId).catch((error) => {
       console.error("Müdavim e-postası gönderilemedi", error);

@@ -26,6 +26,17 @@ function minutes(value: number | null) {
   return value === null ? "—" : `${Math.round(value)} dk`;
 }
 
+function keptRate(value: number | null) {
+  return value === null ? "—" : `%${Math.round(value * 100)}`;
+}
+
+function delay(value: number | null) {
+  if (value === null) return "—";
+  const rounded = Math.round(value);
+  if (rounded === 0) return "Tam zamanında";
+  return rounded > 0 ? `${rounded} dk geç` : `${-rounded} dk erken`;
+}
+
 function shortMoney(value: number) {
   if (value >= 1000) return `${Math.round(value / 1000)}b`;
   return String(Math.round(value));
@@ -96,6 +107,8 @@ export async function buildDaySummaryMail(venueId: string) {
       { label: "Sipariş", value: `${summary.orderCount} adet` },
       { label: "Ortalama hazırlama", value: minutes(summary.averagePreparationMinutes) },
       { label: "Ortalama masa süresi", value: minutes(summary.averageTableMinutes) },
+      { label: "Süre sözü tutuldu", value: keptRate(summary.etaKeptRate) },
+      { label: "Söze göre sapma", value: delay(summary.etaAverageDelayMinutes) },
     ]),
     mailSectionTitle("Son 7 gün cirosu"),
     mailColumnChart(
@@ -176,6 +189,9 @@ export async function buildDaySummaryMail(venueId: string) {
     `Kapanan masa: ${summary.closedCount}`,
     `Sipariş: ${summary.orderCount} (${summary.itemCount} ürün)`,
     `Ortalama hazırlama: ${minutes(summary.averagePreparationMinutes)}`,
+    summary.etaKeptRate !== null
+      ? `Süre sözü tutuldu: ${keptRate(summary.etaKeptRate)}`
+      : "",
     summary.averageRating !== null
       ? `Misafir puanı: ${summary.averageRating.toFixed(1)}/5`
       : "",
@@ -244,6 +260,8 @@ export async function buildWeekSummaryMail(venueId: string) {
       { label: "Sipariş", value: `${summary.orderCount} adet` },
       { label: "Ortalama hazırlama", value: minutes(summary.averagePreparationMinutes) },
       { label: "Ortalama masa süresi", value: minutes(summary.averageTableMinutes) },
+      { label: "Süre sözü tutuldu", value: keptRate(summary.etaKeptRate) },
+      { label: "Söze göre sapma", value: delay(summary.etaAverageDelayMinutes) },
     ]),
     mailSectionTitle("Günlük dağılım"),
     mailColumnChart(

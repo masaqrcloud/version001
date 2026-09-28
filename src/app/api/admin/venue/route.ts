@@ -52,6 +52,7 @@ export async function PATCH(request: Request) {
         .nullable()
         .optional(),
       reportMail: z.boolean().optional(),
+      kitchenCapacity: z.number().int().min(1).max(20).optional(),
     })
     .safeParse(await request.json());
 
@@ -77,6 +78,7 @@ export async function PATCH(request: Request) {
     loyaltyItemId?: string | null;
     reportEmail?: string | null;
     reportMail?: boolean;
+    kitchenCapacity?: number;
   } = {};
   if (body.data.name) data.name = body.data.name;
   if (body.data.slug !== undefined) {
@@ -142,6 +144,9 @@ export async function PATCH(request: Request) {
   }
   if (body.data.reportMail !== undefined) {
     data.reportMail = body.data.reportMail;
+  }
+  if (body.data.kitchenCapacity !== undefined) {
+    data.kitchenCapacity = body.data.kitchenCapacity;
   }
 
   try {

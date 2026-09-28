@@ -135,6 +135,12 @@ type OrdersResponse = {
     id: string;
     status: OrderStatus;
     createdAt: string;
+    eta?: {
+      readyAt: string;
+      remainingMinutes: number;
+      late: boolean;
+      queueAhead: number;
+    } | null;
     items: { id: string; menuItemId?: string; name: string; price: number; quantity: number; note: string | null; complimentary?: boolean; options?: string[] }[];
   }[];
 };
@@ -1999,6 +2005,30 @@ function GuestAppContent({
                         })}
                       </p>
                     </div>
+                    {order.eta &&
+                    (order.status === "PENDING" || order.status === "PREPARING") ? (
+                      <div className="mt-3 rounded-xl bg-soft px-3 py-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium">
+                            {order.eta.late
+                              ? t("etaSoon")
+                              : order.status === "PREPARING"
+                                ? t("etaPreparing", { min: order.eta.remainingMinutes })
+                                : t("etaReadyIn", { min: order.eta.remainingMinutes })}
+                          </p>
+                          {!order.eta.late ? (
+                            <span className="shrink-0 font-serif text-xl text-[var(--accent)]">
+                              {t("etaBadge", { min: order.eta.remainingMinutes })}
+                            </span>
+                          ) : null}
+                        </div>
+                        {order.status === "PENDING" && order.eta.queueAhead > 0 ? (
+                          <p className="mt-0.5 text-xs text-[var(--muted)]">
+                            {t("etaQueueAhead", { n: order.eta.queueAhead })}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <ul className="mt-2 text-sm">
                       {order.items.map((item) => (
                         <li key={item.id}>
